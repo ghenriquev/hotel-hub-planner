@@ -1,6 +1,9 @@
-// VERSION: 2.0.2 - Fixed Gamma payload structure - force redeploy - 2024-12-06T22:05
+// VERSION: 2.1.0 - Fixed Gamma payload - force redeploy - 2024-12-06T22:30
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Version identifier for debugging deployments
+const FUNCTION_VERSION = "2.1.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +46,9 @@ async function pollGammaGeneration(generationId: string, apiKey: string, maxAtte
 }
 
 serve(async (req) => {
+  // Log version immediately to confirm deployment
+  console.log(`[analyze-module] ===== FUNCTION VERSION ${FUNCTION_VERSION} =====`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -51,7 +57,7 @@ serve(async (req) => {
   try {
     const { hotelId, moduleId, materials } = await req.json();
     
-    console.log(`[analyze-module] Starting analysis for hotel: ${hotelId}, module: ${moduleId}`);
+    console.log(`[analyze-module] v${FUNCTION_VERSION} - Starting analysis for hotel: ${hotelId}, module: ${moduleId}`);
     
     if (!hotelId || moduleId === undefined) {
       throw new Error("hotelId and moduleId are required");
@@ -307,7 +313,7 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
             }
           };
           
-          console.log("[analyze-module] Gamma payload:", JSON.stringify(gammaPayload, null, 2));
+          console.log(`[analyze-module] v${FUNCTION_VERSION} === GAMMA PAYLOAD ===`, JSON.stringify(gammaPayload, null, 2));
           
           const gammaResponse = await fetch("https://public-api.gamma.app/v1.0/generations", {
             method: "POST",

@@ -48,11 +48,11 @@ export default function HotelDetail() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const DEFAULT_MILESTONES = [
-    { id: "fase1", name: "Fase 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
-    { id: "fase2", name: "Fase 2 – Estratégia", startWeek: 2, endWeek: 3 },
-    { id: "fase3", name: "Fase 3 – Construção", startWeek: 4, endWeek: 5 },
-    { id: "fase4", name: "Fase 4 – Ativação e Mensuração", startWeek: 6, endWeek: 6 },
-    { id: "fase5", name: "Fase 5 – Relatório Final e Proposta", startWeek: 8, endWeek: 8 }
+    { id: "fase1", name: "🔹 Fase 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
+    { id: "fase2", name: "🔹 Fase 2 – Estratégia", startWeek: 2, endWeek: 3 },
+    { id: "fase3", name: "🔹 Fase 3 – Construção", startWeek: 4, endWeek: 5 },
+    { id: "fase4", name: "🔹 Fase 4 – Ativação e Mensuração", startWeek: 6, endWeek: 6 },
+    { id: "fase5", name: "🔹 Fase 5 – Relatório Final e Proposta de Continuidade", startWeek: 8, endWeek: 8 }
   ];
 
   const calculateMilestoneDates = useCallback((startDate: Date, ms: typeof DEFAULT_MILESTONES) => {

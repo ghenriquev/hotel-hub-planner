@@ -116,7 +116,6 @@ export default function AgentModule() {
 
   const currentStatus = result?.status || 'pending';
   const isProcessing = currentStatus === 'generating' || isGenerating;
-  const hasPresentation = outputType === 'presentation' && result?.presentation_url;
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,72 +231,78 @@ export default function AgentModule() {
           <div className="bg-card border border-border rounded-xl p-8 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : hasPresentation ? (
-          // Presentation Output
+        ) : result?.result ? (
           <div className="space-y-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            {/* Gamma Embed */}
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="aspect-video w-full">
-                <iframe 
-                  src={result.presentation_url!} 
-                  className="w-full h-full"
-                  allowFullScreen
-                  title="Apresentação Gamma"
-                />
+            {/* Section 1: Text Response (always visible) */}
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg text-foreground">Resposta do Prompt</h2>
               </div>
-              
-              {/* Actions */}
-              <div className="p-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <div className="whitespace-pre-wrap text-foreground leading-relaxed">
+                  {result.result}
+                </div>
+              </div>
+              {result.generated_at && (
+                <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
+                  Gerado em: {new Date(result.generated_at).toLocaleString('pt-BR')}
+                </p>
+              )}
+            </div>
+
+            {/* Section 2: Presentation (if output type is presentation) */}
+            {outputType === 'presentation' && (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-2 p-4 border-b border-border">
                   <Presentation className="h-5 w-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">Apresentação gerada via Gamma</span>
+                  <h2 className="font-display text-lg text-foreground">Apresentação Gamma</h2>
                 </div>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(result.presentation_url!, '_blank')}
-                  className="gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Abrir no Gamma
-                </Button>
-              </div>
-            </div>
-            
-            {/* Text Result (collapsible) */}
-            {result?.result && (
-              <details className="bg-card border border-border rounded-xl">
-                <summary className="p-4 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Ver conteúdo em texto
-                </summary>
-                <div className="px-4 pb-4 prose prose-sm max-w-none dark:prose-invert">
-                  <div className="whitespace-pre-wrap text-foreground leading-relaxed">
-                    {result.result}
+                {result.presentation_url ? (
+                  <>
+                    <div className="aspect-video w-full">
+                      <iframe 
+                        src={result.presentation_url} 
+                        className="w-full h-full"
+                        allowFullScreen
+                        title="Apresentação Gamma"
+                      />
+                    </div>
+                    
+                    <div className="p-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
+                      <span className="text-sm text-muted-foreground">Apresentação gerada via Gamma</span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(result.presentation_url!, '_blank')}
+                        className="gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir no Gamma
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-8 text-center">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
+                    <p className="text-muted-foreground mb-4">
+                      Apresentação não foi gerada. Verifique a configuração da API Gamma.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAnalysis}
+                      disabled={isProcessing}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Tentar Novamente
+                    </Button>
                   </div>
-                </div>
-              </details>
-            )}
-            
-            {result?.generated_at && (
-              <p className="text-xs text-muted-foreground">
-                Gerado em: {new Date(result.generated_at).toLocaleString('pt-BR')}
-              </p>
-            )}
-          </div>
-        ) : result?.result ? (
-          // Text Output
-          <div className="bg-card border border-border rounded-xl p-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            <h2 className="font-display text-lg text-foreground mb-4">Resultado da Análise</h2>
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <div className="whitespace-pre-wrap text-foreground leading-relaxed">
-                {result.result}
+                )}
               </div>
-            </div>
-            {result.generated_at && (
-              <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
-                Gerado em: {new Date(result.generated_at).toLocaleString('pt-BR')}
-              </p>
             )}
           </div>
         ) : !isProcessing && (

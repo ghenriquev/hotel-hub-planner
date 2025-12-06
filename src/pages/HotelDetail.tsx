@@ -26,11 +26,8 @@ import {
   FileText,
   BookOpen,
   Database,
-  Video,
-  ExternalLink,
   CalendarIcon,
-  Trash2,
-  Link as LinkIcon
+  Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -52,14 +49,12 @@ export default function HotelDetail() {
   const hotel = getHotel(id || "");
   
   const [materials, setMaterials] = useState<StrategicMaterials>({
-    planilhaUrl: "",
-    planilhaName: "",
     manualFuncionamentoUrl: "",
     manualFuncionamentoName: "",
     dadosHotelUrl: "",
     dadosHotelName: "",
-    callKickoffLink: "",
-    callKickoffTranscricao: ""
+    transcricaoKickoffUrl: "",
+    transcricaoKickoffName: ""
   });
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
@@ -86,14 +81,12 @@ export default function HotelDetail() {
   useEffect(() => {
     if (hotel?.strategicMaterials) {
       setMaterials({
-        planilhaUrl: hotel.strategicMaterials.planilhaUrl || "",
-        planilhaName: hotel.strategicMaterials.planilhaName || "",
         manualFuncionamentoUrl: hotel.strategicMaterials.manualFuncionamentoUrl || "",
         manualFuncionamentoName: hotel.strategicMaterials.manualFuncionamentoName || "",
         dadosHotelUrl: hotel.strategicMaterials.dadosHotelUrl || "",
         dadosHotelName: hotel.strategicMaterials.dadosHotelName || "",
-        callKickoffLink: hotel.strategicMaterials.callKickoffLink || "",
-        callKickoffTranscricao: hotel.strategicMaterials.callKickoffTranscricao || ""
+        transcricaoKickoffUrl: hotel.strategicMaterials.transcricaoKickoffUrl || "",
+        transcricaoKickoffName: hotel.strategicMaterials.transcricaoKickoffName || ""
       });
     }
     if (hotel?.projectStartDate) {
@@ -266,34 +259,8 @@ export default function HotelDetail() {
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Planilha de Dados - File Upload */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-                Planilha de Dados
-              </label>
-              <FileUpload
-                hotelId={hotel.id}
-                field="planilha"
-                currentUrl={materials.planilhaUrl}
-                currentName={materials.planilhaName}
-                onUploadComplete={(url, name) => {
-                  const newMaterials = { ...materials, planilhaUrl: url, planilhaName: name };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
-                onRemove={() => {
-                  const newMaterials = { ...materials, planilhaUrl: "", planilhaName: "" };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
-              />
-            </div>
-
-            {/* Manual de Funcionamento - File Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Manual de Funcionamento */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -319,7 +286,7 @@ export default function HotelDetail() {
               />
             </div>
 
-            {/* Dados do Hotel - File Upload */}
+            {/* Dados do Hotel */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Database className="h-4 w-4 text-muted-foreground" />
@@ -345,44 +312,31 @@ export default function HotelDetail() {
               />
             </div>
 
-            {/* Link da Call de Kickoff */}
+            {/* Transcrição de Kickoff */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                Link da Call de Kickoff
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                Transcrição de Kickoff
               </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Cole o link da call..."
-                  value={materials.callKickoffLink}
-                  onChange={(e) => handleMaterialChange("callKickoffLink", e.target.value)}
-                  className="flex-1"
-                />
-                {materials.callKickoffLink && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(materials.callKickoffLink, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <FileUpload
+                hotelId={hotel.id}
+                field="transcricao"
+                currentUrl={materials.transcricaoKickoffUrl}
+                currentName={materials.transcricaoKickoffName}
+                onUploadComplete={(url, name) => {
+                  const newMaterials = { ...materials, transcricaoKickoffUrl: url, transcricaoKickoffName: name };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+                onRemove={() => {
+                  const newMaterials = { ...materials, transcricaoKickoffUrl: "", transcricaoKickoffName: "" };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+              />
             </div>
-          </div>
-
-          {/* Transcrição da Call de Kickoff */}
-          <div className="mt-6 space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Video className="h-4 w-4 text-muted-foreground" />
-              Transcrição da Call de Kickoff
-            </label>
-            <Textarea
-              placeholder="Cole aqui a transcrição da call de kickoff..."
-              value={materials.callKickoffTranscricao}
-              onChange={(e) => handleMaterialChange("callKickoffTranscricao", e.target.value)}
-              className="min-h-[150px]"
-            />
           </div>
         </div>
 

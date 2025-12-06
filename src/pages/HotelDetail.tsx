@@ -604,68 +604,6 @@ export default function HotelDetail() {
         />
 
 
-        {/* Client Schedule - Gantt Chart */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-display text-lg text-foreground">Cronograma do Cliente</h2>
-                <p className="text-sm text-muted-foreground">Resumo de encontros e etapas do projeto</p>
-              </div>
-            </div>
-            <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
-          </div>
-
-          {/* Start Date Picker */}
-          <div className="mb-6">
-            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              Data de Início do Projeto
-            </label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[280px] justify-start text-left font-normal",
-                    !projectStartDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {projectStartDate ? format(projectStartDate, "PPP", { locale: ptBR }) : <span>Selecione a data de início</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={projectStartDate}
-                  onSelect={handleStartDateChange}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Gantt Chart */}
-          {projectStartDate && milestones.length > 0 && (
-            <GanttChart
-              startDate={projectStartDate.toISOString()}
-              milestones={milestones}
-              onMilestonesChange={handleMilestonesChange}
-            />
-          )}
-
-          {!projectStartDate && (
-            <div className="text-center py-8 text-muted-foreground">
-              <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Selecione a data de início para visualizar o cronograma</p>
-            </div>
-          )}
-        </div>
 
         {/* Agents grid */}
         <div className="mb-6 animate-slide-up" style={{ animationDelay: "0.15s" }}>

@@ -86,31 +86,31 @@ export default function HotelDetail() {
     }
     if (hotel?.projectStartDate) {
       setProjectStartDate(parseISO(hotel.projectStartDate));
-      // Always use updated milestone names with saved positions
       const date = parseISO(hotel.projectStartDate);
-      if (hotel?.milestones && hotel.milestones.length > 0) {
-        // Update names but keep saved positions
-        const updatedMilestones = DEFAULT_MILESTONES.map((defaultM, index) => {
-          const savedM = hotel.milestones?.[index];
-          if (savedM) {
-            return {
-              ...savedM,
-              id: defaultM.id,
-              name: defaultM.name
-            };
-          }
+      // Always ensure all 5 default milestones exist with correct names
+      const updatedMilestones = DEFAULT_MILESTONES.map((defaultM) => {
+        // Try to find saved milestone by ID
+        const savedM = hotel.milestones?.find(m => m.id === defaultM.id);
+        if (savedM) {
           return {
-            ...defaultM,
-            startDate: addDays(date, (defaultM.startWeek - 1) * 7).toISOString(),
-            endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
+            ...savedM,
+            name: defaultM.name // Always use updated name
           };
-        });
-        setMilestones(updatedMilestones);
-      } else {
-        setMilestones(calculateMilestoneDates(date, DEFAULT_MILESTONES));
+        }
+        // If not found, create with default dates
+        return {
+          ...defaultM,
+          startDate: addDays(date, (defaultM.startWeek - 1) * 7).toISOString(),
+          endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
+        };
+      });
+      setMilestones(updatedMilestones);
+      // Save updated milestones if they changed
+      if (hotel.milestones?.length !== updatedMilestones.length) {
+        updateHotel(hotel.id, { milestones: updatedMilestones });
       }
     }
-  }, [hotel?.id, calculateMilestoneDates]);
+  }, [hotel?.id, calculateMilestoneDates, updateHotel]);
 
   // Auto-save materials
   useEffect(() => {

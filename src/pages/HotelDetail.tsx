@@ -87,27 +87,27 @@ export default function HotelDetail() {
     if (hotel?.projectStartDate) {
       setProjectStartDate(parseISO(hotel.projectStartDate));
       const date = parseISO(hotel.projectStartDate);
-      // Always ensure all 5 default milestones exist with correct names
-      const updatedMilestones = DEFAULT_MILESTONES.map((defaultM) => {
-        // Try to find saved milestone by ID
-        const savedM = hotel.milestones?.find(m => m.id === defaultM.id);
-        if (savedM) {
+      
+      // Check if all required milestones exist
+      const hasAllMilestones = DEFAULT_MILESTONES.every(
+        defaultM => hotel.milestones?.some(m => m.id === defaultM.id)
+      );
+      
+      if (hasAllMilestones && hotel.milestones) {
+        // All milestones exist, just update names
+        const updatedMilestones = DEFAULT_MILESTONES.map((defaultM) => {
+          const savedM = hotel.milestones!.find(m => m.id === defaultM.id)!;
           return {
             ...savedM,
-            name: defaultM.name // Always use updated name
+            name: defaultM.name
           };
-        }
-        // If not found, create with default dates
-        return {
-          ...defaultM,
-          startDate: addDays(date, (defaultM.startWeek - 1) * 7).toISOString(),
-          endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
-        };
-      });
-      setMilestones(updatedMilestones);
-      // Save updated milestones if they changed
-      if (hotel.milestones?.length !== updatedMilestones.length) {
-        updateHotel(hotel.id, { milestones: updatedMilestones });
+        });
+        setMilestones(updatedMilestones);
+      } else {
+        // Missing milestones - reset to defaults
+        const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
+        setMilestones(newMilestones);
+        updateHotel(hotel.id, { milestones: newMilestones });
       }
     }
   }, [hotel?.id, calculateMilestoneDates, updateHotel]);

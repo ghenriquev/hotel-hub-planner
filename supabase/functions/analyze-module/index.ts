@@ -293,23 +293,28 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
         console.log("[analyze-module] Creating Gamma presentation...");
         
         try {
+          const gammaPayload = {
+            inputText: generatedResult,
+            format: "presentation",
+            textMode: "generate",
+            numCards: 10,
+            textOptions: {
+              amount: "detailed",
+              tone: "professional",
+              audience: "hotel management professionals",
+              language: "pt-br"
+            }
+          };
+          
+          console.log("[analyze-module] Gamma payload:", JSON.stringify(gammaPayload, null, 2));
+          
           const gammaResponse = await fetch("https://public-api.gamma.app/v1.0/generations", {
             method: "POST",
             headers: {
               "X-API-KEY": gammaKeyData.api_key,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              inputText: generatedResult,
-              format: "presentation",
-              textMode: "generate",
-              numCards: 10,
-              textOptions: {
-                tone: "professional",
-                audience: "hotel management professionals",
-                language: "pt-br"
-              }
-            }),
+            body: JSON.stringify(gammaPayload),
           });
           
           if (!gammaResponse.ok) {

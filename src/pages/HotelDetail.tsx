@@ -1,8 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
-import { useStore } from "@/lib/store";
+import { SaveIndicator } from "@/components/SaveIndicator";
+import { useStore, StrategicMaterials } from "@/lib/store";
 import { MODULES } from "@/lib/modules-data";
 import { 
   ArrowLeft, 
@@ -13,16 +16,55 @@ import {
   Tag,
   Check,
   FileText,
-  Play
+  FileSpreadsheet,
+  BookOpen,
+  Database,
+  Video,
+  ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function HotelDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getHotel, getProgress, getHotelProgress } = useStore();
+  const { getHotel, updateHotel, getProgress, getHotelProgress } = useStore();
 
   const hotel = getHotel(id || "");
+  
+  const [materials, setMaterials] = useState<StrategicMaterials>({
+    planilha: "",
+    manualFuncionamento: "",
+    dadosHotel: "",
+    callKickoff: ""
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  useEffect(() => {
+    if (hotel?.strategicMaterials) {
+      setMaterials({
+        planilha: hotel.strategicMaterials.planilha || "",
+        manualFuncionamento: hotel.strategicMaterials.manualFuncionamento || "",
+        dadosHotel: hotel.strategicMaterials.dadosHotel || "",
+        callKickoff: hotel.strategicMaterials.callKickoff || ""
+      });
+    }
+  }, [hotel?.id]);
+
+  useEffect(() => {
+    if (!hotel) return;
+    
+    const timeout = setTimeout(() => {
+      setIsSaving(true);
+      updateHotel(hotel.id, { strategicMaterials: materials });
+      setTimeout(() => {
+        setIsSaving(false);
+        setLastSaved(new Date());
+      }, 300);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [materials]);
   
   if (!hotel) {
     return (
@@ -36,6 +78,10 @@ export default function HotelDetail() {
   }
 
   const hotelProgress = getHotelProgress(hotel.id);
+
+  const handleMaterialChange = (field: keyof StrategicMaterials, value: string) => {
+    setMaterials(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,8 +134,126 @@ export default function HotelDetail() {
           </div>
         </div>
 
+        {/* Strategic Materials */}
+        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.05s" }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg text-foreground">Materiais Estratégicos</h2>
+                <p className="text-sm text-muted-foreground">Links dos documentos e materiais do hotel</p>
+              </div>
+            </div>
+            <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Planilha */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                Planilha de Dados
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Cole o link da planilha..."
+                  value={materials.planilha}
+                  onChange={(e) => handleMaterialChange("planilha", e.target.value)}
+                  className="flex-1"
+                />
+                {materials.planilha && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(materials.planilha, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Manual de Funcionamento */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                Manual de Funcionamento
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Cole o link do manual..."
+                  value={materials.manualFuncionamento}
+                  onChange={(e) => handleMaterialChange("manualFuncionamento", e.target.value)}
+                  className="flex-1"
+                />
+                {materials.manualFuncionamento && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(materials.manualFuncionamento, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Dados do Hotel */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Database className="h-4 w-4 text-muted-foreground" />
+                Dados do Hotel
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Cole o link dos dados..."
+                  value={materials.dadosHotel}
+                  onChange={(e) => handleMaterialChange("dadosHotel", e.target.value)}
+                  className="flex-1"
+                />
+                {materials.dadosHotel && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(materials.dadosHotel, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Call de Kickoff */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Video className="h-4 w-4 text-muted-foreground" />
+                Link da Call de Kickoff
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Cole o link da call..."
+                  value={materials.callKickoff}
+                  onChange={(e) => handleMaterialChange("callKickoff", e.target.value)}
+                  className="flex-1"
+                />
+                {materials.callKickoff && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(materials.callKickoff, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Actions */}
-        <div className="flex gap-4 mb-8 animate-slide-up">
+        <div className="flex gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <Button 
             variant="outline" 
             onClick={() => navigate(`/hotel/${hotel.id}/evidences`)}

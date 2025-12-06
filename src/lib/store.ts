@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface StrategicMaterials {
+  planilha?: string;
+  manualFuncionamento?: string;
+  dadosHotel?: string;
+  callKickoff?: string;
+}
+
 export interface Hotel {
   id: string;
   name: string;
@@ -8,6 +15,7 @@ export interface Hotel {
   contact: string;
   category: string;
   createdAt: string;
+  strategicMaterials?: StrategicMaterials;
 }
 
 export interface ModuleProgress {

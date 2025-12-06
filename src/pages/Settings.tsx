@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Switch } from "@/components/ui/switch";
 import { Logo } from "@/components/Logo";
 import { useAgentConfigs, AgentConfig } from "@/hooks/useAgentConfigs";
-import { useApiKeys, ApiKeyInput } from "@/hooks/useApiKeys";
+import { useApiKeys, ApiKeyInput, ApiKey } from "@/hooks/useApiKeys";
 import { useUserRole } from "@/hooks/useUserRole";
 import { 
   ArrowLeft, 
@@ -35,6 +35,31 @@ const KEY_TYPES = [
   { value: "other", label: "Outro" },
 ];
 
+// Lovable AI models (no API key required)
+const LOVABLE_MODELS = [
+  { value: "lovable/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
+  { value: "lovable/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
+  { value: "lovable/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
+  { value: "lovable/gpt-5", label: "GPT-5", icon: "🤖", description: "Alta precisão, custo maior" },
+  { value: "lovable/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "Equilíbrio entre custo e performance" },
+  { value: "lovable/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "Rápido e econômico" },
+];
+
+// Models that require API keys (mapped by key_type)
+const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
+  openai: [
+    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o (via API Key)" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini (via API Key)" },
+  ],
+  anthropic: [
+    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente (via API Key)" },
+    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠", description: "Claude rápido (via API Key)" },
+  ],
+  google: [
+    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Google Gemini (via API Key)" },
+  ],
+};
+
 export default function Settings() {
   const navigate = useNavigate();
   const { configs, loading, updateConfig } = useAgentConfigs();
@@ -43,7 +68,11 @@ export default function Settings() {
   
   // Agent editing state
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string }>({ prompt: '', output_type: 'text' });
+  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string }>({ 
+    prompt: '', 
+    output_type: 'text',
+    llm_model: 'lovable/gemini-2.5-flash'
+  });
   const [saving, setSaving] = useState(false);
 
   // API Key dialog state
@@ -77,10 +106,47 @@ export default function Settings() {
     );
   }
 
+  // Get active API keys for external models
+  const getActiveApiKeyTypes = (): string[] => {
+    return apiKeys.filter(k => k.is_active).map(k => k.key_type);
+  };
+
+  // Get available external models based on active API keys
+  const getAvailableExternalModels = () => {
+    const activeTypes = getActiveApiKeyTypes();
+    const models: { value: string; label: string; icon: string; description: string; keyType: string }[] = [];
+    
+    for (const keyType of activeTypes) {
+      const keyModels = EXTERNAL_MODELS[keyType];
+      if (keyModels) {
+        keyModels.forEach(m => models.push({ ...m, keyType }));
+      }
+    }
+    
+    return models;
+  };
+
+  // Get model display info
+  const getModelInfo = (modelValue: string) => {
+    const lovableModel = LOVABLE_MODELS.find(m => m.value === modelValue);
+    if (lovableModel) return lovableModel;
+    
+    for (const models of Object.values(EXTERNAL_MODELS)) {
+      const model = models.find(m => m.value === modelValue);
+      if (model) return model;
+    }
+    
+    return { value: modelValue, label: modelValue, icon: "🔧", description: "" };
+  };
+
   // Agent handlers
   const handleEdit = (config: AgentConfig) => {
     setEditingId(config.module_id);
-    setEditForm({ prompt: config.prompt, output_type: config.output_type });
+    setEditForm({ 
+      prompt: config.prompt, 
+      output_type: config.output_type,
+      llm_model: config.llm_model || 'lovable/gemini-2.5-flash'
+    });
   };
 
   const handleSave = async (moduleId: number) => {
@@ -94,7 +160,7 @@ export default function Settings() {
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditForm({ prompt: '', output_type: 'text' });
+    setEditForm({ prompt: '', output_type: 'text', llm_model: 'lovable/gemini-2.5-flash' });
   };
 
   // API Key handlers
@@ -219,9 +285,13 @@ export default function Settings() {
                     <h3 className="font-semibold text-foreground">
                       #{config.module_id} - {config.module_title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Tipo de output: {config.output_type}
-                    </p>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>Output: {config.output_type}</span>
+                      <span className="flex items-center gap-1">
+                        <span>{getModelInfo(config.llm_model || 'lovable/gemini-2.5-flash').icon}</span>
+                        {getModelInfo(config.llm_model || 'lovable/gemini-2.5-flash').label}
+                      </span>
+                    </div>
                   </div>
                   {editingId !== config.module_id && (
                     <Button variant="outline" size="sm" onClick={() => handleEdit(config)}>
@@ -244,23 +314,79 @@ export default function Settings() {
                       />
                     </div>
                     
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Tipo de Output
-                      </label>
-                      <Select 
-                        value={editForm.output_type} 
-                        onValueChange={(value) => setEditForm({ ...editForm, output_type: value })}
-                      >
-                        <SelectTrigger className="w-48">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Texto</SelectItem>
-                          <SelectItem value="presentation">Apresentação</SelectItem>
-                          <SelectItem value="swot">SWOT</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                          Tipo de Output
+                        </label>
+                        <Select 
+                          value={editForm.output_type} 
+                          onValueChange={(value) => setEditForm({ ...editForm, output_type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Texto</SelectItem>
+                            <SelectItem value="presentation">Apresentação</SelectItem>
+                            <SelectItem value="swot">SWOT</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">
+                          Modelo LLM
+                        </label>
+                        <Select 
+                          value={editForm.llm_model} 
+                          onValueChange={(value) => setEditForm({ ...editForm, llm_model: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue>
+                              <span className="flex items-center gap-2">
+                                <span>{getModelInfo(editForm.llm_model).icon}</span>
+                                {getModelInfo(editForm.llm_model).label}
+                              </span>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Lovable AI (sem API Key)
+                            </div>
+                            {LOVABLE_MODELS.map((model) => (
+                              <SelectItem key={model.value} value={model.value}>
+                                <div className="flex items-center gap-2">
+                                  <span>{model.icon}</span>
+                                  <span>{model.label}</span>
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    {model.description}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                            
+                            {getAvailableExternalModels().length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
+                                  Via API Key Configurada
+                                </div>
+                                {getAvailableExternalModels().map((model) => (
+                                  <SelectItem key={model.value} value={model.value}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{model.icon}</span>
+                                      <span>{model.label}</span>
+                                      <span className="text-xs text-muted-foreground ml-1">
+                                        {model.description}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">

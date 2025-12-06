@@ -439,8 +439,7 @@ export default function Settings() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="text">Texto</SelectItem>
-                          <SelectItem value="presentation">Apresentação</SelectItem>
-                          <SelectItem value="swot">SWOT</SelectItem>
+                          <SelectItem value="presentation">Apresentação (Gamma)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

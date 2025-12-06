@@ -25,8 +25,9 @@ import { cn } from "@/lib/utils";
 export default function AgentModule() {
   const navigate = useNavigate();
   const { id: hotelId, moduleId } = useParams<{ id: string; moduleId: string }>();
-  const { getHotel } = useStore();
+const { getHotel } = useStore();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
   
   const hotel = getHotel(hotelId || "");
   const moduleIdNum = parseInt(moduleId || "0", 10);
@@ -50,10 +51,11 @@ export default function AgentModule() {
     }
   }, [result?.status, isGenerating, refetch]);
 
-  // Update isGenerating based on result status
+// Update isGenerating based on result status
   useEffect(() => {
     if (result?.status === 'completed' || result?.status === 'error') {
       setIsGenerating(false);
+      setGenerationStartTime(null);
     }
   }, [result?.status]);
 
@@ -68,8 +70,9 @@ export default function AgentModule() {
     );
   }
 
-  const handleGenerateAnalysis = async () => {
+const handleGenerateAnalysis = async () => {
     setIsGenerating(true);
+    setGenerationStartTime(Date.now());
     
     try {
       const { data, error } = await supabase.functions.invoke('analyze-module', {
@@ -115,11 +118,11 @@ export default function AgentModule() {
   };
 
   const currentStatus = result?.status || 'pending';
-  const isProcessing = currentStatus === 'generating' || isGenerating;
+const isProcessing = currentStatus === 'generating' || isGenerating;
   
-  // Detect if stuck (generating for more than 3 minutes)
-  const isStuck = currentStatus === 'generating' && result?.created_at && 
-    (new Date().getTime() - new Date(result.created_at).getTime() > 3 * 60 * 1000);
+  // Detect if stuck (generating for more than 3 minutes from when we started)
+  const isStuck = isProcessing && generationStartTime !== null && 
+    (Date.now() - generationStartTime > 3 * 60 * 1000);
 
   const handleCancelGeneration = async () => {
     try {
@@ -134,7 +137,8 @@ export default function AgentModule() {
         return;
       }
       
-      setIsGenerating(false);
+setIsGenerating(false);
+      setGenerationStartTime(null);
       toast.info('Processamento cancelado. Você pode tentar novamente.');
       refetch();
     } catch (err) {

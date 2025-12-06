@@ -307,7 +307,7 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
               textOptions: {
                 tone: "professional",
                 audience: "hotel management professionals",
-                language: "pt-BR"
+                language: "pt-br"
               }
             }),
           });

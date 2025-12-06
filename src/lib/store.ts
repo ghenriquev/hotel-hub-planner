@@ -8,6 +8,15 @@ export interface StrategicMaterials {
   callKickoff?: string;
 }
 
+export interface ClientMilestone {
+  id: string;
+  name: string;
+  startWeek: number;
+  endWeek: number;
+  startDate: string;
+  endDate: string;
+}
+
 export interface Hotel {
   id: string;
   name: string;
@@ -16,6 +25,8 @@ export interface Hotel {
   category: string;
   createdAt: string;
   strategicMaterials?: StrategicMaterials;
+  projectStartDate?: string;
+  milestones?: ClientMilestone[];
 }
 
 export interface ModuleProgress {

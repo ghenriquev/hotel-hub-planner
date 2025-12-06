@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ClientMilestone } from "@/lib/store";
-import { addDays, differenceInDays, format, parseISO } from "date-fns";
+import { addDays, differenceInDays, format, parseISO, isToday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,8 @@ const MILESTONE_COLORS = [
   "bg-primary",
   "bg-blue-500",
   "bg-amber-500",
-  "bg-emerald-500"
+  "bg-emerald-500",
+  "bg-violet-500"
 ];
 
 export function GanttChart({ startDate, milestones, onMilestonesChange }: GanttChartProps) {
@@ -150,6 +151,27 @@ export function GanttChart({ startDate, milestones, onMilestonesChange }: GanttC
               style={{ left: (week - 1) * WEEK_WIDTH }}
             />
           ))}
+          
+          {/* Today line */}
+          {(() => {
+            const today = startOfDay(new Date());
+            const daysSinceStart = differenceInDays(today, projectStart);
+            const weekPosition = daysSinceStart / 7;
+            
+            if (weekPosition >= 0 && weekPosition <= TOTAL_WEEKS) {
+              return (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-destructive z-20"
+                  style={{ left: weekPosition * WEEK_WIDTH }}
+                >
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
+                    Hoje
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
 
         {/* Milestones */}

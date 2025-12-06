@@ -75,6 +75,7 @@ export default function HotelDetail() {
     }));
   }, []);
 
+  // Initialize milestones on mount - FORCE reset to defaults
   useEffect(() => {
     if (hotel?.strategicMaterials) {
       setMaterials({
@@ -85,34 +86,24 @@ export default function HotelDetail() {
       });
     }
     if (hotel?.projectStartDate) {
-      setProjectStartDate(parseISO(hotel.projectStartDate));
       const date = parseISO(hotel.projectStartDate);
+      setProjectStartDate(date);
       
-      // ALWAYS build milestones from DEFAULT_MILESTONES, preserving user adjustments if IDs match
-      const newMilestones = DEFAULT_MILESTONES.map(defaultM => {
-        const savedMilestone = hotel.milestones?.find(m => m.id === defaultM.id);
-        
-        const startWeek = savedMilestone?.startWeek ?? defaultM.startWeek;
-        const endWeek = savedMilestone?.endWeek ?? defaultM.endWeek;
-        
-        return {
-          id: defaultM.id,
-          name: defaultM.name,
-          startWeek,
-          endWeek,
-          startDate: addDays(date, (startWeek - 1) * 7).toISOString(),
-          endDate: addDays(date, endWeek * 7 - 1).toISOString()
-        };
-      });
+      // FORCE create all 5 milestones from scratch with default weeks
+      const newMilestones = DEFAULT_MILESTONES.map(defaultM => ({
+        id: defaultM.id,
+        name: defaultM.name,
+        startWeek: defaultM.startWeek,
+        endWeek: defaultM.endWeek,
+        startDate: addDays(date, (defaultM.startWeek - 1) * 7).toISOString(),
+        endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
+      }));
       
+      console.log("Setting milestones:", newMilestones);
       setMilestones(newMilestones);
-      
-      // Update store if milestones differ
-      if (JSON.stringify(hotel.milestones) !== JSON.stringify(newMilestones)) {
-        updateHotel(hotel.id, { milestones: newMilestones });
-      }
+      updateHotel(hotel.id, { milestones: newMilestones });
     }
-  }, [hotel?.id, hotel?.projectStartDate]);
+  }, [hotel?.id]);
 
   // Auto-save materials
   useEffect(() => {

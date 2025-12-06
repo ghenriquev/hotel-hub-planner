@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
@@ -58,6 +58,7 @@ export default function HotelDetail() {
   const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const hasCheckedMilestonesRef = useRef<string | null>(null);
 
   const DEFAULT_MILESTONES = [
     { id: "etapa1", name: "Etapa 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
@@ -88,25 +89,33 @@ export default function HotelDetail() {
       setProjectStartDate(parseISO(hotel.projectStartDate));
       const date = parseISO(hotel.projectStartDate);
       
-      // Check if we have exactly 5 milestones with correct first ID
-      const hasCorrectMilestones = hotel.milestones?.length === 5 && 
-        hotel.milestones[0]?.id === "etapa1";
-      
-      if (hasCorrectMilestones && hotel.milestones) {
-        // Milestones are correct, just update names from defaults
-        const updatedMilestones = DEFAULT_MILESTONES.map((defaultM, index) => ({
-          ...hotel.milestones![index],
-          name: defaultM.name
-        }));
-        setMilestones(updatedMilestones);
-      } else {
-        // Force reset to all 5 default milestones
-        const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
-        setMilestones(newMilestones);
-        updateHotel(hotel.id, { milestones: newMilestones });
+      // Only check/correct milestones once per hotel
+      if (hasCheckedMilestonesRef.current !== hotel.id) {
+        hasCheckedMilestonesRef.current = hotel.id;
+        
+        // Check if we have exactly 5 milestones with correct IDs
+        const hasCorrectMilestones = hotel.milestones?.length === 5 && 
+          hotel.milestones[0]?.id === "etapa1";
+        
+        if (hasCorrectMilestones && hotel.milestones) {
+          // Milestones are correct, just update names from defaults
+          const updatedMilestones = DEFAULT_MILESTONES.map((defaultM, index) => ({
+            ...hotel.milestones![index],
+            name: defaultM.name
+          }));
+          setMilestones(updatedMilestones);
+        } else {
+          // Force reset to all 5 default milestones
+          const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
+          setMilestones(newMilestones);
+          updateHotel(hotel.id, { milestones: newMilestones });
+        }
+      } else if (hotel.milestones && hotel.milestones.length === 5) {
+        // Subsequent loads - just sync from hotel
+        setMilestones(hotel.milestones);
       }
     }
-  }, [hotel?.id, calculateMilestoneDates, updateHotel]);
+  }, [hotel?.id, hotel?.milestones, hotel?.projectStartDate, calculateMilestoneDates, updateHotel]);
 
   // Auto-save materials
   useEffect(() => {

@@ -2,14 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface StrategicMaterials {
-  planilhaUrl?: string;
-  planilhaName?: string;
   manualFuncionamentoUrl?: string;
   manualFuncionamentoName?: string;
   dadosHotelUrl?: string;
   dadosHotelName?: string;
-  callKickoffLink?: string;
-  callKickoffTranscricao?: string;
+  transcricaoKickoffUrl?: string;
+  transcricaoKickoffName?: string;
 }
 
 export interface ClientMilestone {

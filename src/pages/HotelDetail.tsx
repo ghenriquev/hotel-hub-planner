@@ -1,12 +1,17 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
 import { SaveIndicator } from "@/components/SaveIndicator";
-import { useStore, StrategicMaterials } from "@/lib/store";
+import { GanttChart } from "@/components/GanttChart";
+import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
 import { MODULES } from "@/lib/modules-data";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, addDays, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { 
   ArrowLeft, 
   Building2, 
@@ -20,10 +25,10 @@ import {
   BookOpen,
   Database,
   Video,
-  ExternalLink
+  ExternalLink,
+  CalendarIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 export default function HotelDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -37,8 +42,25 @@ export default function HotelDetail() {
     dadosHotel: "",
     callKickoff: ""
   });
+  const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
+  const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  const DEFAULT_MILESTONES = [
+    { id: "kickoff", name: "Kickoff", startWeek: 1, endWeek: 1 },
+    { id: "checkpoint", name: "Checkpoint Estratégico", startWeek: 3, endWeek: 3 },
+    { id: "validation", name: "Validação Final de Criativos e LP", startWeek: 5, endWeek: 5 },
+    { id: "delivery", name: "Entrega Final + Proposta", startWeek: 8, endWeek: 8 }
+  ];
+
+  const calculateMilestoneDates = useCallback((startDate: Date, ms: typeof DEFAULT_MILESTONES) => {
+    return ms.map(m => ({
+      ...m,
+      startDate: addDays(startDate, (m.startWeek - 1) * 7).toISOString(),
+      endDate: addDays(startDate, m.endWeek * 7 - 1).toISOString()
+    }));
+  }, []);
 
   useEffect(() => {
     if (hotel?.strategicMaterials) {
@@ -49,8 +71,18 @@ export default function HotelDetail() {
         callKickoff: hotel.strategicMaterials.callKickoff || ""
       });
     }
-  }, [hotel?.id]);
+    if (hotel?.projectStartDate) {
+      setProjectStartDate(parseISO(hotel.projectStartDate));
+    }
+    if (hotel?.milestones && hotel.milestones.length > 0) {
+      setMilestones(hotel.milestones);
+    } else if (hotel?.projectStartDate) {
+      const date = parseISO(hotel.projectStartDate);
+      setMilestones(calculateMilestoneDates(date, DEFAULT_MILESTONES));
+    }
+  }, [hotel?.id, calculateMilestoneDates]);
 
+  // Auto-save materials
   useEffect(() => {
     if (!hotel) return;
     
@@ -65,6 +97,27 @@ export default function HotelDetail() {
 
     return () => clearTimeout(timeout);
   }, [materials]);
+
+  // Handle start date change
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (!date || !hotel) return;
+    setProjectStartDate(date);
+    const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
+    setMilestones(newMilestones);
+    updateHotel(hotel.id, { 
+      projectStartDate: date.toISOString(),
+      milestones: newMilestones
+    });
+    setLastSaved(new Date());
+  };
+
+  // Handle milestones change from Gantt
+  const handleMilestonesChange = (newMilestones: ClientMilestone[]) => {
+    if (!hotel) return;
+    setMilestones(newMilestones);
+    updateHotel(hotel.id, { milestones: newMilestones });
+    setLastSaved(new Date());
+  };
   
   if (!hotel) {
     return (
@@ -252,8 +305,71 @@ export default function HotelDetail() {
           </div>
         </div>
 
+        {/* Client Schedule - Gantt Chart */}
+        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <CalendarIcon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg text-foreground">Cronograma do Cliente</h2>
+                <p className="text-sm text-muted-foreground">Resumo de encontros e etapas do projeto</p>
+              </div>
+            </div>
+            <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
+          </div>
+
+          {/* Start Date Picker */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              Data de Início do Projeto
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[280px] justify-start text-left font-normal",
+                    !projectStartDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {projectStartDate ? format(projectStartDate, "PPP", { locale: ptBR }) : <span>Selecione a data de início</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={projectStartDate}
+                  onSelect={handleStartDateChange}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Gantt Chart */}
+          {projectStartDate && milestones.length > 0 && (
+            <GanttChart
+              startDate={projectStartDate.toISOString()}
+              milestones={milestones}
+              onMilestonesChange={handleMilestonesChange}
+            />
+          )}
+
+          {!projectStartDate && (
+            <div className="text-center py-8 text-muted-foreground">
+              <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>Selecione a data de início para visualizar o cronograma</p>
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
-        <div className="flex gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div className="flex gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <Button 
             variant="outline" 
             onClick={() => navigate(`/hotel/${hotel.id}/evidences`)}

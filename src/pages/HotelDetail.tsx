@@ -6,6 +6,7 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
+import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
@@ -35,7 +36,9 @@ import {
   Globe,
   Search,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -84,6 +87,7 @@ export default function HotelDetail() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isWebsiteContentOpen, setIsWebsiteContentOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     city: "",
@@ -425,7 +429,7 @@ export default function HotelDetail() {
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Manual de Funcionamento */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -503,80 +507,102 @@ export default function HotelDetail() {
                 }}
               />
             </div>
+
+            {/* Conteúdo do Site */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                Conteúdo do Site
+              </label>
+              
+              <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
+                {hotel.hasNoWebsite ? (
+                  <div className="text-center text-muted-foreground text-sm">
+                    <Globe className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p>Hotel não possui site</p>
+                  </div>
+                ) : !hotel.website ? (
+                  <div className="text-center text-muted-foreground text-sm">
+                    <Globe className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p>Nenhum site configurado</p>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="mt-1 h-auto p-0"
+                      onClick={() => setIsEditDialogOpen(true)}
+                    >
+                      Adicionar site
+                    </Button>
+                  </div>
+                ) : isCrawling ? (
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Analisando site...</p>
+                  </div>
+                ) : websiteData?.status === 'error' ? (
+                  <div className="text-center">
+                    <XCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                    <p className="text-sm text-destructive mb-2">Erro na análise</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => crawlWebsite(hotel.website!)}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : websiteData?.status === 'completed' && Array.isArray(websiteData.crawled_content) ? (
+                  <div className="text-center">
+                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p className="text-sm text-foreground font-medium mb-1">
+                      {websiteData.crawled_content.length} páginas extraídas
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => setIsWebsiteContentOpen(true)}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Ver Conteúdo
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => crawlWebsite(hotel.website!)}
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Globe className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm text-muted-foreground mb-2">Site não analisado</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => crawlWebsite(hotel.website!)}
+                    >
+                      <Search className="h-3 w-3 mr-1" />
+                      Analisar Site
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Website Analysis */}
-        {hotel.website && !hotel.hasNoWebsite && (
-          <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.075s" }}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Globe className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="font-display text-lg text-foreground">Análise do Site</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Extração automática de conteúdo via Apify
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {websiteData?.status === 'completed' && websiteData.crawled_at && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>
-                      Analisado em {format(parseISO(websiteData.crawled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
-                    <span className="text-primary">
-                      ({Array.isArray(websiteData.crawled_content) ? websiteData.crawled_content.length : 0} páginas)
-                    </span>
-                  </div>
-                )}
-                
-                {websiteData?.status === 'error' && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <XCircle className="h-4 w-4" />
-                    <span>{websiteData.error_message || 'Erro na análise'}</span>
-                  </div>
-                )}
-                
-                <Button
-                  onClick={() => crawlWebsite(hotel.website!)}
-                  disabled={isCrawling}
-                  variant={websiteData?.status === 'completed' ? 'outline' : 'default'}
-                >
-                  {isCrawling ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analisando...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      {websiteData?.status === 'completed' ? 'Reanalisar Site' : 'Analisar Site'}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-            
-            {websiteData?.status === 'completed' && Array.isArray(websiteData.crawled_content) && websiteData.crawled_content.length > 0 && (
-              <div className="border border-border rounded-lg p-4 bg-muted/30">
-                <h3 className="text-sm font-medium text-foreground mb-3">Páginas extraídas:</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {websiteData.crawled_content.map((page: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <Check className="h-3 w-3 text-green-500 shrink-0" />
-                      <span className="text-muted-foreground truncate">{page.title || page.url}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Website Content Modal */}
+        <WebsiteContentModal
+          open={isWebsiteContentOpen}
+          onOpenChange={setIsWebsiteContentOpen}
+          pages={Array.isArray(websiteData?.crawled_content) ? websiteData.crawled_content : []}
+          crawledAt={websiteData?.crawled_at || null}
+        />
+
 
         {/* Client Schedule - Gantt Chart */}
         <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>

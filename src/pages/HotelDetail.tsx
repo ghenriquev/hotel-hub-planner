@@ -30,7 +30,8 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
-  Pencil
+  Pencil,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -243,6 +244,23 @@ export default function HotelDetail() {
                     <Tag className="h-4 w-4" />
                     {hotel.category}
                   </div>
+                  {hotel.website && !hotel.hasNoWebsite && (
+                    <a 
+                      href={hotel.website.startsWith('http') ? hotel.website : `https://${hotel.website}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-primary transition-colors"
+                    >
+                      <Globe className="h-4 w-4" />
+                      {hotel.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  )}
+                  {hotel.hasNoWebsite && (
+                    <div className="flex items-center gap-1 text-muted-foreground/60">
+                      <Globe className="h-4 w-4" />
+                      <span className="italic">Sem site</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

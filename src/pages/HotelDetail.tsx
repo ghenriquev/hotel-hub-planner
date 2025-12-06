@@ -29,7 +29,8 @@ import {
   Trash2,
   Loader2,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -43,6 +44,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 export default function HotelDetail() {
   const navigate = useNavigate();
@@ -64,6 +78,15 @@ export default function HotelDetail() {
   const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    city: "",
+    contact: "",
+    category: "",
+    website: "",
+    hasNoWebsite: false,
+  });
 
   const DEFAULT_MILESTONES = [
     { id: "etapa1", name: "Etapa 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
@@ -90,6 +113,16 @@ export default function HotelDetail() {
         dadosHotelName: hotel.strategicMaterials.dadosHotelName || "",
         transcricaoKickoffUrl: hotel.strategicMaterials.transcricaoKickoffUrl || "",
         transcricaoKickoffName: hotel.strategicMaterials.transcricaoKickoffName || ""
+      });
+    }
+    if (hotel) {
+      setEditForm({
+        name: hotel.name || "",
+        city: hotel.city || "",
+        contact: hotel.contact || "",
+        category: hotel.category || "",
+        website: hotel.website || "",
+        hasNoWebsite: hotel.hasNoWebsite || false,
       });
     }
     if (hotel?.projectStartDate) {
@@ -142,6 +175,20 @@ export default function HotelDetail() {
     setMilestones(newMilestones);
     updateHotel(hotel.id, { milestones: newMilestones });
     setLastSaved(new Date());
+  };
+
+  const handleSaveEdit = () => {
+    if (!hotel) return;
+    updateHotel(hotel.id, {
+      name: editForm.name,
+      city: editForm.city,
+      contact: editForm.contact,
+      category: editForm.category,
+      website: editForm.hasNoWebsite ? undefined : editForm.website,
+      hasNoWebsite: editForm.hasNoWebsite,
+    });
+    setIsEditDialogOpen(false);
+    toast.success("Informações atualizadas com sucesso!");
   };
   
   if (!hotel) {
@@ -207,6 +254,11 @@ export default function HotelDetail() {
               </div>
               <ProgressRing progress={hotelProgress} size={64} strokeWidth={5} />
               
+              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+              
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm">
@@ -236,6 +288,102 @@ export default function HotelDetail() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+              {/* Edit Dialog */}
+              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Editar Hotel</DialogTitle>
+                    <DialogDescription>
+                      Atualize as informações básicas do hotel
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name">Nome do Hotel</Label>
+                      <Input
+                        id="edit-name"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        placeholder="Ex: Grand Hotel Resort"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-city">Cidade / Estado</Label>
+                      <Input
+                        id="edit-city"
+                        value={editForm.city}
+                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                        placeholder="Ex: São Paulo, SP"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-contact">Contato Principal</Label>
+                      <Input
+                        id="edit-contact"
+                        value={editForm.contact}
+                        onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })}
+                        placeholder="Ex: João Silva - (11) 99999-9999"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-category">Categoria</Label>
+                      <Select
+                        value={editForm.category}
+                        onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Hotel Urbano">Hotel Urbano</SelectItem>
+                          <SelectItem value="Resort">Resort</SelectItem>
+                          <SelectItem value="Pousada">Pousada</SelectItem>
+                          <SelectItem value="Hotel Fazenda">Hotel Fazenda</SelectItem>
+                          <SelectItem value="Flat/Apart-Hotel">Flat/Apart-Hotel</SelectItem>
+                          <SelectItem value="Hostel">Hostel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="edit-nowebsite"
+                          checked={editForm.hasNoWebsite}
+                          onCheckedChange={(checked) => 
+                            setEditForm({ ...editForm, hasNoWebsite: checked as boolean, website: checked ? "" : editForm.website })
+                          }
+                        />
+                        <Label htmlFor="edit-nowebsite" className="text-sm text-muted-foreground">
+                          Hotel não possui site
+                        </Label>
+                      </div>
+                      {!editForm.hasNoWebsite && (
+                        <Input
+                          id="edit-website"
+                          value={editForm.website}
+                          onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                          placeholder="https://www.seuhotel.com.br"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSaveEdit} disabled={!editForm.name || !editForm.city}>
+                      Salvar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>

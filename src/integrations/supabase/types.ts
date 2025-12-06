@@ -19,6 +19,7 @@ export type Database = {
           created_at: string | null
           id: string
           llm_model: string
+          materials_config: string[]
           module_id: number
           module_title: string
           output_type: string | null
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           llm_model?: string
+          materials_config?: string[]
           module_id: number
           module_title: string
           output_type?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           llm_model?: string
+          materials_config?: string[]
           module_id?: number
           module_title?: string
           output_type?: string | null

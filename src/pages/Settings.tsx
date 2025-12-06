@@ -37,12 +37,13 @@ const KEY_TYPES = [
 
 // Lovable AI models (no API key required)
 const LOVABLE_MODELS = [
-  { value: "lovable/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
-  { value: "lovable/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
-  { value: "lovable/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
-  { value: "lovable/gpt-5", label: "GPT-5", icon: "🤖", description: "Alta precisão, custo maior" },
-  { value: "lovable/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "Equilíbrio entre custo e performance" },
-  { value: "lovable/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "Rápido e econômico" },
+  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮", description: "Próxima geração - raciocínio avançado" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
+  { value: "openai/gpt-5", label: "GPT-5", icon: "🤖", description: "Alta precisão, custo maior" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "Equilíbrio entre custo e performance" },
+  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "Rápido e econômico" },
 ];
 
 // Models that require API keys (mapped by key_type)
@@ -71,7 +72,7 @@ export default function Settings() {
   const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string }>({ 
     prompt: '', 
     output_type: 'text',
-    llm_model: 'lovable/gemini-2.5-flash'
+    llm_model: 'google/gemini-2.5-flash'
   });
   const [saving, setSaving] = useState(false);
 
@@ -145,7 +146,7 @@ export default function Settings() {
     setEditForm({ 
       prompt: config.prompt, 
       output_type: config.output_type,
-      llm_model: config.llm_model || 'lovable/gemini-2.5-flash'
+      llm_model: config.llm_model || 'google/gemini-2.5-flash'
     });
   };
 
@@ -160,7 +161,7 @@ export default function Settings() {
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditForm({ prompt: '', output_type: 'text', llm_model: 'lovable/gemini-2.5-flash' });
+    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash' });
   };
 
   // API Key handlers
@@ -288,8 +289,8 @@ export default function Settings() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>Output: {config.output_type}</span>
                       <span className="flex items-center gap-1">
-                        <span>{getModelInfo(config.llm_model || 'lovable/gemini-2.5-flash').icon}</span>
-                        {getModelInfo(config.llm_model || 'lovable/gemini-2.5-flash').label}
+                        <span>{getModelInfo(config.llm_model || 'google/gemini-2.5-flash').icon}</span>
+                        {getModelInfo(config.llm_model || 'google/gemini-2.5-flash').label}
                       </span>
                     </div>
                   </div>

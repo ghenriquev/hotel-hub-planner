@@ -92,16 +92,19 @@ ${materialsContext}
 Por favor, forneça uma análise detalhada e profissional em português do Brasil.`;
 
     // Determine which model to use
-    const llmModel = agentConfig.llm_model || 'lovable/gemini-2.5-flash';
+    const llmModel = agentConfig.llm_model || 'google/gemini-2.5-flash';
     console.log(`[analyze-module] Using LLM model: ${llmModel}`);
 
     let generatedResult: string;
 
-    // Check if it's a Lovable AI model or external
-    if (llmModel.startsWith('lovable/')) {
-      // Use Lovable AI Gateway
-      const modelName = llmModel.replace('lovable/', '');
-      console.log("[analyze-module] Calling Lovable AI with model:", modelName);
+    // Check if it's a Lovable AI model (lovable/, google/, or openai/ prefixes are all supported)
+    const isLovableAIModel = llmModel.startsWith('lovable/') || 
+                              llmModel.startsWith('google/') || 
+                              llmModel.startsWith('openai/');
+    
+    if (isLovableAIModel) {
+      // Use Lovable AI Gateway - pass the full model name with prefix
+      console.log("[analyze-module] Calling Lovable AI with model:", llmModel);
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -110,7 +113,7 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: modelName,
+          model: llmModel,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt }
@@ -155,47 +158,8 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
 
       const aiData = await response.json();
       generatedResult = aiData.choices?.[0]?.message?.content || "";
-    } else if (llmModel.startsWith('openai/')) {
-      // Use OpenAI directly
-      const { data: apiKeyData, error: keyError } = await supabase
-        .from('api_keys')
-        .select('api_key')
-        .eq('key_type', 'openai')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (keyError || !apiKeyData) {
-        throw new Error("No active OpenAI API key found");
-      }
-
-      const modelName = llmModel.replace('openai/', '');
-      console.log("[analyze-module] Calling OpenAI with model:", modelName);
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKeyData.api_key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[analyze-module] OpenAI error:", response.status, errorText);
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const aiData = await response.json();
-      generatedResult = aiData.choices?.[0]?.message?.content || "";
     } else if (llmModel.startsWith('anthropic/')) {
-      // Use Anthropic/Claude directly
+      // Use Anthropic/Claude directly with API key from database
       const { data: apiKeyData, error: keyError } = await supabase
         .from('api_keys')
         .select('api_key')
@@ -235,42 +199,6 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
 
       const aiData = await response.json();
       generatedResult = aiData.content?.[0]?.text || "";
-    } else if (llmModel.startsWith('google/')) {
-      // Use Google AI directly
-      const { data: apiKeyData, error: keyError } = await supabase
-        .from('api_keys')
-        .select('api_key')
-        .eq('key_type', 'google')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (keyError || !apiKeyData) {
-        throw new Error("No active Google API key found");
-      }
-
-      const modelName = llmModel.replace('google/', '');
-      console.log("[analyze-module] Calling Google AI with model:", modelName);
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKeyData.api_key}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[analyze-module] Google AI error:", response.status, errorText);
-        throw new Error(`Google AI API error: ${response.status}`);
-      }
-
-      const aiData = await response.json();
-      generatedResult = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } else {
       throw new Error(`Unsupported LLM model: ${llmModel}`);
     }

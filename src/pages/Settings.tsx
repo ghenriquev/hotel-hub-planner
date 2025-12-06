@@ -12,7 +12,8 @@ import {
   Save,
   Loader2,
   Bot,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,17 +80,23 @@ export default function Settings() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Page Header */}
-        <div className="flex items-center gap-4 mb-8 animate-fade-in">
-          <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
-            <SettingsIcon className="h-6 w-6 text-primary-foreground" />
+        <div className="flex items-center justify-between mb-8 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
+              <SettingsIcon className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl lg:text-3xl text-foreground">
+                Configurações
+              </h1>
+              <p className="text-muted-foreground">Gerencie os prompts dos agentes</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display text-2xl lg:text-3xl text-foreground">
-              Configurações
-            </h1>
-            <p className="text-muted-foreground">Gerencie os prompts dos agentes</p>
-          </div>
+          
+          <Button onClick={() => navigate("/users")} variant="outline">
+            <Users className="h-4 w-4 mr-2" />
+            Gerenciar Usuários
+          </Button>
         </div>
 
         {/* Agent Configs List */}

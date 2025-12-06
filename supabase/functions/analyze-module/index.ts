@@ -1,9 +1,9 @@
-// VERSION: 2.1.0 - Fixed Gamma payload - force redeploy - 2024-12-06T22:30
+// VERSION: 2.2.0 - Fixed Gamma gammaUrl field - 2024-12-06T22:45
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Version identifier for debugging deployments
-const FUNCTION_VERSION = "2.1.0";
+const FUNCTION_VERSION = "2.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,8 +31,13 @@ async function pollGammaGeneration(generationId: string, apiKey: string, maxAtte
     const data = await response.json();
     console.log(`[analyze-module] Gamma status: ${data.status}, attempt ${attempt + 1}/${maxAttempts}`);
     
-    if (data.status === "completed" && data.presentationUrl) {
-      return data.presentationUrl;
+    if (data.status === "completed") {
+      console.log(`[analyze-module] Gamma completed response:`, JSON.stringify(data));
+      // Gamma API returns gammaUrl, not presentationUrl
+      if (data.gammaUrl) {
+        console.log(`[analyze-module] Got gammaUrl: ${data.gammaUrl}`);
+        return data.gammaUrl;
+      }
     }
     
     if (data.status === "failed" || data.status === "error") {

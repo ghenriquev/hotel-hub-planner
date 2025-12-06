@@ -30,12 +30,10 @@ export interface GammaSettings {
 export type GammaSettingsUpdate = Partial<Omit<GammaSettings, 'id' | 'created_at' | 'updated_at'>>;
 
 // Theme options from Gamma API
+// Gamma themes - empty string uses workspace default
+// Users can enter custom theme IDs from their Gamma workspace
 export const GAMMA_THEMES = [
-  { value: 'Oasis', label: 'Oasis', description: 'Clean e moderno' },
-  { value: 'Chisel', label: 'Chisel', description: 'Profissional e corporativo' },
-  { value: 'Sleek', label: 'Sleek', description: 'Minimalista elegante' },
-  { value: 'Bold', label: 'Bold', description: 'Cores vibrantes' },
-  { value: 'Classic', label: 'Classic', description: 'Tradicional e sóbrio' },
+  { value: '', label: 'Padrão do Workspace', description: 'Usa o tema padrão configurado no Gamma' },
 ];
 
 export const GAMMA_FORMATS = [

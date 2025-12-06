@@ -326,10 +326,11 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
             cardSplit: gammaSettings?.card_split || "auto",
           };
           
-          // Add themeId if available
-          if (gammaSettings?.theme_id) {
-            gammaPayload.themeId = gammaSettings.theme_id;
+          // Add themeId only if it's a non-empty string (not just whitespace)
+          if (gammaSettings?.theme_id && gammaSettings.theme_id.trim() !== '') {
+            gammaPayload.themeId = gammaSettings.theme_id.trim();
           }
+          // If theme_id is empty or whitespace, don't send themeId - Gamma will use workspace default
           
           // Add additional instructions if available
           if (gammaSettings?.additional_instructions) {

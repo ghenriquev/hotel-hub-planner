@@ -642,24 +642,14 @@ export default function Settings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">Tema</label>
-                      <Select 
-                        value={getGammaFormValue('theme_id') || gammaSettings.theme_id} 
-                        onValueChange={(value) => updateGammaForm('theme_id', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GAMMA_THEMES.map((theme) => (
-                            <SelectItem key={theme.value} value={theme.value}>
-                              <div className="flex items-center gap-2">
-                                <span>{theme.label}</span>
-                                <span className="text-xs text-muted-foreground">{theme.description}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        value={getGammaFormValue('theme_id') ?? gammaSettings.theme_id ?? ''}
+                        onChange={(e) => updateGammaForm('theme_id', e.target.value)}
+                        placeholder="Deixe vazio para usar o padrão"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Deixe vazio para usar o tema padrão do workspace. Para um tema específico, copie o ID do tema no Gamma App.
+                      </p>
                     </div>
                     
                     <div>

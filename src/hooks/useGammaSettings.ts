@@ -56,8 +56,10 @@ export const GAMMA_CARD_SPLITS = [
 ];
 
 export const GAMMA_TEXT_AMOUNTS = [
+  { value: 'brief', label: 'Breve', description: 'Texto mínimo' },
+  { value: 'medium', label: 'Médio', description: 'Texto moderado' },
   { value: 'detailed', label: 'Detalhado', description: 'Mais texto por card' },
-  { value: 'concise', label: 'Conciso', description: 'Menos texto por card' },
+  { value: 'extensive', label: 'Extenso', description: 'Texto completo' },
 ];
 
 export const GAMMA_IMAGE_SOURCES = [
@@ -81,8 +83,11 @@ export const GAMMA_IMAGE_STYLES = [
 
 export const GAMMA_CARD_DIMENSIONS = [
   { value: 'fluid', label: 'Fluido', description: 'Adapta ao conteúdo' },
-  { value: 'standard', label: 'Padrão', description: '16:9 slides' },
-  { value: 'wide', label: 'Largo', description: '21:9 cinema' },
+  { value: '16x9', label: '16:9', description: 'Slides padrão' },
+  { value: '4x3', label: '4:3', description: 'Formato clássico' },
+  { value: 'pageless', label: 'Sem Página', description: 'Scroll contínuo' },
+  { value: 'letter', label: 'Carta', description: 'Tamanho carta' },
+  { value: 'a4', label: 'A4', description: 'Tamanho A4' },
 ];
 
 export const GAMMA_LANGUAGES = [

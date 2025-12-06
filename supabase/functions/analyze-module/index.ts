@@ -1,9 +1,9 @@
-// VERSION: 2.2.0 - Fixed Gamma gammaUrl field - 2024-12-06T22:45
+// VERSION: 2.3.0 - Added gamma_settings table integration - 2024-12-06
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Version identifier for debugging deployments
-const FUNCTION_VERSION = "2.2.0";
+const FUNCTION_VERSION = "2.3.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -288,7 +288,19 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
     const outputType = agentConfig.output_type || 'text';
     
     if (outputType === 'presentation') {
-      console.log("[analyze-module] Output type is presentation, fetching Gamma API key...");
+      console.log("[analyze-module] Output type is presentation, fetching Gamma settings and API key...");
+      
+      // Fetch Gamma settings from gamma_settings table
+      const { data: gammaSettings, error: gammaSettingsError } = await supabase
+        .from('gamma_settings')
+        .select('*')
+        .single();
+      
+      if (gammaSettingsError) {
+        console.log("[analyze-module] No gamma settings found, using defaults:", gammaSettingsError.message);
+      } else {
+        console.log("[analyze-module] Loaded gamma settings:", JSON.stringify(gammaSettings, null, 2));
+      }
       
       // Fetch Gamma API key from api_keys table
       const { data: gammaKeyData, error: gammaKeyError } = await supabase
@@ -305,18 +317,48 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
         console.log("[analyze-module] Creating Gamma presentation...");
         
         try {
-          const gammaPayload = {
+          // Build Gamma payload with settings from database or defaults
+          const gammaPayload: Record<string, any> = {
             inputText: generatedResult,
-            format: "presentation",
-            textMode: "generate",
-            numCards: 10,
-            textOptions: {
-              amount: "detailed",
-              tone: "professional",
-              audience: "hotel management professionals",
-              language: "pt-br"
-            }
+            format: gammaSettings?.format || "presentation",
+            textMode: gammaSettings?.text_mode || "generate",
+            numCards: gammaSettings?.num_cards || 10,
+            cardSplit: gammaSettings?.card_split || "auto",
           };
+          
+          // Add themeId if available
+          if (gammaSettings?.theme_id) {
+            gammaPayload.themeId = gammaSettings.theme_id;
+          }
+          
+          // Add additional instructions if available
+          if (gammaSettings?.additional_instructions) {
+            gammaPayload.additionalInstructions = gammaSettings.additional_instructions;
+          }
+          
+          // Add text options
+          gammaPayload.textOptions = {
+            amount: gammaSettings?.text_amount || "detailed",
+            tone: gammaSettings?.text_tone || "professional",
+            audience: gammaSettings?.text_audience || "hotel management professionals",
+            language: gammaSettings?.text_language || "pt-br"
+          };
+          
+          // Add image options if not disabled
+          if (gammaSettings?.image_source && gammaSettings.image_source !== 'none') {
+            gammaPayload.imageOptions = {
+              source: gammaSettings.image_source || "aiGenerated",
+              model: gammaSettings.image_model || "imagen-4-pro",
+              style: gammaSettings.image_style || "photorealistic"
+            };
+          }
+          
+          // Add card options if dimensions specified
+          if (gammaSettings?.card_dimensions && gammaSettings.card_dimensions !== 'fluid') {
+            gammaPayload.cardOptions = {
+              dimensions: gammaSettings.card_dimensions
+            };
+          }
           
           console.log(`[analyze-module] v${FUNCTION_VERSION} === GAMMA PAYLOAD ===`, JSON.stringify(gammaPayload, null, 2));
           

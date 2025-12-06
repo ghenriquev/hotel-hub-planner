@@ -57,6 +57,7 @@ export type Database = {
           hotel_id: string
           id: string
           module_id: number
+          presentation_url: string | null
           result: string | null
           status: string | null
         }
@@ -66,6 +67,7 @@ export type Database = {
           hotel_id: string
           id?: string
           module_id: number
+          presentation_url?: string | null
           result?: string | null
           status?: string | null
         }
@@ -75,6 +77,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           module_id?: number
+          presentation_url?: string | null
           result?: string | null
           status?: string | null
         }

@@ -6,6 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to poll Gamma API for generation status
+async function pollGammaGeneration(generationId: string, apiKey: string, maxAttempts = 60): Promise<string | null> {
+  console.log(`[analyze-module] Polling Gamma generation ${generationId}...`);
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds between polls
+    
+    const response = await fetch(`https://public-api.gamma.app/v1.0/generations/${generationId}`, {
+      headers: {
+        "X-API-KEY": apiKey,
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[analyze-module] Gamma poll error: ${response.status}`);
+      continue;
+    }
+    
+    const data = await response.json();
+    console.log(`[analyze-module] Gamma status: ${data.status}, attempt ${attempt + 1}/${maxAttempts}`);
+    
+    if (data.status === "completed" && data.presentationUrl) {
+      return data.presentationUrl;
+    }
+    
+    if (data.status === "failed" || data.status === "error") {
+      console.error(`[analyze-module] Gamma generation failed:`, data);
+      return null;
+    }
+  }
+  
+  console.error(`[analyze-module] Gamma polling timeout after ${maxAttempts} attempts`);
+  return null;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -42,6 +77,7 @@ serve(async (req) => {
         module_id: moduleId,
         status: 'generating',
         result: null,
+        presentation_url: null,
         generated_at: null,
       }, { onConflict: 'hotel_id,module_id' });
 
@@ -66,7 +102,7 @@ serve(async (req) => {
 
     // Get configured materials for this agent (default to all if not configured)
     const configuredMaterials = agentConfig.materials_config || ['manual', 'dados', 'transcricao'];
-    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}, materials: ${configuredMaterials.join(', ')}`);
+    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}, output_type: ${agentConfig.output_type || 'text'}, materials: ${configuredMaterials.join(', ')}`);
 
     // Build context from materials (only include configured ones)
     let materialsContext = "";
@@ -205,7 +241,72 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
       throw new Error(`Unsupported LLM model: ${llmModel}`);
     }
 
-    console.log("[analyze-module] AI response received, saving result...");
+    console.log("[analyze-module] AI response received, processing output...");
+
+    // Check if output type is presentation - if so, generate via Gamma API
+    let presentationUrl: string | null = null;
+    const outputType = agentConfig.output_type || 'text';
+    
+    if (outputType === 'presentation') {
+      console.log("[analyze-module] Output type is presentation, fetching Gamma API key...");
+      
+      // Fetch Gamma API key from api_keys table
+      const { data: gammaKeyData, error: gammaKeyError } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .or('name.ilike.%gamma%,key_type.ilike.%gamma%')
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (gammaKeyError || !gammaKeyData?.api_key) {
+        console.error("[analyze-module] No active Gamma API key found:", gammaKeyError);
+        // Continue without presentation - save text result
+      } else {
+        console.log("[analyze-module] Creating Gamma presentation...");
+        
+        try {
+          const gammaResponse = await fetch("https://public-api.gamma.app/v1.0/generations", {
+            method: "POST",
+            headers: {
+              "X-API-KEY": gammaKeyData.api_key,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputText: generatedResult,
+              format: "presentation",
+              textMode: "generate",
+              numCards: 10,
+              textOptions: {
+                tone: "professional",
+                audience: "hotel management professionals",
+                language: "pt-BR"
+              }
+            }),
+          });
+          
+          if (!gammaResponse.ok) {
+            const errorText = await gammaResponse.text();
+            console.error("[analyze-module] Gamma API error:", gammaResponse.status, errorText);
+          } else {
+            const gammaData = await gammaResponse.json();
+            console.log("[analyze-module] Gamma generation started:", gammaData);
+            
+            if (gammaData.generationId) {
+              // Poll for completion
+              presentationUrl = await pollGammaGeneration(gammaData.generationId, gammaKeyData.api_key);
+              
+              if (presentationUrl) {
+                console.log("[analyze-module] Gamma presentation ready:", presentationUrl);
+              } else {
+                console.error("[analyze-module] Failed to get Gamma presentation URL");
+              }
+            }
+          }
+        } catch (gammaError) {
+          console.error("[analyze-module] Gamma API call failed:", gammaError);
+        }
+      }
+    }
 
     // Save result to database
     const { error: saveError } = await supabase
@@ -214,6 +315,7 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
         hotel_id: hotelId,
         module_id: moduleId,
         result: generatedResult,
+        presentation_url: presentationUrl,
         status: 'completed',
         generated_at: new Date().toISOString(),
       }, { onConflict: 'hotel_id,module_id' });
@@ -227,7 +329,8 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
     return new Response(JSON.stringify({ 
       success: true,
       result: generatedResult,
-      outputType: agentConfig.output_type 
+      presentationUrl: presentationUrl,
+      outputType: outputType 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

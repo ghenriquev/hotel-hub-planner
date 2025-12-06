@@ -2,11 +2,37 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useStore } from "@/lib/store";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import NewHotel from "./pages/NewHotel";
+import HotelDetail from "./pages/HotelDetail";
+import ModuleExecution from "./pages/ModuleExecution";
+import Evidences from "./pages/Evidences";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const user = useStore((state) => state.user);
+  
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const user = useStore((state) => state.user);
+  
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -15,8 +41,54 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route 
+            path="/" 
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/hotel/new" 
+            element={
+              <ProtectedRoute>
+                <NewHotel />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/hotel/:id" 
+            element={
+              <ProtectedRoute>
+                <HotelDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/hotel/:id/module/:moduleId" 
+            element={
+              <ProtectedRoute>
+                <ModuleExecution />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/hotel/:id/evidences" 
+            element={
+              <ProtectedRoute>
+                <Evidences />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

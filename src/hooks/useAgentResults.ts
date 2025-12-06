@@ -6,6 +6,7 @@ export interface AgentResult {
   hotel_id: string;
   module_id: number;
   result: string | null;
+  presentation_url: string | null;
   status: 'pending' | 'generating' | 'completed' | 'error';
   generated_at: string | null;
   created_at: string;

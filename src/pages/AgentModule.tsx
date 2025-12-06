@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { useStore } from "@/lib/store";
 import { useAgentResult } from "@/hooks/useAgentResults";
+import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { getAgentById } from "@/lib/agents-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,7 +16,9 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  ExternalLink,
+  Presentation
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +33,11 @@ export default function AgentModule() {
   const agent = getAgentById(moduleIdNum);
   
   const { result, loading, refetch } = useAgentResult(hotelId || "", moduleIdNum);
+  const { configs } = useAgentConfigs();
+  
+  // Get the output type for this module
+  const agentConfig = configs.find(c => c.module_id === moduleIdNum);
+  const outputType = agentConfig?.output_type || 'text';
 
   // Poll for updates while generating
   useEffect(() => {
@@ -108,6 +116,7 @@ export default function AgentModule() {
 
   const currentStatus = result?.status || 'pending';
   const isProcessing = currentStatus === 'generating' || isGenerating;
+  const hasPresentation = outputType === 'presentation' && result?.presentation_url;
 
   return (
     <div className="min-h-screen bg-background">
@@ -145,7 +154,15 @@ export default function AgentModule() {
               <h1 className="font-display text-2xl lg:text-3xl text-foreground">
                 {agent.title}
               </h1>
-              <p className="text-muted-foreground">{agent.description}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-muted-foreground">{agent.description}</p>
+                {outputType === 'presentation' && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    <Presentation className="h-3 w-3" />
+                    Apresentação
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -163,7 +180,11 @@ export default function AgentModule() {
               {isProcessing && (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-primary">Gerando análise...</span>
+                  <span className="text-primary">
+                    {outputType === 'presentation' 
+                      ? 'Gerando análise e apresentação...' 
+                      : 'Gerando análise...'}
+                  </span>
                 </>
               )}
               {currentStatus === 'completed' && !isProcessing && (
@@ -211,7 +232,61 @@ export default function AgentModule() {
           <div className="bg-card border border-border rounded-xl p-8 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : hasPresentation ? (
+          // Presentation Output
+          <div className="space-y-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+            {/* Gamma Embed */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="aspect-video w-full">
+                <iframe 
+                  src={result.presentation_url!} 
+                  className="w-full h-full"
+                  allowFullScreen
+                  title="Apresentação Gamma"
+                />
+              </div>
+              
+              {/* Actions */}
+              <div className="p-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Presentation className="h-5 w-5 text-primary" />
+                  <span className="text-sm text-muted-foreground">Apresentação gerada via Gamma</span>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(result.presentation_url!, '_blank')}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir no Gamma
+                </Button>
+              </div>
+            </div>
+            
+            {/* Text Result (collapsible) */}
+            {result?.result && (
+              <details className="bg-card border border-border rounded-xl">
+                <summary className="p-4 cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Ver conteúdo em texto
+                </summary>
+                <div className="px-4 pb-4 prose prose-sm max-w-none dark:prose-invert">
+                  <div className="whitespace-pre-wrap text-foreground leading-relaxed">
+                    {result.result}
+                  </div>
+                </div>
+              </details>
+            )}
+            
+            {result?.generated_at && (
+              <p className="text-xs text-muted-foreground">
+                Gerado em: {new Date(result.generated_at).toLocaleString('pt-BR')}
+              </p>
+            )}
+          </div>
         ) : result?.result ? (
+          // Text Output
           <div className="bg-card border border-border rounded-xl p-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h2 className="font-display text-lg text-foreground mb-4">Resultado da Análise</h2>
             <div className="prose prose-sm max-w-none dark:prose-invert">

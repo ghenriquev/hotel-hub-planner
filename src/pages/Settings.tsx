@@ -74,6 +74,7 @@ export default function Settings() {
     { value: 'manual', label: 'Manual de Funcionamento' },
     { value: 'dados', label: 'Dados do Hotel' },
     { value: 'transcricao', label: 'Transcrição de Kickoff' },
+    { value: 'website', label: 'Conteúdo do Site' },
   ];
 
   // Agent editing state
@@ -188,7 +189,7 @@ export default function Settings() {
 
   const getMaterialsLabel = (config: string[]) => {
     if (!config || config.length === 0) return 'Nenhum';
-    if (config.length === 3) return 'Todos';
+    if (config.length === MATERIALS_OPTIONS.length) return 'Todos';
     return config.map(c => MATERIALS_OPTIONS.find(m => m.value === c)?.label || c).join(', ');
   };
 

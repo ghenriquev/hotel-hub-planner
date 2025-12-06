@@ -118,6 +118,34 @@ serve(async (req) => {
       }
     }
 
+    // Fetch website data if configured to use it
+    if (configuredMaterials.includes('website')) {
+      console.log("[analyze-module] Fetching website data for hotel:", hotelId);
+      const { data: websiteData } = await supabase
+        .from('hotel_website_data')
+        .select('crawled_content, website_url')
+        .eq('hotel_id', hotelId)
+        .eq('status', 'completed')
+        .maybeSingle();
+
+      if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
+        console.log(`[analyze-module] Found ${websiteData.crawled_content.length} crawled pages`);
+        materialsContext += `\n\n## Conteúdo do Site do Hotel (${websiteData.website_url})`;
+        
+        for (const page of websiteData.crawled_content) {
+          materialsContext += `\n\n### ${page.title || 'Página'}\nURL: ${page.url}`;
+          if (page.description) {
+            materialsContext += `\nDescrição: ${page.description}`;
+          }
+          if (page.text) {
+            materialsContext += `\nConteúdo:\n${page.text.substring(0, 3000)}`;
+          }
+        }
+      } else {
+        console.log("[analyze-module] No website data available for this hotel");
+      }
+    }
+
     if (!materialsContext) {
       materialsContext = "Nenhum material foi anexado para análise. Por favor, forneça uma análise baseada em boas práticas do setor hoteleiro.";
     }

@@ -113,6 +113,42 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_website_data: {
+        Row: {
+          crawled_at: string | null
+          crawled_content: Json | null
+          created_at: string | null
+          error_message: string | null
+          hotel_id: string
+          id: string
+          status: string | null
+          updated_at: string | null
+          website_url: string
+        }
+        Insert: {
+          crawled_at?: string | null
+          crawled_content?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          hotel_id: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          website_url: string
+        }
+        Update: {
+          crawled_at?: string | null
+          crawled_content?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          hotel_id?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

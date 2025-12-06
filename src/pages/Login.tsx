@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -14,16 +14,10 @@ const loginSchema = z.object({
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 });
 
-const signupSchema = loginSchema.extend({
-  name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
-});
-
 export default function Login() {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -32,55 +26,25 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        // Validate login
-        loginSchema.parse({ email, password });
-        
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      loginSchema.parse({ email, password });
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast.error("Credenciais inválidas. Verifique seu e-mail e senha.");
-          } else {
-            toast.error(error.message);
-          }
-          setLoading(false);
-          return;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Credenciais inválidas. Verifique seu e-mail e senha.");
+        } else {
+          toast.error(error.message);
         }
-
-        toast.success("Login realizado com sucesso!");
-        navigate("/dashboard");
-      } else {
-        // Validate signup
-        signupSchema.parse({ email, password, name });
-        
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              name,
-            },
-          },
-        });
-
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("Este e-mail já está cadastrado. Tente fazer login.");
-          } else {
-            toast.error(error.message);
-          }
-          setLoading(false);
-          return;
-        }
-
-        toast.success("Cadastro realizado! Você já pode fazer login.");
-        setIsLogin(true);
+        setLoading(false);
+        return;
       }
+
+      toast.success("Login realizado com sucesso!");
+      navigate("/dashboard");
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast.error(err.errors[0].message);
@@ -134,32 +98,14 @@ export default function Login() {
           <div className="text-center mb-10">
             <Logo size="lg" className="justify-center mb-6" />
             <h2 className="font-display text-2xl text-foreground mb-2">
-              {isLogin ? "Acesso ao HUB" : "Criar Conta"}
+              Acesso ao HUB
             </h2>
             <p className="text-muted-foreground">
-              {isLogin ? "Entre com suas credenciais" : "Cadastre-se para acessar"}
+              Entre com suas credenciais
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
-                    required={!isLogin}
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <div className="relative">
@@ -207,19 +153,9 @@ export default function Login() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? (isLogin ? "Entrando..." : "Cadastrando...") : (isLogin ? "Entrar" : "Cadastrar")}
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
-            </button>
-          </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Acesso exclusivo para consultores Reprotel

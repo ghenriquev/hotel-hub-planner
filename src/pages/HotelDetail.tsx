@@ -2,10 +2,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { GanttChart } from "@/components/GanttChart";
+import { FileUpload } from "@/components/FileUpload";
 import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
 import { MODULES } from "@/lib/modules-data";
 import { Calendar } from "@/components/ui/calendar";
@@ -20,14 +22,15 @@ import {
   Phone,
   Tag,
   Check,
-  FileText,
   FileSpreadsheet,
+  FileText,
   BookOpen,
   Database,
   Video,
   ExternalLink,
   CalendarIcon,
-  Trash2
+  Trash2,
+  Link as LinkIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -49,10 +52,14 @@ export default function HotelDetail() {
   const hotel = getHotel(id || "");
   
   const [materials, setMaterials] = useState<StrategicMaterials>({
-    planilha: "",
-    manualFuncionamento: "",
-    dadosHotel: "",
-    callKickoff: ""
+    planilhaUrl: "",
+    planilhaName: "",
+    manualFuncionamentoUrl: "",
+    manualFuncionamentoName: "",
+    dadosHotelUrl: "",
+    dadosHotelName: "",
+    callKickoffLink: "",
+    callKickoffTranscricao: ""
   });
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
@@ -79,10 +86,14 @@ export default function HotelDetail() {
   useEffect(() => {
     if (hotel?.strategicMaterials) {
       setMaterials({
-        planilha: hotel.strategicMaterials.planilha || "",
-        manualFuncionamento: hotel.strategicMaterials.manualFuncionamento || "",
-        dadosHotel: hotel.strategicMaterials.dadosHotel || "",
-        callKickoff: hotel.strategicMaterials.callKickoff || ""
+        planilhaUrl: hotel.strategicMaterials.planilhaUrl || "",
+        planilhaName: hotel.strategicMaterials.planilhaName || "",
+        manualFuncionamentoUrl: hotel.strategicMaterials.manualFuncionamentoUrl || "",
+        manualFuncionamentoName: hotel.strategicMaterials.manualFuncionamentoName || "",
+        dadosHotelUrl: hotel.strategicMaterials.dadosHotelUrl || "",
+        dadosHotelName: hotel.strategicMaterials.dadosHotelName || "",
+        callKickoffLink: hotel.strategicMaterials.callKickoffLink || "",
+        callKickoffTranscricao: hotel.strategicMaterials.callKickoffTranscricao || ""
       });
     }
     if (hotel?.projectStartDate) {
@@ -249,112 +260,129 @@ export default function HotelDetail() {
               </div>
               <div>
                 <h2 className="font-display text-lg text-foreground">Materiais Estratégicos</h2>
-                <p className="text-sm text-muted-foreground">Links dos documentos e materiais do hotel</p>
+                <p className="text-sm text-muted-foreground">Documentos e materiais do hotel</p>
               </div>
             </div>
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Planilha */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Planilha de Dados - File Upload */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
                 Planilha de Dados
               </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Cole o link da planilha..."
-                  value={materials.planilha}
-                  onChange={(e) => handleMaterialChange("planilha", e.target.value)}
-                  className="flex-1"
-                />
-                {materials.planilha && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(materials.planilha, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <FileUpload
+                hotelId={hotel.id}
+                field="planilha"
+                currentUrl={materials.planilhaUrl}
+                currentName={materials.planilhaName}
+                onUploadComplete={(url, name) => {
+                  const newMaterials = { ...materials, planilhaUrl: url, planilhaName: name };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+                onRemove={() => {
+                  const newMaterials = { ...materials, planilhaUrl: "", planilhaName: "" };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+              />
             </div>
 
-            {/* Manual de Funcionamento */}
+            {/* Manual de Funcionamento - File Upload */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 Manual de Funcionamento
               </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Cole o link do manual..."
-                  value={materials.manualFuncionamento}
-                  onChange={(e) => handleMaterialChange("manualFuncionamento", e.target.value)}
-                  className="flex-1"
-                />
-                {materials.manualFuncionamento && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(materials.manualFuncionamento, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <FileUpload
+                hotelId={hotel.id}
+                field="manual"
+                currentUrl={materials.manualFuncionamentoUrl}
+                currentName={materials.manualFuncionamentoName}
+                onUploadComplete={(url, name) => {
+                  const newMaterials = { ...materials, manualFuncionamentoUrl: url, manualFuncionamentoName: name };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+                onRemove={() => {
+                  const newMaterials = { ...materials, manualFuncionamentoUrl: "", manualFuncionamentoName: "" };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+              />
             </div>
 
-            {/* Dados do Hotel */}
+            {/* Dados do Hotel - File Upload */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Database className="h-4 w-4 text-muted-foreground" />
                 Dados do Hotel
               </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Cole o link dos dados..."
-                  value={materials.dadosHotel}
-                  onChange={(e) => handleMaterialChange("dadosHotel", e.target.value)}
-                  className="flex-1"
-                />
-                {materials.dadosHotel && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(materials.dadosHotel, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <FileUpload
+                hotelId={hotel.id}
+                field="dados"
+                currentUrl={materials.dadosHotelUrl}
+                currentName={materials.dadosHotelName}
+                onUploadComplete={(url, name) => {
+                  const newMaterials = { ...materials, dadosHotelUrl: url, dadosHotelName: name };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+                onRemove={() => {
+                  const newMaterials = { ...materials, dadosHotelUrl: "", dadosHotelName: "" };
+                  setMaterials(newMaterials);
+                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
+                  setLastSaved(new Date());
+                }}
+              />
             </div>
 
-            {/* Call de Kickoff */}
+            {/* Link da Call de Kickoff */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Video className="h-4 w-4 text-muted-foreground" />
+                <LinkIcon className="h-4 w-4 text-muted-foreground" />
                 Link da Call de Kickoff
               </label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Cole o link da call..."
-                  value={materials.callKickoff}
-                  onChange={(e) => handleMaterialChange("callKickoff", e.target.value)}
+                  value={materials.callKickoffLink}
+                  onChange={(e) => handleMaterialChange("callKickoffLink", e.target.value)}
                   className="flex-1"
                 />
-                {materials.callKickoff && (
+                {materials.callKickoffLink && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => window.open(materials.callKickoff, "_blank")}
+                    onClick={() => window.open(materials.callKickoffLink, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Transcrição da Call de Kickoff */}
+          <div className="mt-6 space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Video className="h-4 w-4 text-muted-foreground" />
+              Transcrição da Call de Kickoff
+            </label>
+            <Textarea
+              placeholder="Cole aqui a transcrição da call de kickoff..."
+              value={materials.callKickoffTranscricao}
+              onChange={(e) => handleMaterialChange("callKickoffTranscricao", e.target.value)}
+              className="min-h-[150px]"
+            />
           </div>
         </div>
 

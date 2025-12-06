@@ -38,12 +38,12 @@ serve(async (req) => {
       error_message: null,
     }, { onConflict: 'hotel_id' });
 
-    // Fetch Apify API Key from api_keys table
+    // Fetch Apify API Key from api_keys table (search by name containing 'apify' or 'apfy')
     const { data: apifyKeyData, error: keyError } = await supabase
       .from('api_keys')
       .select('api_key')
-      .or('name.ilike.%apify%,key_type.ilike.%apify%')
       .eq('is_active', true)
+      .or('name.ilike.%apify%,name.ilike.%apfy%,key_type.ilike.%apify%')
       .maybeSingle();
 
     if (keyError) {

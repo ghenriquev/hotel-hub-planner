@@ -116,6 +116,31 @@ export default function AgentModule() {
 
   const currentStatus = result?.status || 'pending';
   const isProcessing = currentStatus === 'generating' || isGenerating;
+  
+  // Detect if stuck (generating for more than 3 minutes)
+  const isStuck = currentStatus === 'generating' && result?.created_at && 
+    (new Date().getTime() - new Date(result.created_at).getTime() > 3 * 60 * 1000);
+
+  const handleCancelGeneration = async () => {
+    try {
+      const { error } = await supabase
+        .from('agent_results')
+        .update({ status: 'pending' })
+        .eq('hotel_id', hotelId)
+        .eq('module_id', moduleIdNum);
+      
+      if (error) {
+        toast.error('Erro ao cancelar. Tente novamente.');
+        return;
+      }
+      
+      setIsGenerating(false);
+      toast.info('Processamento cancelado. Você pode tentar novamente.');
+      refetch();
+    } catch (err) {
+      toast.error('Erro inesperado.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,7 +201,7 @@ export default function AgentModule() {
                   <span className="text-muted-foreground">Aguardando análise</span>
                 </>
               )}
-              {isProcessing && (
+              {isProcessing && !isStuck && (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="text-primary">
@@ -184,6 +209,12 @@ export default function AgentModule() {
                       ? 'Gerando análise e apresentação...' 
                       : 'Gerando análise...'}
                   </span>
+                </>
+              )}
+              {isStuck && (
+                <>
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  <span className="text-amber-500">Processamento travado</span>
                 </>
               )}
               {currentStatus === 'completed' && !isProcessing && (
@@ -200,29 +231,41 @@ export default function AgentModule() {
               )}
             </div>
 
-            <Button
-              onClick={handleGenerateAnalysis}
-              disabled={isProcessing}
-              className="gap-2"
-              variant={currentStatus === 'completed' ? 'outline' : 'default'}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Gerando...
-                </>
-              ) : currentStatus === 'completed' ? (
-                <>
+            <div className="flex gap-2">
+              {isStuck && (
+                <Button
+                  onClick={handleCancelGeneration}
+                  variant="outline"
+                  className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10"
+                >
                   <RefreshCw className="h-4 w-4" />
-                  Regenerar
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  Gerar Análise
-                </>
+                  Cancelar e Reiniciar
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={handleGenerateAnalysis}
+                disabled={isProcessing && !isStuck}
+                className="gap-2"
+                variant={currentStatus === 'completed' ? 'outline' : 'default'}
+              >
+                {isProcessing && !isStuck ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Gerando...
+                  </>
+                ) : currentStatus === 'completed' ? (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Regenerar
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Gerar Análise
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 

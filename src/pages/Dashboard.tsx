@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   Building2, 
   LogOut, 
@@ -16,14 +18,31 @@ import {
   List,
   Settings
 } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, hotels, logout, getHotelProgress } = useStore();
+  const { hotels, getHotelProgress } = useStore();
+  const { isAdmin } = useUserRole();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        setUserName(profile?.name || user.email?.split('@')[0] || '');
+      }
+    };
+    fetchUserName();
+  }, []);
 
   const filteredHotels = hotels.filter(
     (hotel) =>
@@ -31,8 +50,8 @@ export default function Dashboard() {
       hotel.city.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
@@ -45,11 +64,13 @@ export default function Dashboard() {
           
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">
-              Olá, <span className="text-foreground font-medium">{user?.name}</span>
+              Olá, <span className="text-foreground font-medium">{userName}</span>
             </span>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
-              <Settings className="h-4 w-4" />
-            </Button>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair

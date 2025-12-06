@@ -11,6 +11,7 @@ import { Logo } from "@/components/Logo";
 import { useAgentConfigs, AgentConfig } from "@/hooks/useAgentConfigs";
 import { useApiKeys, ApiKeyInput, ApiKey } from "@/hooks/useApiKeys";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   ArrowLeft, 
   Settings as SettingsIcon,
@@ -24,7 +25,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  Pencil
+  Pencil,
+  FileText
 } from "lucide-react";
 
 const KEY_TYPES = [
@@ -67,12 +69,20 @@ export default function Settings() {
   const { apiKeys, loading: apiKeysLoading, addApiKey, updateApiKey, deleteApiKey, toggleApiKey } = useApiKeys();
   const { isAdmin, loading: roleLoading } = useUserRole();
   
+  // Materials options
+  const MATERIALS_OPTIONS = [
+    { value: 'manual', label: 'Manual de Funcionamento' },
+    { value: 'dados', label: 'Dados do Hotel' },
+    { value: 'transcricao', label: 'Transcrição de Kickoff' },
+  ];
+
   // Agent editing state
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string }>({ 
+  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string; materials_config: string[] }>({ 
     prompt: '', 
     output_type: 'text',
-    llm_model: 'google/gemini-2.5-flash'
+    llm_model: 'google/gemini-2.5-flash',
+    materials_config: ['manual', 'dados', 'transcricao']
   });
   const [saving, setSaving] = useState(false);
 
@@ -146,7 +156,8 @@ export default function Settings() {
     setEditForm({ 
       prompt: config.prompt, 
       output_type: config.output_type,
-      llm_model: config.llm_model || 'google/gemini-2.5-flash'
+      llm_model: config.llm_model || 'google/gemini-2.5-flash',
+      materials_config: config.materials_config || ['manual', 'dados', 'transcricao']
     });
   };
 
@@ -161,7 +172,24 @@ export default function Settings() {
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash' });
+    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash', materials_config: ['manual', 'dados', 'transcricao'] });
+  };
+
+  const toggleMaterial = (materialValue: string) => {
+    setEditForm(prev => {
+      const current = prev.materials_config;
+      if (current.includes(materialValue)) {
+        return { ...prev, materials_config: current.filter(m => m !== materialValue) };
+      } else {
+        return { ...prev, materials_config: [...current, materialValue] };
+      }
+    });
+  };
+
+  const getMaterialsLabel = (config: string[]) => {
+    if (!config || config.length === 0) return 'Nenhum';
+    if (config.length === 3) return 'Todos';
+    return config.map(c => MATERIALS_OPTIONS.find(m => m.value === c)?.label || c).join(', ');
   };
 
   // API Key handlers
@@ -286,11 +314,15 @@ export default function Settings() {
                     <h3 className="font-semibold text-foreground">
                       #{config.module_id} - {config.module_title}
                     </h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                       <span>Output: {config.output_type}</span>
                       <span className="flex items-center gap-1">
                         <span>{getModelInfo(config.llm_model || 'google/gemini-2.5-flash').icon}</span>
                         {getModelInfo(config.llm_model || 'google/gemini-2.5-flash').label}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        {getMaterialsLabel(config.materials_config)}
                       </span>
                     </div>
                   </div>
@@ -390,8 +422,29 @@ export default function Settings() {
                       </div>
                     </div>
 
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Materiais Estratégicos
+                      </label>
+                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
+                        {MATERIALS_OPTIONS.map((material) => (
+                          <label key={material.value} className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={editForm.materials_config.includes(material.value)}
+                              onCheckedChange={() => toggleMaterial(material.value)}
+                            />
+                            <span className="text-sm">{material.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Selecione quais materiais serão enviados para este agente
+                      </p>
+                    </div>
+
                     <div className="flex gap-2">
-                      <Button onClick={() => handleSave(config.module_id)} disabled={saving}>
+                      <Button onClick={() => handleSave(config.module_id)} disabled={saving || editForm.materials_config.length === 0}>
                         {saving ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : (

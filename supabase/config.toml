@@ -3,6 +3,9 @@ project_id = "vdqcesikgxtdfdlgjcpd"
 [functions.analyze-module]
 verify_jwt = true
 
+[functions.crawl-hotel-website]
+verify_jwt = true
+
 [functions.create-user]
 verify_jwt = true
 

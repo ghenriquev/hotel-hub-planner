@@ -8,6 +8,7 @@ import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
 import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
 import { useAgentResults } from "@/hooks/useAgentResults";
+import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
 import { AGENTS } from "@/lib/agents-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,7 +32,10 @@ import {
   Sparkles,
   AlertCircle,
   Pencil,
-  Globe
+  Globe,
+  Search,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -66,7 +70,7 @@ export default function HotelDetail() {
 
   const hotel = getHotel(id || "");
   const { results, loading: resultsLoading, getResultForModule } = useAgentResults(id || "");
-  
+  const { websiteData, isCrawling, crawlWebsite } = useHotelWebsiteData(id);
   const [materials, setMaterials] = useState<StrategicMaterials>({
     manualFuncionamentoUrl: "",
     manualFuncionamentoName: "",
@@ -501,6 +505,78 @@ export default function HotelDetail() {
             </div>
           </div>
         </div>
+
+        {/* Website Analysis */}
+        {hotel.website && !hotel.hasNoWebsite && (
+          <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.075s" }}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Globe className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg text-foreground">Análise do Site</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Extração automática de conteúdo via Apify
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {websiteData?.status === 'completed' && websiteData.crawled_at && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span>
+                      Analisado em {format(parseISO(websiteData.crawled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </span>
+                    <span className="text-primary">
+                      ({Array.isArray(websiteData.crawled_content) ? websiteData.crawled_content.length : 0} páginas)
+                    </span>
+                  </div>
+                )}
+                
+                {websiteData?.status === 'error' && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <XCircle className="h-4 w-4" />
+                    <span>{websiteData.error_message || 'Erro na análise'}</span>
+                  </div>
+                )}
+                
+                <Button
+                  onClick={() => crawlWebsite(hotel.website!)}
+                  disabled={isCrawling}
+                  variant={websiteData?.status === 'completed' ? 'outline' : 'default'}
+                >
+                  {isCrawling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analisando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      {websiteData?.status === 'completed' ? 'Reanalisar Site' : 'Analisar Site'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {websiteData?.status === 'completed' && Array.isArray(websiteData.crawled_content) && websiteData.crawled_content.length > 0 && (
+              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                <h3 className="text-sm font-medium text-foreground mb-3">Páginas extraídas:</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {websiteData.crawled_content.map((page: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <Check className="h-3 w-3 text-green-500 shrink-0" />
+                      <span className="text-muted-foreground truncate">{page.title || page.url}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Client Schedule - Gantt Chart */}
         <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>

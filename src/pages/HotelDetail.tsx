@@ -26,13 +26,25 @@ import {
   Database,
   Video,
   ExternalLink,
-  CalendarIcon
+  CalendarIcon,
+  Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 export default function HotelDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getHotel, updateHotel, getProgress, getHotelProgress } = useStore();
+  const { getHotel, updateHotel, deleteHotel, getProgress, getHotelProgress } = useStore();
 
   const hotel = getHotel(id || "");
   
@@ -201,6 +213,36 @@ export default function HotelDetail() {
                 <div className="text-2xl font-display text-foreground">{hotelProgress}%</div>
               </div>
               <ProgressRing progress={hotelProgress} size={64} strokeWidth={5} />
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Hotel?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Todos os dados, evidências e 
+                      progresso dos módulos de "{hotel.name}" serão permanentemente excluídos.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        deleteHotel(hotel.id);
+                        navigate("/dashboard");
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>

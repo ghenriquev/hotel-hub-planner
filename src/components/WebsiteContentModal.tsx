@@ -17,7 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -76,15 +75,15 @@ ${page.text || ''}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-primary" />
             Conteúdo Extraído do Site
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground border-b border-border pb-3">
+        <div className="flex items-center justify-between text-sm text-muted-foreground border-b border-border pb-3 shrink-0">
           <div className="flex items-center gap-4">
             <span>{pages.length} páginas</span>
             <span>•</span>
@@ -118,8 +117,8 @@ ${page.text || ''}
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2">
+          <div className="space-y-2 py-2">
             {pages.map((page, index) => {
               const isExpanded = expandedPages.has(index);
               return (
@@ -186,7 +185,7 @@ ${page.text || ''}
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

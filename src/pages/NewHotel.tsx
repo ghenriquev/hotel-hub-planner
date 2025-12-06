@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, MapPin, Phone, Tag } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Phone, Tag, Globe } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,8 @@ export default function NewHotel() {
     city: "",
     contact: "",
     category: "",
+    website: "",
+    hasNoWebsite: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +47,14 @@ export default function NewHotel() {
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    addHotel(form);
+    addHotel({
+      name: form.name,
+      city: form.city,
+      contact: form.contact,
+      category: form.category,
+      website: form.hasNoWebsite ? undefined : form.website,
+      hasNoWebsite: form.hasNoWebsite,
+    });
     toast.success("Hotel cadastrado com sucesso!");
     navigate("/dashboard");
     
@@ -146,6 +156,38 @@ export default function NewHotel() {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Site do Hotel</Label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="website"
+                  placeholder="Ex: https://www.hotelexemplo.com.br"
+                  value={form.website}
+                  onChange={(e) => updateForm("website", e.target.value)}
+                  className="pl-10"
+                  disabled={form.hasNoWebsite}
+                  required={!form.hasNoWebsite}
+                />
+              </div>
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="hasNoWebsite"
+                  checked={form.hasNoWebsite}
+                  onCheckedChange={(checked) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      hasNoWebsite: checked === true,
+                      website: checked === true ? "" : prev.website,
+                    }));
+                  }}
+                />
+                <Label htmlFor="hasNoWebsite" className="text-sm text-muted-foreground cursor-pointer">
+                  Hotel não tem site
+                </Label>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-4">
@@ -161,7 +203,7 @@ export default function NewHotel() {
               type="submit"
               variant="premium"
               className="flex-1"
-              disabled={loading || !form.name || !form.city || !form.contact || !form.category}
+              disabled={loading || !form.name || !form.city || !form.contact || !form.category || (!form.website && !form.hasNoWebsite)}
             >
               {loading ? "Salvando..." : "Cadastrar Hotel"}
             </Button>

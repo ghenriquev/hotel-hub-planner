@@ -335,6 +335,7 @@ export default function Settings() {
 
                 {editingId === config.module_id ? (
                   <div className="space-y-4">
+                    {/* 1. Prompt do Agente */}
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
                         Prompt do Agente
@@ -346,82 +347,8 @@ export default function Settings() {
                         className="resize-none"
                       />
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Tipo de Output
-                        </label>
-                        <Select 
-                          value={editForm.output_type} 
-                          onValueChange={(value) => setEditForm({ ...editForm, output_type: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="text">Texto</SelectItem>
-                            <SelectItem value="presentation">Apresentação</SelectItem>
-                            <SelectItem value="swot">SWOT</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
 
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-2 block">
-                          Modelo LLM
-                        </label>
-                        <Select 
-                          value={editForm.llm_model} 
-                          onValueChange={(value) => setEditForm({ ...editForm, llm_model: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue>
-                              <span className="flex items-center gap-2">
-                                <span>{getModelInfo(editForm.llm_model).icon}</span>
-                                {getModelInfo(editForm.llm_model).label}
-                              </span>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                              Lovable AI (sem API Key)
-                            </div>
-                            {LOVABLE_MODELS.map((model) => (
-                              <SelectItem key={model.value} value={model.value}>
-                                <div className="flex items-center gap-2">
-                                  <span>{model.icon}</span>
-                                  <span>{model.label}</span>
-                                  <span className="text-xs text-muted-foreground ml-1">
-                                    {model.description}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                            
-                            {getAvailableExternalModels().length > 0 && (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
-                                  Via API Key Configurada
-                                </div>
-                                {getAvailableExternalModels().map((model) => (
-                                  <SelectItem key={model.value} value={model.value}>
-                                    <div className="flex items-center gap-2">
-                                      <span>{model.icon}</span>
-                                      <span>{model.label}</span>
-                                      <span className="text-xs text-muted-foreground ml-1">
-                                        {model.description}
-                                      </span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
+                    {/* 2. Materiais Estratégicos */}
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
                         <FileText className="h-4 w-4" />
@@ -441,6 +368,81 @@ export default function Settings() {
                       <p className="text-xs text-muted-foreground mt-1">
                         Selecione quais materiais serão enviados para este agente
                       </p>
+                    </div>
+
+                    {/* 3. Modelo LLM */}
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Modelo LLM
+                      </label>
+                      <Select 
+                        value={editForm.llm_model} 
+                        onValueChange={(value) => setEditForm({ ...editForm, llm_model: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>
+                            <span className="flex items-center gap-2">
+                              <span>{getModelInfo(editForm.llm_model).icon}</span>
+                              {getModelInfo(editForm.llm_model).label}
+                            </span>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Lovable AI (sem API Key)
+                          </div>
+                          {LOVABLE_MODELS.map((model) => (
+                            <SelectItem key={model.value} value={model.value}>
+                              <div className="flex items-center gap-2">
+                                <span>{model.icon}</span>
+                                <span>{model.label}</span>
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  {model.description}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          
+                          {getAvailableExternalModels().length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
+                                Via API Key Configurada
+                              </div>
+                              {getAvailableExternalModels().map((model) => (
+                                <SelectItem key={model.value} value={model.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{model.icon}</span>
+                                    <span>{model.label}</span>
+                                    <span className="text-xs text-muted-foreground ml-1">
+                                      {model.description}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* 4. Tipo do Output */}
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Tipo de Output
+                      </label>
+                      <Select 
+                        value={editForm.output_type} 
+                        onValueChange={(value) => setEditForm({ ...editForm, output_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Texto</SelectItem>
+                          <SelectItem value="presentation">Apresentação</SelectItem>
+                          <SelectItem value="swot">SWOT</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="flex gap-2">

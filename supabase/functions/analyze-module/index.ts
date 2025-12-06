@@ -1,4 +1,4 @@
-// VERSION: 2.0.1 - Fixed Gamma payload structure with amount field - 2024-12-06
+// VERSION: 2.0.2 - Fixed Gamma payload structure - force redeploy - 2024-12-06T22:05
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

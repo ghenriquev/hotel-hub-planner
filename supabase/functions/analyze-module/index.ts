@@ -64,7 +64,7 @@ serve(async (req) => {
       throw new Error(`No agent configuration found for module ${moduleId}`);
     }
 
-    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}`);
+    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}`);
 
     // Build context from materials
     let materialsContext = "";
@@ -91,62 +91,189 @@ ${materialsContext}
 
 Por favor, forneça uma análise detalhada e profissional em português do Brasil.`;
 
-    console.log("[analyze-module] Calling Lovable AI...");
+    // Determine which model to use
+    const llmModel = agentConfig.llm_model || 'lovable/gemini-2.5-flash';
+    console.log(`[analyze-module] Using LLM model: ${llmModel}`);
 
-    // Call Lovable AI
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-      }),
-    });
+    let generatedResult: string;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[analyze-module] AI API error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        // Update status to error
-        await supabase.from('agent_results').upsert({
-          hotel_id: hotelId,
-          module_id: moduleId,
-          status: 'error',
-          result: 'Limite de requisições excedido. Tente novamente em alguns minutos.',
-        }, { onConflict: 'hotel_id,module_id' });
+    // Check if it's a Lovable AI model or external
+    if (llmModel.startsWith('lovable/')) {
+      // Use Lovable AI Gateway
+      const modelName = llmModel.replace('lovable/', '');
+      console.log("[analyze-module] Calling Lovable AI with model:", modelName);
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[analyze-module] Lovable AI error:", response.status, errorText);
         
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      if (response.status === 402) {
-        await supabase.from('agent_results').upsert({
-          hotel_id: hotelId,
-          module_id: moduleId,
-          status: 'error',
-          result: 'Créditos insuficientes. Adicione créditos na sua conta.',
-        }, { onConflict: 'hotel_id,module_id' });
+        if (response.status === 429) {
+          await supabase.from('agent_results').upsert({
+            hotel_id: hotelId,
+            module_id: moduleId,
+            status: 'error',
+            result: 'Limite de requisições excedido. Tente novamente em alguns minutos.',
+          }, { onConflict: 'hotel_id,module_id' });
+          
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (response.status === 402) {
+          await supabase.from('agent_results').upsert({
+            hotel_id: hotelId,
+            module_id: moduleId,
+            status: 'error',
+            result: 'Créditos insuficientes. Adicione créditos na sua conta.',
+          }, { onConflict: 'hotel_id,module_id' });
+          
+          return new Response(JSON.stringify({ error: "Payment required. Please add credits." }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        throw new Error(`Lovable AI gateway error: ${response.status}`);
       }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
+
+      const aiData = await response.json();
+      generatedResult = aiData.choices?.[0]?.message?.content || "";
+    } else if (llmModel.startsWith('openai/')) {
+      // Use OpenAI directly
+      const { data: apiKeyData, error: keyError } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .eq('key_type', 'openai')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (keyError || !apiKeyData) {
+        throw new Error("No active OpenAI API key found");
+      }
+
+      const modelName = llmModel.replace('openai/', '');
+      console.log("[analyze-module] Calling OpenAI with model:", modelName);
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKeyData.api_key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[analyze-module] OpenAI error:", response.status, errorText);
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const aiData = await response.json();
+      generatedResult = aiData.choices?.[0]?.message?.content || "";
+    } else if (llmModel.startsWith('anthropic/')) {
+      // Use Anthropic/Claude directly
+      const { data: apiKeyData, error: keyError } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .eq('key_type', 'anthropic')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (keyError || !apiKeyData) {
+        throw new Error("No active Anthropic API key found");
+      }
+
+      const modelName = llmModel.replace('anthropic/', '');
+      console.log("[analyze-module] Calling Anthropic with model:", modelName);
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKeyData.api_key,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[analyze-module] Anthropic error:", response.status, errorText);
+        throw new Error(`Anthropic API error: ${response.status}`);
+      }
+
+      const aiData = await response.json();
+      generatedResult = aiData.content?.[0]?.text || "";
+    } else if (llmModel.startsWith('google/')) {
+      // Use Google AI directly
+      const { data: apiKeyData, error: keyError } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .eq('key_type', 'google')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (keyError || !apiKeyData) {
+        throw new Error("No active Google API key found");
+      }
+
+      const modelName = llmModel.replace('google/', '');
+      console.log("[analyze-module] Calling Google AI with model:", modelName);
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKeyData.api_key}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            { role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[analyze-module] Google AI error:", response.status, errorText);
+        throw new Error(`Google AI API error: ${response.status}`);
+      }
+
+      const aiData = await response.json();
+      generatedResult = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else {
+      throw new Error(`Unsupported LLM model: ${llmModel}`);
     }
-
-    const aiData = await response.json();
-    const generatedResult = aiData.choices?.[0]?.message?.content || "";
 
     console.log("[analyze-module] AI response received, saving result...");
 

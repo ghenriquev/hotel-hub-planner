@@ -8,6 +8,7 @@ export interface AgentConfig {
   module_title: string;
   prompt: string;
   output_type: string;
+  llm_model: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,7 +37,7 @@ export function useAgentConfigs() {
     fetchConfigs();
   }, [fetchConfigs]);
 
-  const updateConfig = useCallback(async (moduleId: number, updates: Partial<Pick<AgentConfig, 'prompt' | 'output_type'>>) => {
+  const updateConfig = useCallback(async (moduleId: number, updates: Partial<Pick<AgentConfig, 'prompt' | 'output_type' | 'llm_model'>>) => {
     const { error } = await supabase
       .from('agent_configs')
       .update(updates)

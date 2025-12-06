@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          llm_model: string
           module_id: number
           module_title: string
           output_type: string | null
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          llm_model?: string
           module_id: number
           module_title: string
           output_type?: string | null
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          llm_model?: string
           module_id?: number
           module_title?: string
           output_type?: string | null

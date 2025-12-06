@@ -51,7 +51,7 @@ export default function HotelDetail() {
     { id: "etapa1", name: "Etapa 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
     { id: "etapa2", name: "Etapa 2 – Estratégia", startWeek: 2, endWeek: 3 },
     { id: "etapa3", name: "Etapa 3 – Construção", startWeek: 4, endWeek: 5 },
-    { id: "etapa4", name: "Etapa 4 – Ativação e Mensuração", startWeek: 6, endWeek: 6 },
+    { id: "etapa4", name: "Etapa 4 – Ativação e Mensuração", startWeek: 6, endWeek: 7 },
     { id: "etapa5", name: "Etapa 5 – Relatório Final e Proposta de Continuidade", startWeek: 8, endWeek: 8 }
   ];
 

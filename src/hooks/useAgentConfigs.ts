@@ -9,6 +9,7 @@ export interface AgentConfig {
   prompt: string;
   output_type: string;
   llm_model: string;
+  materials_config: string[];
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +38,7 @@ export function useAgentConfigs() {
     fetchConfigs();
   }, [fetchConfigs]);
 
-  const updateConfig = useCallback(async (moduleId: number, updates: Partial<Pick<AgentConfig, 'prompt' | 'output_type' | 'llm_model'>>) => {
+  const updateConfig = useCallback(async (moduleId: number, updates: Partial<Pick<AgentConfig, 'prompt' | 'output_type' | 'llm_model' | 'materials_config'>>) => {
     const { error } = await supabase
       .from('agent_configs')
       .update(updates)

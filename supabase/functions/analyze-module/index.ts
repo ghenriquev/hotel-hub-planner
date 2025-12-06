@@ -64,18 +64,20 @@ serve(async (req) => {
       throw new Error(`No agent configuration found for module ${moduleId}`);
     }
 
-    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}`);
+    // Get configured materials for this agent (default to all if not configured)
+    const configuredMaterials = agentConfig.materials_config || ['manual', 'dados', 'transcricao'];
+    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}, materials: ${configuredMaterials.join(', ')}`);
 
-    // Build context from materials
+    // Build context from materials (only include configured ones)
     let materialsContext = "";
     if (materials) {
-      if (materials.manualFuncionamentoUrl) {
+      if (configuredMaterials.includes('manual') && materials.manualFuncionamentoUrl) {
         materialsContext += `\n\n## Manual de Funcionamento\nURL: ${materials.manualFuncionamentoUrl}\nNome: ${materials.manualFuncionamentoName || 'Não especificado'}`;
       }
-      if (materials.dadosHotelUrl) {
+      if (configuredMaterials.includes('dados') && materials.dadosHotelUrl) {
         materialsContext += `\n\n## Dados do Hotel\nURL: ${materials.dadosHotelUrl}\nNome: ${materials.dadosHotelName || 'Não especificado'}`;
       }
-      if (materials.transcricaoKickoffUrl) {
+      if (configuredMaterials.includes('transcricao') && materials.transcricaoKickoffUrl) {
         materialsContext += `\n\n## Transcrição de Kickoff\nURL: ${materials.transcricaoKickoffUrl}\nNome: ${materials.transcricaoKickoffName || 'Não especificado'}`;
       }
     }

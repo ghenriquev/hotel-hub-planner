@@ -1,15 +1,14 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
 import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
-import { MODULES } from "@/lib/modules-data";
+import { useAgentResults } from "@/hooks/useAgentResults";
+import { AGENTS } from "@/lib/agents-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays, parseISO } from "date-fns";
@@ -27,7 +26,10 @@ import {
   BookOpen,
   Database,
   CalendarIcon,
-  Trash2
+  Trash2,
+  Loader2,
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -41,12 +43,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
 export default function HotelDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getHotel, updateHotel, deleteHotel, getProgress, getHotelProgress } = useStore();
+  const { getHotel, updateHotel, deleteHotel } = useStore();
 
   const hotel = getHotel(id || "");
+  const { results, loading: resultsLoading, getResultForModule } = useAgentResults(id || "");
   
   const [materials, setMaterials] = useState<StrategicMaterials>({
     manualFuncionamentoUrl: "",
@@ -77,7 +81,6 @@ export default function HotelDetail() {
     }));
   }, []);
 
-  // Initialize milestones on mount - FORCE reset to defaults
   useEffect(() => {
     if (hotel?.strategicMaterials) {
       setMaterials({
@@ -93,7 +96,6 @@ export default function HotelDetail() {
       const date = parseISO(hotel.projectStartDate);
       setProjectStartDate(date);
       
-      // FORCE create all 5 milestones from scratch with default weeks
       const newMilestones = DEFAULT_MILESTONES.map(defaultM => ({
         id: defaultM.id,
         name: defaultM.name,
@@ -103,13 +105,11 @@ export default function HotelDetail() {
         endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
       }));
       
-      console.log("Setting milestones:", newMilestones);
       setMilestones(newMilestones);
       updateHotel(hotel.id, { milestones: newMilestones });
     }
   }, [hotel?.id]);
 
-  // Auto-save materials
   useEffect(() => {
     if (!hotel) return;
     
@@ -125,7 +125,6 @@ export default function HotelDetail() {
     return () => clearTimeout(timeout);
   }, [materials]);
 
-  // Handle start date change
   const handleStartDateChange = (date: Date | undefined) => {
     if (!date || !hotel) return;
     setProjectStartDate(date);
@@ -138,7 +137,6 @@ export default function HotelDetail() {
     setLastSaved(new Date());
   };
 
-  // Handle milestones change from Gantt
   const handleMilestonesChange = (newMilestones: ClientMilestone[]) => {
     if (!hotel) return;
     setMilestones(newMilestones);
@@ -157,11 +155,9 @@ export default function HotelDetail() {
     );
   }
 
-  const hotelProgress = getHotelProgress(hotel.id);
-
-  const handleMaterialChange = (field: keyof StrategicMaterials, value: string) => {
-    setMaterials(prev => ({ ...prev, [field]: value }));
-  };
+  // Calculate progress based on completed agent results
+  const completedAgents = results.filter(r => r.status === 'completed').length;
+  const hotelProgress = Math.round((completedAgents / 11) * 100);
 
   return (
     <div className="min-h-screen bg-background">
@@ -403,71 +399,84 @@ export default function HotelDetail() {
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.15s" }}>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(`/hotel/${hotel.id}/evidences`)}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Ver Evidências
-          </Button>
-        </div>
-
-        {/* Modules grid */}
-        <div className="mb-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <h2 className="font-display text-xl text-foreground mb-1">Módulos Estratégicos</h2>
+        {/* Agents grid */}
+        <div className="mb-6 animate-slide-up" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center gap-3 mb-1">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-xl text-foreground">Agentes Estratégicos</h2>
+          </div>
           <p className="text-muted-foreground text-sm">
-            Complete todos os módulos para finalizar o plano estratégico
+            Cada agente analisa os materiais e gera insights específicos
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MODULES.map((module, index) => {
-            const progress = getProgress(hotel.id, module.id);
-            const isCompleted = progress?.completed || false;
-            const hasStarted = progress && (
-              Object.keys(progress.checklist).length > 0 ||
-              Object.keys(progress.answers).length > 0
-            );
+          {AGENTS.map((agent, index) => {
+            const result = getResultForModule(agent.id);
+            const status = result?.status || 'pending';
+            const isCompleted = status === 'completed';
+            const isGenerating = status === 'generating';
+            const hasError = status === 'error';
 
             return (
               <div
-                key={module.id}
-                onClick={() => navigate(`/hotel/${hotel.id}/module/${module.id}`)}
+                key={agent.id}
+                onClick={() => navigate(`/hotel/${hotel.id}/module/${agent.id}`)}
                 className={cn(
                   "bg-card border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-lg group animate-slide-up",
                   isCompleted 
                     ? "border-gold/50 bg-gold-muted/20" 
-                    : "border-border hover:border-primary/30"
+                    : hasError
+                      ? "border-destructive/50"
+                      : "border-border hover:border-primary/30"
                 )}
-                style={{ animationDelay: `${0.1 + index * 0.03}s` }}
+                style={{ animationDelay: `${0.2 + index * 0.03}s` }}
               >
                 <div className="flex items-start gap-4">
                   <div className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-colors",
                     isCompleted 
                       ? "bg-gold text-foreground" 
-                      : hasStarted 
+                      : isGenerating
                         ? "gradient-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : hasError
+                          ? "bg-destructive/20 text-destructive"
+                          : "bg-muted text-muted-foreground"
                   )}>
-                    {isCompleted ? <Check className="h-5 w-5" /> : `#${module.id}`}
+                    {isCompleted ? (
+                      <Check className="h-5 w-5" />
+                    ) : isGenerating ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : hasError ? (
+                      <AlertCircle className="h-5 w-5" />
+                    ) : (
+                      `#${agent.id}`
+                    )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                      {module.title}
+                      {agent.title}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {module.description}
+                      {agent.description}
                     </p>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {!isCompleted && hasStarted && (
+                    {isGenerating && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        Em progresso
+                        Gerando...
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="text-xs bg-gold/20 text-foreground px-2 py-1 rounded-full">
+                        Concluído
+                      </span>
+                    )}
+                    {hasError && (
+                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
+                        Erro
                       </span>
                     )}
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />

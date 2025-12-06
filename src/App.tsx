@@ -8,8 +8,9 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewHotel from "./pages/NewHotel";
 import HotelDetail from "./pages/HotelDetail";
-import ModuleExecution from "./pages/ModuleExecution";
+import AgentModule from "./pages/AgentModule";
 import Evidences from "./pages/Evidences";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,7 +78,7 @@ const App = () => (
             path="/hotel/:id/module/:moduleId" 
             element={
               <ProtectedRoute>
-                <ModuleExecution />
+                <AgentModule />
               </ProtectedRoute>
             } 
           />
@@ -86,6 +87,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Evidences />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } 
           />

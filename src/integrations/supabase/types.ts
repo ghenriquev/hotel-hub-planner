@@ -113,6 +113,66 @@ export type Database = {
         }
         Relationships: []
       }
+      gamma_settings: {
+        Row: {
+          additional_instructions: string | null
+          card_dimensions: string | null
+          card_split: string | null
+          created_at: string | null
+          format: string | null
+          id: string
+          image_model: string | null
+          image_source: string | null
+          image_style: string | null
+          num_cards: number | null
+          text_amount: string | null
+          text_audience: string | null
+          text_language: string | null
+          text_mode: string | null
+          text_tone: string | null
+          theme_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          additional_instructions?: string | null
+          card_dimensions?: string | null
+          card_split?: string | null
+          created_at?: string | null
+          format?: string | null
+          id?: string
+          image_model?: string | null
+          image_source?: string | null
+          image_style?: string | null
+          num_cards?: number | null
+          text_amount?: string | null
+          text_audience?: string | null
+          text_language?: string | null
+          text_mode?: string | null
+          text_tone?: string | null
+          theme_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          additional_instructions?: string | null
+          card_dimensions?: string | null
+          card_split?: string | null
+          created_at?: string | null
+          format?: string | null
+          id?: string
+          image_model?: string | null
+          image_source?: string | null
+          image_style?: string | null
+          num_cards?: number | null
+          text_amount?: string | null
+          text_audience?: string | null
+          text_language?: string | null
+          text_mode?: string | null
+          text_tone?: string | null
+          theme_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       hotel_website_data: {
         Row: {
           crawled_at: string | null

@@ -88,23 +88,19 @@ export default function HotelDetail() {
       setProjectStartDate(parseISO(hotel.projectStartDate));
       const date = parseISO(hotel.projectStartDate);
       
-      // Check if all required milestones exist
-      const hasAllMilestones = DEFAULT_MILESTONES.every(
-        defaultM => hotel.milestones?.some(m => m.id === defaultM.id)
-      );
+      // Check if we have exactly 5 milestones with correct first ID
+      const hasCorrectMilestones = hotel.milestones?.length === 5 && 
+        hotel.milestones[0]?.id === "etapa1";
       
-      if (hasAllMilestones && hotel.milestones) {
-        // All milestones exist, just update names
-        const updatedMilestones = DEFAULT_MILESTONES.map((defaultM) => {
-          const savedM = hotel.milestones!.find(m => m.id === defaultM.id)!;
-          return {
-            ...savedM,
-            name: defaultM.name
-          };
-        });
+      if (hasCorrectMilestones && hotel.milestones) {
+        // Milestones are correct, just update names from defaults
+        const updatedMilestones = DEFAULT_MILESTONES.map((defaultM, index) => ({
+          ...hotel.milestones![index],
+          name: defaultM.name
+        }));
         setMilestones(updatedMilestones);
       } else {
-        // Missing milestones - reset to defaults
+        // Force reset to all 5 default milestones
         const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
         setMilestones(newMilestones);
         updateHotel(hotel.id, { milestones: newMilestones });

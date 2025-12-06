@@ -7,6 +7,8 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { useStore } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { 
   Building2, 
   LogOut, 
@@ -16,7 +18,8 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
-  Settings
+  Settings,
+  CalendarIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -193,6 +196,12 @@ export default function Dashboard() {
                         <MapPin className="h-3 w-3" />
                         <span className="truncate">{hotel.city}</span>
                       </div>
+                      {hotel.projectStartDate && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <CalendarIcon className="h-3 w-3" />
+                          <span>Início: {format(parseISO(hotel.projectStartDate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                        </div>
+                      )}
                       <span className="inline-block mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
                         {hotel.category}
                       </span>

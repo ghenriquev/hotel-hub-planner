@@ -25,6 +25,8 @@ export interface Hotel {
   city: string;
   contact: string;
   category: string;
+  website?: string;
+  hasNoWebsite?: boolean;
   createdAt: string;
   strategicMaterials?: StrategicMaterials;
   projectStartDate?: string;

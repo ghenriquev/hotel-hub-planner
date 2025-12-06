@@ -13,8 +13,10 @@ import {
   MapPin, 
   ChevronRight,
   LayoutGrid,
-  List
+  List,
+  Settings
 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -45,6 +47,9 @@ export default function Dashboard() {
             <span className="text-sm text-muted-foreground hidden sm:block">
               Olá, <span className="text-foreground font-medium">{user?.name}</span>
             </span>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+              <Settings className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair

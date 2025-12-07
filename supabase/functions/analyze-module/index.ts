@@ -1,9 +1,9 @@
-// VERSION: 2.3.0 - Added gamma_settings table integration - 2024-12-06
+// VERSION: 2.4.0 - Added secondary materials (agent results as inputs) support - 2024-12-07
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Version identifier for debugging deployments
-const FUNCTION_VERSION = "2.3.0";
+const FUNCTION_VERSION = "2.4.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -114,7 +114,8 @@ serve(async (req) => {
 
     // Get configured materials for this agent (default to all if not configured)
     const configuredMaterials = agentConfig.materials_config || ['manual', 'dados', 'transcricao'];
-    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}, output_type: ${agentConfig.output_type || 'text'}, materials: ${configuredMaterials.join(', ')}`);
+    const secondaryMaterials = agentConfig.secondary_materials_config || [];
+    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'lovable/gemini-2.5-flash'}, output_type: ${agentConfig.output_type || 'text'}, primary materials: ${configuredMaterials.join(', ')}, secondary materials: ${secondaryMaterials.length > 0 ? secondaryMaterials.join(', ') : 'none'}`);
 
     // Build context from materials (only include configured ones)
     let materialsContext = "";
@@ -155,6 +156,41 @@ serve(async (req) => {
         }
       } else {
         console.log("[analyze-module] No website data available for this hotel");
+      }
+    }
+
+    // Fetch secondary materials (results from other agents)
+    if (secondaryMaterials.length > 0) {
+      console.log(`[analyze-module] Fetching secondary materials from agents: ${secondaryMaterials.join(', ')}`);
+      
+      const { data: agentResults, error: resultsError } = await supabase
+        .from('agent_results')
+        .select('module_id, result')
+        .eq('hotel_id', hotelId)
+        .eq('status', 'completed')
+        .in('module_id', secondaryMaterials);
+      
+      if (resultsError) {
+        console.error("[analyze-module] Error fetching secondary materials:", resultsError);
+      } else if (agentResults && agentResults.length > 0) {
+        console.log(`[analyze-module] Found ${agentResults.length} secondary materials`);
+        
+        // Get agent titles for better context
+        const { data: agentTitles } = await supabase
+          .from('agent_configs')
+          .select('module_id, module_title')
+          .in('module_id', agentResults.map(r => r.module_id));
+        
+        const titleMap = new Map(agentTitles?.map(t => [t.module_id, t.module_title]) || []);
+        
+        materialsContext += `\n\n---\n\n# MATERIAIS SECUNDÁRIOS (Resultados de Outros Agentes)\n`;
+        
+        for (const agentResult of agentResults) {
+          const title = titleMap.get(agentResult.module_id) || `Agente ${agentResult.module_id}`;
+          materialsContext += `\n\n## ${title}\n${agentResult.result}`;
+        }
+      } else {
+        console.log("[analyze-module] No completed secondary materials found");
       }
     }
 

@@ -101,11 +101,12 @@ export default function Settings() {
 
   // Agent editing state
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string; materials_config: string[] }>({ 
+  const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string; materials_config: string[]; secondary_materials_config: number[] }>({ 
     prompt: '', 
     output_type: 'text',
     llm_model: 'google/gemini-2.5-flash',
-    materials_config: ['manual', 'dados', 'transcricao']
+    materials_config: ['manual', 'dados', 'transcricao'],
+    secondary_materials_config: []
   });
   const [saving, setSaving] = useState(false);
 
@@ -205,7 +206,8 @@ export default function Settings() {
       prompt: config.prompt, 
       output_type: config.output_type,
       llm_model: config.llm_model || 'google/gemini-2.5-flash',
-      materials_config: config.materials_config || ['manual', 'dados', 'transcricao']
+      materials_config: config.materials_config || ['manual', 'dados', 'transcricao'],
+      secondary_materials_config: config.secondary_materials_config || []
     });
   };
 
@@ -220,7 +222,7 @@ export default function Settings() {
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash', materials_config: ['manual', 'dados', 'transcricao'] });
+    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash', materials_config: ['manual', 'dados', 'transcricao'], secondary_materials_config: [] });
   };
 
   const toggleMaterial = (materialValue: string) => {
@@ -238,6 +240,22 @@ export default function Settings() {
     if (!config || config.length === 0) return 'Nenhum';
     if (config.length === MATERIALS_OPTIONS.length) return 'Todos';
     return config.map(c => MATERIALS_OPTIONS.find(m => m.value === c)?.label || c).join(', ');
+  };
+
+  const toggleSecondaryMaterial = (moduleId: number) => {
+    setEditForm(prev => {
+      const current = prev.secondary_materials_config;
+      if (current.includes(moduleId)) {
+        return { ...prev, secondary_materials_config: current.filter(m => m !== moduleId) };
+      } else {
+        return { ...prev, secondary_materials_config: [...current, moduleId] };
+      }
+    });
+  };
+
+  const getSecondaryMaterialsLabel = (config: number[]) => {
+    if (!config || config.length === 0) return 'Nenhum';
+    return config.map(id => configs.find(c => c.module_id === id)?.module_title || `Agente ${id}`).join(', ');
   };
 
   // API Key handlers
@@ -376,8 +394,14 @@ export default function Settings() {
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText className="h-3 w-3" />
-                        {getMaterialsLabel(config.materials_config)}
+                        Primários: {getMaterialsLabel(config.materials_config)}
                       </span>
+                      {config.secondary_materials_config && config.secondary_materials_config.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Bot className="h-3 w-3" />
+                          Secundários: {getSecondaryMaterialsLabel(config.secondary_materials_config)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {editingId !== config.module_id && (
@@ -402,11 +426,11 @@ export default function Settings() {
                       />
                     </div>
 
-                    {/* 2. Materiais Estratégicos */}
+                    {/* 2. Materiais Primários */}
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
                         <FileText className="h-4 w-4" />
-                        Materiais Estratégicos
+                        Materiais Primários
                       </label>
                       <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
                         {MATERIALS_OPTIONS.map((material) => (
@@ -420,7 +444,31 @@ export default function Settings() {
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Selecione quais materiais serão enviados para este agente
+                        Documentos base que serão enviados para este agente
+                      </p>
+                    </div>
+
+                    {/* 3. Materiais Secundários (resultados de outros agentes) */}
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                        <Bot className="h-4 w-4" />
+                        Materiais Secundários
+                      </label>
+                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
+                        {configs
+                          .filter(c => c.module_id !== config.module_id)
+                          .map((otherConfig) => (
+                            <label key={otherConfig.module_id} className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox
+                                checked={editForm.secondary_materials_config.includes(otherConfig.module_id)}
+                                onCheckedChange={() => toggleSecondaryMaterial(otherConfig.module_id)}
+                              />
+                              <span className="text-sm">#{otherConfig.module_id} - {otherConfig.module_title}</span>
+                            </label>
+                          ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Resultados de outros agentes que serão usados como input
                       </p>
                     </div>
 

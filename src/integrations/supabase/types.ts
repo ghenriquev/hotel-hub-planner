@@ -24,6 +24,7 @@ export type Database = {
           module_title: string
           output_type: string | null
           prompt: string
+          secondary_materials_config: number[] | null
           updated_at: string | null
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           module_title: string
           output_type?: string | null
           prompt: string
+          secondary_materials_config?: number[] | null
           updated_at?: string | null
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           module_title?: string
           output_type?: string | null
           prompt?: string
+          secondary_materials_config?: number[] | null
           updated_at?: string | null
         }
         Relationships: []

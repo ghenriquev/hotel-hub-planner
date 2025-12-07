@@ -422,8 +422,8 @@ export default function HotelDetail() {
                 <FileSpreadsheet className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-lg text-foreground">Materiais Estratégicos</h2>
-                <p className="text-sm text-muted-foreground">Documentos e materiais do hotel</p>
+                <h2 className="font-display text-lg text-foreground">Materiais Primários</h2>
+                <p className="text-sm text-muted-foreground">Documentos base para análise dos agentes</p>
               </div>
             </div>
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />

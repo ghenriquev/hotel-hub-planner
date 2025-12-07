@@ -1,9 +1,9 @@
-// VERSION: 2.4.0 - Added secondary materials (agent results as inputs) support - 2024-12-07
+// VERSION: 3.0.0 - Two-phase execution: text first, presentation separate - saves llm_model_used
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Version identifier for debugging deployments
-const FUNCTION_VERSION = "2.4.0";
+const FUNCTION_VERSION = "3.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -319,127 +319,22 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
 
     console.log("[analyze-module] AI response received, processing output...");
 
-    // Check if output type is presentation - if so, generate via Gamma API
-    let presentationUrl: string | null = null;
+    // Get output type for response info
     const outputType = agentConfig.output_type || 'text';
     
-    if (outputType === 'presentation') {
-      console.log("[analyze-module] Output type is presentation, fetching Gamma settings and API key...");
-      
-      // Fetch Gamma settings from gamma_settings table
-      const { data: gammaSettings, error: gammaSettingsError } = await supabase
-        .from('gamma_settings')
-        .select('*')
-        .single();
-      
-      if (gammaSettingsError) {
-        console.log("[analyze-module] No gamma settings found, using defaults:", gammaSettingsError.message);
-      } else {
-        console.log("[analyze-module] Loaded gamma settings:", JSON.stringify(gammaSettings, null, 2));
-      }
-      
-      // Fetch Gamma API key from api_keys table
-      const { data: gammaKeyData, error: gammaKeyError } = await supabase
-        .from('api_keys')
-        .select('api_key')
-        .or('name.ilike.%gamma%,key_type.ilike.%gamma%')
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (gammaKeyError || !gammaKeyData?.api_key) {
-        console.error("[analyze-module] No active Gamma API key found:", gammaKeyError);
-        // Continue without presentation - save text result
-      } else {
-        console.log("[analyze-module] Creating Gamma presentation...");
-        
-        try {
-          // Build Gamma payload with settings from database or defaults
-          const gammaPayload: Record<string, any> = {
-            inputText: generatedResult,
-            format: gammaSettings?.format || "presentation",
-            textMode: gammaSettings?.text_mode || "generate",
-            numCards: gammaSettings?.num_cards || 10,
-            cardSplit: gammaSettings?.card_split || "auto",
-          };
-          
-          // Add themeId only if it's a non-empty string (not just whitespace)
-          if (gammaSettings?.theme_id && gammaSettings.theme_id.trim() !== '') {
-            gammaPayload.themeId = gammaSettings.theme_id.trim();
-          }
-          // If theme_id is empty or whitespace, don't send themeId - Gamma will use workspace default
-          
-          // Add additional instructions if available
-          if (gammaSettings?.additional_instructions) {
-            gammaPayload.additionalInstructions = gammaSettings.additional_instructions;
-          }
-          
-          // Add text options
-          gammaPayload.textOptions = {
-            amount: gammaSettings?.text_amount || "detailed",
-            tone: gammaSettings?.text_tone || "professional",
-            audience: gammaSettings?.text_audience || "hotel management professionals",
-            language: gammaSettings?.text_language || "pt-br"
-          };
-          
-          // Add image options if not disabled
-          if (gammaSettings?.image_source && gammaSettings.image_source !== 'none') {
-            gammaPayload.imageOptions = {
-              source: gammaSettings.image_source || "aiGenerated",
-              model: gammaSettings.image_model || "imagen-4-pro",
-              style: gammaSettings.image_style || "photorealistic"
-            };
-          }
-          
-          // Add card options if dimensions specified
-          if (gammaSettings?.card_dimensions && gammaSettings.card_dimensions !== 'fluid') {
-            gammaPayload.cardOptions = {
-              dimensions: gammaSettings.card_dimensions
-            };
-          }
-          
-          console.log(`[analyze-module] v${FUNCTION_VERSION} === GAMMA PAYLOAD ===`, JSON.stringify(gammaPayload, null, 2));
-          
-          const gammaResponse = await fetch("https://public-api.gamma.app/v1.0/generations", {
-            method: "POST",
-            headers: {
-              "X-API-KEY": gammaKeyData.api_key,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(gammaPayload),
-          });
-          
-          if (!gammaResponse.ok) {
-            const errorText = await gammaResponse.text();
-            console.error("[analyze-module] Gamma API error:", gammaResponse.status, errorText);
-          } else {
-            const gammaData = await gammaResponse.json();
-            console.log("[analyze-module] Gamma generation started:", gammaData);
-            
-            if (gammaData.generationId) {
-              // Poll for completion
-              presentationUrl = await pollGammaGeneration(gammaData.generationId, gammaKeyData.api_key);
-              
-              if (presentationUrl) {
-                console.log("[analyze-module] Gamma presentation ready:", presentationUrl);
-              } else {
-                console.error("[analyze-module] Failed to get Gamma presentation URL");
-              }
-            }
-          }
-        } catch (gammaError) {
-          console.error("[analyze-module] Gamma API call failed:", gammaError);
-        }
-      }
-    }
+    // NOTE: We no longer auto-generate Gamma presentations here.
+    // Users edit the text first, then click "Criar Apresentação" which calls create-presentation function.
+    console.log(`[analyze-module] Output type: ${outputType}. Presentation will be created separately if needed.`);
 
-    // Save result to database
+    // Save result to database (no presentation_url - that's created separately now)
     const { error: saveError } = await supabase
       .from('agent_results')
       .upsert({
         hotel_id: hotelId,
         module_id: moduleId,
         result: generatedResult,
-        presentation_url: presentationUrl,
+        presentation_url: null, // Will be set by create-presentation function
+        llm_model_used: llmModel, // Save which model was used
         status: 'completed',
         generated_at: new Date().toISOString(),
       }, { onConflict: 'hotel_id,module_id' });
@@ -448,12 +343,12 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
       throw new Error(`Failed to save result: ${saveError.message}`);
     }
 
-    console.log("[analyze-module] Analysis complete!");
+    console.log("[analyze-module] Analysis complete! Model used:", llmModel);
 
     return new Response(JSON.stringify({ 
       success: true,
       result: generatedResult,
-      presentationUrl: presentationUrl,
+      llmModelUsed: llmModel,
       outputType: outputType 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

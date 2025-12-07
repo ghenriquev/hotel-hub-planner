@@ -59,6 +59,7 @@ export type Database = {
           generated_at: string | null
           hotel_id: string
           id: string
+          llm_model_used: string | null
           module_id: number
           presentation_url: string | null
           result: string | null
@@ -69,6 +70,7 @@ export type Database = {
           generated_at?: string | null
           hotel_id: string
           id?: string
+          llm_model_used?: string | null
           module_id: number
           presentation_url?: string | null
           result?: string | null
@@ -79,6 +81,7 @@ export type Database = {
           generated_at?: string | null
           hotel_id?: string
           id?: string
+          llm_model_used?: string | null
           module_id?: number
           presentation_url?: string | null
           result?: string | null

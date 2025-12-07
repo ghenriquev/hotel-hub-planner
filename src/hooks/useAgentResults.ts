@@ -7,6 +7,7 @@ export interface AgentResult {
   module_id: number;
   result: string | null;
   presentation_url: string | null;
+  llm_model_used: string | null;
   status: 'pending' | 'generating' | 'completed' | 'error';
   generated_at: string | null;
   created_at: string;

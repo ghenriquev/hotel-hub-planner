@@ -1,0 +1,1 @@
+ALTER TABLE agent_results ADD COLUMN llm_model_used text;

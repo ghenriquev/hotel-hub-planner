@@ -94,7 +94,7 @@ export default function Settings() {
   // Materials options
   const MATERIALS_OPTIONS = [
     { value: 'manual', label: 'Manual de Funcionamento' },
-    { value: 'dados', label: 'Dados do Hotel' },
+    { value: 'dados', label: 'Briefing de Criação' },
     { value: 'transcricao', label: 'Transcrição de Kickoff' },
     { value: 'website', label: 'Conteúdo do Site' },
   ];

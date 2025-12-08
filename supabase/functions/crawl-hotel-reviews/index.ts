@@ -222,6 +222,153 @@ async function runApifyActor(
   throw new Error('Actor run timed out');
 }
 
+// Normalize review to common format for document generation
+function normalizeReview(source: string, review: any): { name: string; stars: number; text: string; date: string; response?: string } {
+  switch (source) {
+    case 'booking':
+      const textParts: string[] = [];
+      if (review.reviewTitle) textParts.push(review.reviewTitle);
+      if (review.likedText) textParts.push(`Positivo: ${review.likedText}`);
+      if (review.dislikedText) textParts.push(`Negativo: ${review.dislikedText}`);
+      return {
+        name: review.userName || review.name || 'Anônimo',
+        stars: review.rating ? Math.round(review.rating / 2) : (review.stars || 0),
+        text: textParts.length > 0 ? textParts.join(' | ') : (review.text || 'Sem texto'),
+        date: review.reviewDate || review.publishedAtDate || 'N/A',
+        response: review.propertyResponse || review.responseFromOwnerText,
+      };
+    case 'tripadvisor':
+      return {
+        name: review.user?.username || review.name || 'Anônimo',
+        stars: review.rating || review.stars || 0,
+        text: review.text || review.reviewText || 'Sem texto',
+        date: review.publishedDate || review.publishedAtDate || 'N/A',
+        response: review.ownerResponse?.text || review.responseFromOwnerText,
+      };
+    case 'google':
+    default:
+      return {
+        name: review.name || 'Anônimo',
+        stars: review.stars || 0,
+        text: review.text || 'Sem texto',
+        date: review.publishedAtDate || 'N/A',
+        response: review.responseFromOwnerText,
+      };
+  }
+}
+
+// Generate consolidated reviews document
+function generateConsolidatedDocument(
+  googleReviews: any[],
+  tripadvisorReviews: any[],
+  bookingReviews: any[]
+): { text: string; totalCount: number } {
+  const now = new Date().toLocaleDateString('pt-BR');
+  const totalCount = googleReviews.length + tripadvisorReviews.length + bookingReviews.length;
+  
+  let doc = `# AVALIAÇÕES CONSOLIDADAS DO HOTEL\n`;
+  doc += `## Período: Últimos 24 meses\n`;
+  doc += `## Data de geração: ${now}\n`;
+  doc += `## Total de avaliações: ${totalCount}\n\n`;
+  
+  // Google Reviews
+  if (googleReviews.length > 0) {
+    doc += `---\n\n# AVALIAÇÕES GOOGLE (${googleReviews.length} avaliações)\n\n`;
+    googleReviews.forEach((review, i) => {
+      const r = normalizeReview('google', review);
+      doc += `## Avaliação ${i + 1}\n`;
+      doc += `- **Autor**: ${r.name}\n`;
+      doc += `- **Nota**: ${r.stars}/5\n`;
+      doc += `- **Data**: ${r.date}\n`;
+      doc += `- **Comentário**: ${r.text}\n`;
+      if (r.response) doc += `- **Resposta do Hotel**: ${r.response}\n`;
+      doc += `\n`;
+    });
+  }
+  
+  // TripAdvisor Reviews
+  if (tripadvisorReviews.length > 0) {
+    doc += `---\n\n# AVALIAÇÕES TRIPADVISOR (${tripadvisorReviews.length} avaliações)\n\n`;
+    tripadvisorReviews.forEach((review, i) => {
+      const r = normalizeReview('tripadvisor', review);
+      doc += `## Avaliação ${i + 1}\n`;
+      doc += `- **Autor**: ${r.name}\n`;
+      doc += `- **Nota**: ${r.stars}/5\n`;
+      doc += `- **Data**: ${r.date}\n`;
+      doc += `- **Comentário**: ${r.text}\n`;
+      if (r.response) doc += `- **Resposta do Hotel**: ${r.response}\n`;
+      doc += `\n`;
+    });
+  }
+  
+  // Booking Reviews
+  if (bookingReviews.length > 0) {
+    doc += `---\n\n# AVALIAÇÕES BOOKING.COM (${bookingReviews.length} avaliações)\n\n`;
+    bookingReviews.forEach((review, i) => {
+      const r = normalizeReview('booking', review);
+      doc += `## Avaliação ${i + 1}\n`;
+      doc += `- **Autor**: ${r.name}\n`;
+      doc += `- **Nota**: ${r.stars}/5\n`;
+      doc += `- **Data**: ${r.date}\n`;
+      doc += `- **Comentário**: ${r.text}\n`;
+      if (r.response) doc += `- **Resposta do Hotel**: ${r.response}\n`;
+      doc += `\n`;
+    });
+  }
+  
+  return { text: doc, totalCount };
+}
+
+// Generate and save consolidated document after crawl
+async function saveConsolidatedDocument(supabase: any, hotelId: string): Promise<void> {
+  console.log(`Generating consolidated reviews document for hotel ${hotelId}`);
+  
+  // Fetch all completed reviews for this hotel
+  const { data: allReviewsData, error } = await supabase
+    .from('hotel_reviews_data')
+    .select('source, reviews_data, reviews_count')
+    .eq('hotel_id', hotelId)
+    .eq('status', 'completed');
+
+  if (error) {
+    console.error('Error fetching reviews for consolidation:', error);
+    return;
+  }
+
+  const googleData = allReviewsData?.find((r: any) => r.source === 'google')?.reviews_data || [];
+  const tripadvisorData = allReviewsData?.find((r: any) => r.source === 'tripadvisor')?.reviews_data || [];
+  const bookingData = allReviewsData?.find((r: any) => r.source === 'booking')?.reviews_data || [];
+
+  const { text, totalCount } = generateConsolidatedDocument(googleData, tripadvisorData, bookingData);
+
+  if (totalCount === 0) {
+    console.log('No reviews to consolidate');
+    return;
+  }
+
+  // Upsert the consolidated document as a material
+  const { error: upsertError } = await supabase
+    .from('hotel_materials')
+    .upsert({
+      hotel_id: hotelId,
+      material_type: 'reviews',
+      file_name: `Avaliações Consolidadas - ${totalCount} reviews`,
+      file_url: 'text://reviews-document',
+      text_content: text,
+      updated_at: new Date().toISOString(),
+    }, { 
+      onConflict: 'hotel_id,material_type',
+      ignoreDuplicates: false 
+    });
+
+  if (upsertError) {
+    console.error('Error saving consolidated document:', upsertError);
+    return;
+  }
+
+  console.log(`Consolidated document saved with ${totalCount} reviews`);
+}
+
 async function crawlSource(
   supabase: any,
   apiKey: string,
@@ -382,6 +529,9 @@ serve(async (req) => {
     }
 
     console.log('Crawl results:', results);
+
+    // Auto-generate consolidated document after crawl completes
+    await saveConsolidatedDocument(supabase, hotelId);
 
     return new Response(
       JSON.stringify({ success: true, results }),

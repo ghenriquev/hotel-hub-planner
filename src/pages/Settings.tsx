@@ -97,6 +97,7 @@ export default function Settings() {
     { value: 'dados', label: 'Briefing de Criação' },
     { value: 'transcricao', label: 'Transcrição de Kickoff' },
     { value: 'website', label: 'Conteúdo do Site' },
+    { value: 'reviews', label: 'Avaliações Consolidadas (24 meses)' },
   ];
 
   // Agent editing state

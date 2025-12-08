@@ -111,7 +111,7 @@ export default function Settings() {
   const [editForm, setEditForm] = useState<{ prompt: string; output_type: string; llm_model: string; materials_config: string[]; secondary_materials_config: number[] }>({ 
     prompt: '', 
     output_type: 'text',
-    llm_model: 'google/gemini-2.5-flash',
+    llm_model: 'google/gemini-3-pro-preview',
     materials_config: ['manual', 'dados', 'transcricao'],
     secondary_materials_config: []
   });
@@ -212,7 +212,7 @@ export default function Settings() {
     setEditForm({ 
       prompt: config.prompt, 
       output_type: config.output_type,
-      llm_model: config.llm_model || 'google/gemini-2.5-flash',
+      llm_model: config.llm_model || 'google/gemini-3-pro-preview',
       materials_config: config.materials_config || ['manual', 'dados', 'transcricao'],
       secondary_materials_config: config.secondary_materials_config || []
     });
@@ -229,7 +229,7 @@ export default function Settings() {
 
   const handleCancel = () => {
     setEditingId(null);
-    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-2.5-flash', materials_config: ['manual', 'dados', 'transcricao'], secondary_materials_config: [] });
+    setEditForm({ prompt: '', output_type: 'text', llm_model: 'google/gemini-3-pro-preview', materials_config: ['manual', 'dados', 'transcricao'], secondary_materials_config: [] });
   };
 
   const toggleMaterial = (materialValue: string) => {
@@ -401,8 +401,8 @@ export default function Settings() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                       <span>Output: {config.output_type}</span>
                       <span className="flex items-center gap-1">
-                        <span>{getModelInfo(config.llm_model || 'google/gemini-2.5-flash').icon}</span>
-                        {getModelInfo(config.llm_model || 'google/gemini-2.5-flash').label}
+                        <span>{getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').icon}</span>
+                        {getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').label}
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText className="h-3 w-3" />

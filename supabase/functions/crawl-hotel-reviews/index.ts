@@ -18,7 +18,7 @@ const ACTOR_CONFIGS = {
     buildInput: (url: string) => ({
       startUrls: [{ url }],
       maxReviews: 500,
-      language: 'pt',
+      language: 'pt-BR',
     }),
     extractReviews: (data: any) => data,
   },

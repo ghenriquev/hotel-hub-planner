@@ -31,9 +31,10 @@ const ACTOR_CONFIGS = {
     extractReviews: (data: any) => data,
   },
   booking: {
-    actorId: 'plowdata/booking-com-review-scraper',
+    actorId: 'PbMHke3jW25J6hSOA',
     buildInput: (url: string) => ({
-      urls: [{ url }],
+      startUrls: [{ url }],
+      maxItems: 500,
     }),
     extractReviews: (data: any) => data,
   },

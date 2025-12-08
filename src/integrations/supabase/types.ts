@@ -302,41 +302,53 @@ export type Database = {
       }
       hotels: {
         Row: {
+          booking_url: string | null
           category: string | null
           city: string
           contact: string | null
           created_at: string | null
           created_by: string | null
+          google_business_url: string | null
           has_no_website: boolean | null
           id: string
+          instagram_url: string | null
           name: string
           project_start_date: string | null
+          tripadvisor_url: string | null
           updated_at: string | null
           website: string | null
         }
         Insert: {
+          booking_url?: string | null
           category?: string | null
           city: string
           contact?: string | null
           created_at?: string | null
           created_by?: string | null
+          google_business_url?: string | null
           has_no_website?: boolean | null
           id?: string
+          instagram_url?: string | null
           name: string
           project_start_date?: string | null
+          tripadvisor_url?: string | null
           updated_at?: string | null
           website?: string | null
         }
         Update: {
+          booking_url?: string | null
           category?: string | null
           city?: string
           contact?: string | null
           created_at?: string | null
           created_by?: string | null
+          google_business_url?: string | null
           has_no_website?: boolean | null
           id?: string
+          instagram_url?: string | null
           name?: string
           project_start_date?: string | null
+          tripadvisor_url?: string | null
           updated_at?: string | null
           website?: string | null
         }

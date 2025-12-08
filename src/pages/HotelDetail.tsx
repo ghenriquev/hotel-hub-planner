@@ -95,6 +95,10 @@ export default function HotelDetail() {
     category: "",
     website: "",
     hasNoWebsite: false,
+    instagramUrl: "",
+    tripadvisorUrl: "",
+    bookingUrl: "",
+    googleBusinessUrl: "",
   });
 
   useEffect(() => {
@@ -106,6 +110,10 @@ export default function HotelDetail() {
         category: hotel.category || "",
         website: hotel.website || "",
         hasNoWebsite: hotel.has_no_website || false,
+        instagramUrl: hotel.instagram_url || "",
+        tripadvisorUrl: hotel.tripadvisor_url || "",
+        bookingUrl: hotel.booking_url || "",
+        googleBusinessUrl: hotel.google_business_url || "",
       });
       
       if (hotel.project_start_date) {
@@ -134,6 +142,10 @@ export default function HotelDetail() {
       category: editForm.category,
       website: editForm.hasNoWebsite ? null : editForm.website,
       has_no_website: editForm.hasNoWebsite,
+      instagram_url: editForm.instagramUrl || null,
+      tripadvisor_url: editForm.tripadvisorUrl || null,
+      booking_url: editForm.bookingUrl || null,
+      google_business_url: editForm.googleBusinessUrl || null,
     });
     
     if (success) {
@@ -246,6 +258,63 @@ export default function HotelDetail() {
                     </div>
                   )}
                 </div>
+                {/* Social Profile Icons */}
+                {(hotel.instagram_url || hotel.tripadvisor_url || hotel.booking_url || hotel.google_business_url) && (
+                  <div className="flex items-center gap-3 mt-2">
+                    {hotel.instagram_url && (
+                      <a 
+                        href={hotel.instagram_url.startsWith('http') ? hotel.instagram_url : `https://${hotel.instagram_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        title="Instagram"
+                      >
+                        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                      </a>
+                    )}
+                    {hotel.tripadvisor_url && (
+                      <a 
+                        href={hotel.tripadvisor_url.startsWith('http') ? hotel.tripadvisor_url : `https://${hotel.tripadvisor_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        title="TripAdvisor"
+                      >
+                        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12.006 4.295c-2.67 0-5.338.784-7.645 2.353H0l1.963 2.135a5.997 5.997 0 0 0 4.04 10.43 5.976 5.976 0 0 0 4.075-1.6L12 19.705l1.922-2.09a5.976 5.976 0 0 0 4.075 1.598 5.997 5.997 0 0 0 4.04-10.43L24 6.648h-4.35a13.573 13.573 0 0 0-7.644-2.353zM6.003 17.142a3.93 3.93 0 1 1 0-7.86 3.93 3.93 0 0 1 0 7.86zm11.994 0a3.93 3.93 0 1 1 0-7.86 3.93 3.93 0 0 1 0 7.86zM6.003 11.213a2.068 2.068 0 1 0 0 4.136 2.068 2.068 0 0 0 0-4.136zm11.994 0a2.068 2.068 0 1 0 0 4.136 2.068 2.068 0 0 0 0-4.136zM12 6.783c1.39 0 2.767.27 4.074.798a6.03 6.03 0 0 0-4.074 2.008 6.03 6.03 0 0 0-4.074-2.008A12.33 12.33 0 0 1 12 6.783z"/>
+                        </svg>
+                      </a>
+                    )}
+                    {hotel.booking_url && (
+                      <a 
+                        href={hotel.booking_url.startsWith('http') ? hotel.booking_url : `https://${hotel.booking_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        title="Booking.com"
+                      >
+                        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M2.273 0v24h11.819c5.485 0 9.908-4.434 9.908-9.909 0-3.604-1.926-6.818-4.909-8.545V0H2.273zm4.636 3.545h8.182v3.273c-.923-.327-1.909-.545-2.909-.545-4.636 0-8.364 3.727-8.364 8.364 0 2.909 1.455 5.454 3.727 6.909H6.909V3.545zm5.273 5.182c2.909 0 5.273 2.364 5.273 5.273s-2.364 5.273-5.273 5.273c-2.909 0-5.273-2.364-5.273-5.273s2.364-5.273 5.273-5.273z"/>
+                        </svg>
+                      </a>
+                    )}
+                    {hotel.google_business_url && (
+                      <a 
+                        href={hotel.google_business_url.startsWith('http') ? hotel.google_business_url : `https://${hotel.google_business_url}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                        title="Google Meu Negócio"
+                      >
+                        <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 11.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zm0-1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-6c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 19.52 2 14 6.48 4 12 4zm0 2c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z"/>
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -370,6 +439,52 @@ export default function HotelDetail() {
                           placeholder="https://www.seuhotel.com.br"
                         />
                       )}
+                    </div>
+
+                    <div className="border-t border-border pt-4 mt-4">
+                      <p className="text-sm font-medium text-foreground mb-3">Perfis de Plataformas</p>
+                      
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="edit-instagram" className="text-sm">Instagram</Label>
+                          <Input
+                            id="edit-instagram"
+                            value={editForm.instagramUrl}
+                            onChange={(e) => setEditForm({ ...editForm, instagramUrl: e.target.value })}
+                            placeholder="https://instagram.com/seuhotel"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="edit-tripadvisor" className="text-sm">TripAdvisor</Label>
+                          <Input
+                            id="edit-tripadvisor"
+                            value={editForm.tripadvisorUrl}
+                            onChange={(e) => setEditForm({ ...editForm, tripadvisorUrl: e.target.value })}
+                            placeholder="https://tripadvisor.com.br/Hotel_Review-..."
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="edit-booking" className="text-sm">Booking.com</Label>
+                          <Input
+                            id="edit-booking"
+                            value={editForm.bookingUrl}
+                            onChange={(e) => setEditForm({ ...editForm, bookingUrl: e.target.value })}
+                            placeholder="https://booking.com/hotel/br/seuhotel.html"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="edit-google-business" className="text-sm">Google Meu Negócio</Label>
+                          <Input
+                            id="edit-google-business"
+                            value={editForm.googleBusinessUrl}
+                            onChange={(e) => setEditForm({ ...editForm, googleBusinessUrl: e.target.value })}
+                            placeholder="https://g.page/seuhotel"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                   

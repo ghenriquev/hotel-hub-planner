@@ -11,6 +11,10 @@ export interface Hotel {
   website: string | null;
   has_no_website: boolean | null;
   project_start_date: string | null;
+  instagram_url: string | null;
+  tripadvisor_url: string | null;
+  booking_url: string | null;
+  google_business_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -34,6 +38,10 @@ export interface HotelUpdate {
   website?: string | null;
   has_no_website?: boolean;
   project_start_date?: string | null;
+  instagram_url?: string | null;
+  tripadvisor_url?: string | null;
+  booking_url?: string | null;
+  google_business_url?: string | null;
 }
 
 export function useHotels() {

@@ -24,7 +24,10 @@ import {
   Presentation,
   Cpu,
   Edit3,
-  XCircle
+  XCircle,
+  FileText,
+  FileCheck,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -336,6 +339,78 @@ export default function AgentModule() {
             </div>
           </div>
         </div>
+
+        {/* Documentos Utilizados */}
+        {!readinessLoading && materials.length > 0 && (
+          <div className="bg-card border border-border p-6 mb-6 animate-slide-up">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <h2 className="font-display text-lg text-foreground">
+                Documentos utilizados nesta análise
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Materiais Primários */}
+              {materials.filter(m => m.type === 'primary').length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileCheck className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      Materiais Primários
+                    </p>
+                  </div>
+                  <div className="space-y-2 pl-6">
+                    {materials.filter(m => m.type === 'primary').map(material => (
+                      <div key={material.id} className="flex items-center gap-2 text-sm">
+                        {material.ready ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        )}
+                        <span className={material.ready ? 'text-foreground' : 'text-muted-foreground'}>
+                          {material.label}
+                        </span>
+                        {!material.ready && (
+                          <span className="text-xs text-amber-500">(pendente)</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Materiais Secundários */}
+              {materials.filter(m => m.type === 'secondary').length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      Materiais Secundários
+                    </p>
+                  </div>
+                  <div className="space-y-2 pl-6">
+                    {materials.filter(m => m.type === 'secondary').map(material => (
+                      <div key={material.id} className="flex items-center gap-2 text-sm">
+                        {material.ready ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        )}
+                        <span className={material.ready ? 'text-foreground' : 'text-muted-foreground'}>
+                          {material.label}
+                        </span>
+                        {!material.ready && (
+                          <span className="text-xs text-amber-500">(pendente)</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Status and Action */}
         <div className="bg-card border border-border p-6 mb-8 animate-slide-up">

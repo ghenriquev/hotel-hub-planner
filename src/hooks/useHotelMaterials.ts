@@ -47,7 +47,7 @@ export function useHotelMaterials(hotelId: string | undefined) {
         ...item,
         material_type: item.material_type as MaterialType,
       }));
-      setMaterials(data || []);
+      setMaterials(typedData);
       setError(null);
     } catch (err) {
       console.error('Error fetching materials:', err);

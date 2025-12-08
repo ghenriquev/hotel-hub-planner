@@ -27,7 +27,8 @@ import {
   XCircle,
   FileText,
   FileCheck,
-  Bot
+  Bot,
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -350,7 +351,7 @@ export default function AgentModule() {
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Materiais Primários */}
               {materials.filter(m => m.type === 'primary').length > 0 && (
                 <div className="space-y-3">
@@ -380,13 +381,42 @@ export default function AgentModule() {
                 </div>
               )}
               
-              {/* Materiais Secundários */}
+              {/* Resultado de Pesquisa */}
+              {materials.filter(m => m.type === 'research').length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-primary" />
+                    <p className="text-sm font-medium text-foreground">
+                      Resultado de Pesquisa
+                    </p>
+                  </div>
+                  <div className="space-y-2 pl-6">
+                    {materials.filter(m => m.type === 'research').map(material => (
+                      <div key={material.id} className="flex items-center gap-2 text-sm">
+                        {material.ready ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        )}
+                        <span className={material.ready ? 'text-foreground' : 'text-muted-foreground'}>
+                          {material.label}
+                        </span>
+                        {!material.ready && (
+                          <span className="text-xs text-amber-500">(pendente)</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Resultados do Agente */}
               {materials.filter(m => m.type === 'secondary').length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4 text-primary" />
                     <p className="text-sm font-medium text-foreground">
-                      Materiais Secundários
+                      Resultados do Agente
                     </p>
                   </div>
                   <div className="space-y-2 pl-6">

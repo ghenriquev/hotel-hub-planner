@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
+import { MigrationBanner } from "@/components/MigrationBanner";
 import { useHotels } from "@/hooks/useHotels";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,6 +128,9 @@ export default function Dashboard() {
             Novo Hotel
           </Button>
         </div>
+
+        {/* Migration Banner */}
+        <MigrationBanner />
 
         {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>

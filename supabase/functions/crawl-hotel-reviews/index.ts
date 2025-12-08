@@ -11,10 +11,10 @@ interface ReviewsRequest {
   source: 'google' | 'tripadvisor' | 'booking' | 'all';
 }
 
-// Actor configurations for each platform
+// Actor configurations for each platform - using verified Apify actor IDs
 const ACTOR_CONFIGS = {
   google: {
-    actorId: 'blueorion/fast-google-maps-reviews-scraper',
+    actorId: 'compass/google-maps-reviews-scraper',
     buildInput: (url: string) => ({
       startUrls: [{ url }],
       maxReviews: 500,
@@ -23,18 +23,19 @@ const ACTOR_CONFIGS = {
     extractReviews: (data: any) => data,
   },
   tripadvisor: {
-    actorId: 'jupri/tripadvisor-reviews',
+    actorId: 'maxcopell/tripadvisor-reviews',
     buildInput: (url: string) => ({
       startUrls: [{ url }],
-      limit: 500,
+      maxItemsPerQuery: 500,
+      reviewRatings: ['ALL_REVIEW_RATINGS'],
+      reviewsLanguages: ['ALL_REVIEW_LANGUAGES'],
     }),
     extractReviews: (data: any) => data,
   },
   booking: {
-    actorId: 'voyager/booking-reviews-scraper',
+    actorId: 'plowdata/booking-com-review-scraper',
     buildInput: (url: string) => ({
-      startUrls: [{ url }],
-      maxReviewsPerHotel: 500,
+      urls: [{ url }],
     }),
     extractReviews: (data: any) => data,
   },

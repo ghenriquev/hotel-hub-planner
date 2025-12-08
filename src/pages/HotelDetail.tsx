@@ -544,21 +544,6 @@ export default function HotelDetail() {
           crawledAt={websiteData?.crawled_at || null}
         />
 
-        {/* HotelGPT Chat */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-display text-lg text-foreground">HotelGPT</h2>
-              <p className="text-sm text-muted-foreground">Chat inteligente com acesso a todos os dados do hotel</p>
-            </div>
-          </div>
-          
-          <HotelChat hotelId={hotel.id} hotelName={hotel.name} />
-        </div>
-
         {/* Agents grid */}
         <div className="mb-6 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <div className="flex items-center gap-3 mb-1">

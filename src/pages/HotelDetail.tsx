@@ -44,7 +44,8 @@ import {
   XCircle,
   Eye,
   RefreshCw,
-  MessageSquare
+  MessageSquare,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -674,19 +675,25 @@ export default function HotelDetail() {
                     </Button>
                   </div>
                 )}
+              </div>
             </div>
 
             {/* Avaliações */}
-            <ReviewsCard
-              hotelId={id!}
-              hotelUrls={{
-                google_business_url: hotel.google_business_url,
-                tripadvisor_url: hotel.tripadvisor_url,
-                booking_url: hotel.booking_url,
-              }}
-            />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Star className="h-4 w-4 text-muted-foreground" />
+                Avaliações
+              </label>
+              <ReviewsCard
+                hotelId={id!}
+                hotelUrls={{
+                  google_business_url: hotel.google_business_url,
+                  tripadvisor_url: hotel.tripadvisor_url,
+                  booking_url: hotel.booking_url,
+                }}
+              />
+            </div>
           </div>
-        </div>
         </div>
 
         {/* Website Content Modal */}

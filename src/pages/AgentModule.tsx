@@ -91,16 +91,28 @@ export default function AgentModule() {
     }
   }, [result?.result]);
 
-  // Poll for updates while generating
+  // Poll for updates while generating analysis OR presentation
   useEffect(() => {
-    if (result?.status === 'generating' || isGenerating) {
+    const shouldPollAnalysis = result?.status === 'generating' || isGenerating;
+    const shouldPollPresentation = result?.presentation_status === 'generating';
+    
+    if (shouldPollAnalysis || shouldPollPresentation) {
       const interval = setInterval(() => {
         refetch();
       }, 2000);
       
       return () => clearInterval(interval);
     }
-  }, [result?.status, isGenerating, refetch]);
+  }, [result?.status, result?.presentation_status, isGenerating, refetch]);
+
+  // Sync isCreatingPresentation with database status
+  useEffect(() => {
+    if (result?.presentation_status === 'generating') {
+      setIsCreatingPresentation(true);
+    } else if (result?.presentation_status === 'completed' || result?.presentation_status === 'error') {
+      setIsCreatingPresentation(false);
+    }
+  }, [result?.presentation_status]);
 
   // Update isGenerating based on result status
   useEffect(() => {
@@ -195,12 +207,13 @@ export default function AgentModule() {
         return;
       }
 
-      toast.success('Apresentação criada com sucesso!');
+      // Success - the function returns immediately, polling will track the status
+      toast.success('Apresentação sendo criada em background...');
       refetch();
+      // Don't set isCreatingPresentation to false here - the polling will handle that
     } catch (err) {
       console.error('Error:', err);
       toast.error('Erro inesperado. Tente novamente.');
-    } finally {
       setIsCreatingPresentation(false);
     }
   };
@@ -248,6 +261,9 @@ export default function AgentModule() {
 
   const hasTextResult = result?.result && result.result.trim().length > 0;
   const hasPresentationUrl = result?.presentation_url;
+  const presentationStatus = result?.presentation_status;
+  const isPresentationGenerating = presentationStatus === 'generating' || isCreatingPresentation;
+  const isPresentationError = presentationStatus === 'error';
   const needsPresentation = outputType === 'presentation' && hasTextResult && !hasPresentationUrl;
 
   return (
@@ -666,6 +682,34 @@ export default function AgentModule() {
                       </div>
                     </div>
                   </>
+                ) : isPresentationGenerating ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+                    <h3 className="font-display text-lg text-foreground mb-2">Criando Apresentação...</h3>
+                    <p className="text-muted-foreground mb-2">
+                      A apresentação está sendo gerada em background.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Você pode sair desta página - a apresentação continuará sendo criada.
+                    </p>
+                  </div>
+                ) : isPresentationError ? (
+                  <div className="p-8 text-center">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+                    <h3 className="font-display text-lg text-foreground mb-2">Erro ao criar apresentação</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Ocorreu um erro. Tente novamente.
+                    </p>
+                    <Button
+                      onClick={handleCreatePresentation}
+                      disabled={isCreatingPresentation}
+                      className="gap-2"
+                      size="lg"
+                    >
+                      <RefreshCw className="h-5 w-5" />
+                      Tentar Novamente
+                    </Button>
+                  </div>
                 ) : (
                   <div className="p-8 text-center">
                     <Presentation className="h-12 w-12 mx-auto mb-4 text-primary/50" />

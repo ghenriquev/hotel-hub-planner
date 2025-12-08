@@ -61,6 +61,7 @@ export type Database = {
           id: string
           llm_model_used: string | null
           module_id: number
+          presentation_status: string | null
           presentation_url: string | null
           result: string | null
           status: string | null
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           llm_model_used?: string | null
           module_id: number
+          presentation_status?: string | null
           presentation_url?: string | null
           result?: string | null
           status?: string | null
@@ -83,6 +85,7 @@ export type Database = {
           id?: string
           llm_model_used?: string | null
           module_id?: number
+          presentation_status?: string | null
           presentation_url?: string | null
           result?: string | null
           status?: string | null

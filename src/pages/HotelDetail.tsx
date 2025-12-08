@@ -90,6 +90,7 @@ export default function HotelDetail() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWebsiteContentOpen, setIsWebsiteContentOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     city: "",
@@ -709,6 +710,32 @@ export default function HotelDetail() {
           })}
         </div>
       </main>
+
+      {/* Floating HotelGPT Button */}
+      <Button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg gradient-primary hover:scale-105 transition-transform z-40"
+        size="icon"
+      >
+        <MessageSquare className="h-6 w-6" />
+      </Button>
+
+      {/* HotelGPT Chat Overlay */}
+      {isChatOpen && (
+        <div className="fixed inset-0 z-50">
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={() => setIsChatOpen(false)} 
+          />
+          <div className="absolute bottom-0 right-0 w-full sm:bottom-6 sm:right-6 sm:w-[400px] h-[80vh] sm:h-[600px] animate-fade-in">
+            <HotelChat 
+              hotelId={hotel.id} 
+              hotelName={hotel.name} 
+              onClose={() => setIsChatOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

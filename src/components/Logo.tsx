@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import reprotelLogo from "@/assets/reprotel-logo.png";
 
 interface LogoProps {
   className?: string;
@@ -13,21 +14,12 @@ export function Logo({ className, size = "md" }: LogoProps) {
   };
 
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <div className={cn("relative", sizes[size])}>
-        <div className="absolute inset-0 gradient-primary rounded-lg opacity-90" />
-        <div className="relative h-full aspect-square flex items-center justify-center">
-          <span className="text-primary-foreground font-display font-bold text-lg">R</span>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <span className="font-display font-semibold text-foreground leading-tight">
-          Reprotel
-        </span>
-        <span className="text-xs text-muted-foreground leading-tight">
-          Marketing Hoteleiro
-        </span>
-      </div>
+    <div className={cn("flex items-center", className)}>
+      <img 
+        src={reprotelLogo} 
+        alt="Reprotel Marketing Hoteleiro" 
+        className={cn(sizes[size], "w-auto")}
+      />
     </div>
   );
 }

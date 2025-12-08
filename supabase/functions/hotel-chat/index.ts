@@ -33,6 +33,27 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch hotel data
+    const { data: hotelData, error: hotelError } = await supabase
+      .from('hotels')
+      .select('*')
+      .eq('id', hotelId)
+      .maybeSingle();
+
+    if (hotelError) {
+      console.error('Error fetching hotel:', hotelError);
+    }
+
+    // Fetch primary materials from hotel_materials table
+    const { data: hotelMaterials, error: materialsError } = await supabase
+      .from('hotel_materials')
+      .select('*')
+      .eq('hotel_id', hotelId);
+
+    if (materialsError) {
+      console.error('Error fetching hotel materials:', materialsError);
+    }
+
     // Fetch all agent results with their configs (dynamically)
     const { data: agentResults, error: resultsError } = await supabase
       .from('agent_results')
@@ -73,11 +94,66 @@ serve(async (req) => {
     // Build dynamic context based on contextMode
     let contextParts: string[] = [];
 
-    // Add primary materials context info (only if contextMode is 'all' or 'materials')
-    if (contextMode === 'all' || contextMode === 'materials') {
-      contextParts.push(`## MATERIAIS PRIMÁRIOS DISPONÍVEIS
+    // Add hotel basic info
+    if (hotelData) {
+      contextParts.push(`## INFORMAÇÕES DO HOTEL
+Nome: ${hotelData.name}
+Cidade: ${hotelData.city}
+Categoria: ${hotelData.category || 'Não informada'}
+Website: ${hotelData.website || 'Não possui'}
+`);
+    }
 
-Os materiais primários (Manual de Funcionamento, Briefing de Criação, Transcrição de Kickoff) são arquivos que foram enviados para o sistema.`);
+    // Add primary materials context (only if contextMode is 'all' or 'materials')
+    if (contextMode === 'all' || contextMode === 'materials') {
+      const materialsInfo: string[] = [];
+      
+      if (hotelMaterials && hotelMaterials.length > 0) {
+        contextParts.push(`## MATERIAIS PRIMÁRIOS DISPONÍVEIS\n`);
+        
+        for (const material of hotelMaterials) {
+          const materialName = material.material_type === 'manual' ? 'Manual de Funcionamento' :
+                              material.material_type === 'dados' ? 'Briefing de Criação' :
+                              material.material_type === 'transcricao' ? 'Transcrição de Kickoff' : material.material_type;
+          
+          materialsInfo.push(`- ${materialName}: ${material.file_name}`);
+          
+          // If we have extracted text content, include it
+          if (material.text_content) {
+            contextParts.push(`### ${materialName}\n${material.text_content.substring(0, 5000)}\n`);
+          } else {
+            // Try to download and read the file content
+            try {
+              const fileUrl = material.file_url;
+              console.log(`Attempting to fetch material: ${materialName} from ${fileUrl}`);
+              
+              // Download the file
+              const fileResponse = await fetch(fileUrl);
+              if (fileResponse.ok) {
+                const contentType = fileResponse.headers.get('content-type') || '';
+                
+                // Only process text-based files
+                if (contentType.includes('text') || 
+                    material.file_name.endsWith('.txt') || 
+                    material.file_name.endsWith('.md')) {
+                  const textContent = await fileResponse.text();
+                  contextParts.push(`### ${materialName}\n${textContent.substring(0, 10000)}\n`);
+                  console.log(`Successfully extracted ${textContent.length} chars from ${materialName}`);
+                } else {
+                  // For PDFs and other binary formats, we note that we can't read them directly
+                  contextParts.push(`### ${materialName}\nArquivo disponível: ${material.file_name} (formato: ${contentType}). O conteúdo deste arquivo não pode ser lido diretamente. Use as informações dos agentes que já processaram este material.\n`);
+                }
+              }
+            } catch (fetchError) {
+              console.error(`Error fetching material ${material.file_name}:`, fetchError);
+            }
+          }
+        }
+        
+        contextParts.push(`Materiais carregados:\n${materialsInfo.join('\n')}\n`);
+      } else {
+        contextParts.push(`## MATERIAIS PRIMÁRIOS\nNenhum material primário foi enviado ainda para este hotel.\n`);
+      }
 
       // Add website content if available
       if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
@@ -122,6 +198,8 @@ ${contextParts.join('\n')}
 Responda em português brasileiro de forma profissional e consultiva.`;
 
     console.log('Sending request to Lovable AI with context length:', systemPrompt.length);
+    console.log('Number of materials found:', hotelMaterials?.length || 0);
+    console.log('Number of agent results found:', agentResults?.length || 0);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

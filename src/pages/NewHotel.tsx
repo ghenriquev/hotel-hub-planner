@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
-import { useStore } from "@/lib/store";
+import { useHotels } from "@/hooks/useHotels";
 import { toast } from "sonner";
 import { ArrowLeft, Building2, MapPin, Phone, Tag, Globe } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,7 +30,7 @@ const CATEGORIES = [
 
 export default function NewHotel() {
   const navigate = useNavigate();
-  const addHotel = useStore((state) => state.addHotel);
+  const { addHotel } = useHotels();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -45,18 +45,19 @@ export default function NewHotel() {
     e.preventDefault();
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    addHotel({
+    const hotel = await addHotel({
       name: form.name,
       city: form.city,
       contact: form.contact,
       category: form.category,
       website: form.hasNoWebsite ? undefined : form.website,
-      hasNoWebsite: form.hasNoWebsite,
+      has_no_website: form.hasNoWebsite,
     });
-    toast.success("Hotel cadastrado com sucesso!");
-    navigate("/dashboard");
+
+    if (hotel) {
+      toast.success("Hotel cadastrado com sucesso!");
+      navigate(`/hotel/${hotel.id}`);
+    }
     
     setLoading(false);
   };

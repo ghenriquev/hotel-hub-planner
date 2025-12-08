@@ -179,6 +179,91 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_materials: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_url: string
+          hotel_id: string
+          id: string
+          material_type: string
+          text_content: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_url: string
+          hotel_id: string
+          id?: string
+          material_type: string
+          text_content?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_url?: string
+          hotel_id?: string
+          id?: string
+          material_type?: string
+          text_content?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_materials_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_milestones: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          end_week: number
+          hotel_id: string
+          id: string
+          milestone_key: string
+          name: string
+          start_date: string
+          start_week: number
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          end_week: number
+          hotel_id: string
+          id?: string
+          milestone_key: string
+          name: string
+          start_date: string
+          start_week: number
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          end_week?: number
+          hotel_id?: string
+          id?: string
+          milestone_key?: string
+          name?: string
+          start_date?: string
+          start_week?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_milestones_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_website_data: {
         Row: {
           crawled_at: string | null
@@ -212,6 +297,48 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           website_url?: string
+        }
+        Relationships: []
+      }
+      hotels: {
+        Row: {
+          category: string | null
+          city: string
+          contact: string | null
+          created_at: string | null
+          created_by: string | null
+          has_no_website: boolean | null
+          id: string
+          name: string
+          project_start_date: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          category?: string | null
+          city: string
+          contact?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          has_no_website?: boolean | null
+          id?: string
+          name: string
+          project_start_date?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          category?: string | null
+          city?: string
+          contact?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          has_no_website?: boolean | null
+          id?: string
+          name?: string
+          project_start_date?: string | null
+          updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }

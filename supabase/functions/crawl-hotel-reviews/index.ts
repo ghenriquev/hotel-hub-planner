@@ -19,6 +19,8 @@ const ACTOR_CONFIGS = {
       startUrls: [{ url }],
       maxReviews: 500,
       language: 'pt-BR',
+      reviewsSort: 'newest',
+      reviewsStartDate: '24 months', // Filtrar reviews dos últimos 24 meses
     }),
     extractReviews: (data: any) => data,
   },
@@ -39,6 +41,36 @@ const ACTOR_CONFIGS = {
     extractReviews: (data: any) => data,
   },
 };
+
+// Filtrar reviews dos últimos 24 meses (para TripAdvisor e Booking)
+function filterReviewsByDate(reviews: any[], source: string): any[] {
+  const twentyFourMonthsAgo = new Date();
+  twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
+  
+  return reviews.filter(review => {
+    let reviewDate: Date | null = null;
+    
+    // Extrair data baseada na fonte
+    if (source === 'tripadvisor') {
+      // TripAdvisor usa publishedDate ou createdDate
+      const dateStr = review.publishedDate || review.createdDate || review.date;
+      reviewDate = dateStr ? new Date(dateStr) : null;
+    } else if (source === 'booking') {
+      // Booking usa reviewDate ou date
+      const dateStr = review.reviewDate || review.date || review.createdAt;
+      reviewDate = dateStr ? new Date(dateStr) : null;
+    } else if (source === 'google') {
+      // Google já vem filtrado pela API, mas aplicamos fallback
+      const dateStr = review.publishedAtDate || review.publishAt || review.timestamp;
+      reviewDate = dateStr ? new Date(dateStr) : null;
+    }
+    
+    // Manter review se não tiver data válida (para não perder dados)
+    if (!reviewDate || isNaN(reviewDate.getTime())) return true;
+    
+    return reviewDate >= twentyFourMonthsAgo;
+  });
+}
 
 async function getApifyApiKey(supabase: any): Promise<string | null> {
   // Primeiro tenta buscar por key_type = 'apify'
@@ -237,7 +269,11 @@ async function crawlSource(
     };
 
     const results = await runApifyActor(apiKey, config.actorId, input, maxItems, onProgress);
-    const reviews = config.extractReviews(results);
+    const allReviews = config.extractReviews(results);
+    
+    // Aplicar filtro de 24 meses (Google já vem filtrado, mas aplicamos como fallback)
+    const reviews = filterReviewsByDate(allReviews, source);
+    console.log(`Filtered from ${allReviews.length} to ${reviews.length} reviews (24 months filter)`);
 
     // Save the results with 100% progress
     await supabase

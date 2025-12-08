@@ -12,5 +12,8 @@ verify_jwt = true
 [functions.create-user]
 verify_jwt = true
 
+[functions.hotel-chat]
+verify_jwt = true
+
 [functions.init-admin]
 verify_jwt = false

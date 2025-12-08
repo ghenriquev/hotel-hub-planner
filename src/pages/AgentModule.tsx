@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
-import { useStore } from "@/lib/store";
+import { useHotel } from "@/hooks/useHotels";
 import { useAgentResult } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { useAgentReadiness } from "@/hooks/useAgentReadiness";
@@ -61,14 +61,13 @@ function getModelDisplayName(model: string | null): string {
 export default function AgentModule() {
   const navigate = useNavigate();
   const { id: hotelId, moduleId } = useParams<{ id: string; moduleId: string }>();
-  const { getHotel } = useStore();
+  const { hotel, loading: hotelLoading } = useHotel(hotelId);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreatingPresentation, setIsCreatingPresentation] = useState(false);
   const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
   const [editedText, setEditedText] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   
-  const hotel = getHotel(hotelId || "");
   const moduleIdNum = parseInt(moduleId || "0", 10);
   const agent = getAgentById(moduleIdNum);
   
@@ -107,6 +106,15 @@ export default function AgentModule() {
     }
   }, [result?.status]);
 
+  // Show loading state while hotel is being fetched
+  if (hotelLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!hotel || !agent) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -127,8 +135,7 @@ export default function AgentModule() {
       const { data, error } = await supabase.functions.invoke('analyze-module', {
         body: {
           hotelId: hotel.id,
-          moduleId: moduleIdNum,
-          materials: hotel.strategicMaterials || {}
+          moduleId: moduleIdNum
         }
       });
 

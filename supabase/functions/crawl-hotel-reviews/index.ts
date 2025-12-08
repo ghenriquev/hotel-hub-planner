@@ -89,12 +89,15 @@ async function getHotelUrls(supabase: any, hotelId: string) {
 }
 
 async function runApifyActor(apiKey: string, actorId: string, input: any): Promise<any[]> {
-  console.log(`Starting Apify actor: ${actorId}`);
+  // Converter o separador de / para ~ conforme exigido pela API do Apify
+  const formattedActorId = actorId.replace('/', '~');
+  
+  console.log(`Starting Apify actor: ${formattedActorId}`);
   console.log('Input:', JSON.stringify(input));
 
   // Start the actor run
   const runResponse = await fetch(
-    `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiKey}`,
+    `https://api.apify.com/v2/acts/${formattedActorId}/runs?token=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

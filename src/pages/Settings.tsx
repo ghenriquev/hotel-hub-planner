@@ -46,7 +46,8 @@ import {
   Palette,
   Type,
   Image,
-  LayoutGrid
+  LayoutGrid,
+  Search
 } from "lucide-react";
 
 const KEY_TYPES = [
@@ -91,14 +92,19 @@ export default function Settings() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { settings: gammaSettings, loading: gammaLoading, saving: gammaSaving, updateSettings: updateGammaSettings } = useGammaSettings();
   
-  // Materials options
-  const MATERIALS_OPTIONS = [
+  // Materials options - separated into categories
+  const PRIMARY_MATERIALS = [
     { value: 'manual', label: 'Manual de Funcionamento' },
     { value: 'dados', label: 'Briefing de Criação' },
     { value: 'transcricao', label: 'Transcrição de Kickoff' },
-    { value: 'website', label: 'Conteúdo do Site' },
-    { value: 'reviews', label: 'Avaliações Consolidadas (24 meses)' },
   ];
+
+  const RESEARCH_MATERIALS = [
+    { value: 'website', label: 'Conteúdo do Site' },
+    { value: 'reviews', label: 'Avaliações Consolidadas' },
+  ];
+
+  const ALL_MATERIALS = [...PRIMARY_MATERIALS, ...RESEARCH_MATERIALS];
 
   // Agent editing state
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -237,11 +243,16 @@ export default function Settings() {
     });
   };
 
-  const getMaterialsLabel = (config: string[]) => {
+  const getMaterialsLabel = (config: string[], materialsList: typeof ALL_MATERIALS) => {
     if (!config || config.length === 0) return 'Nenhum';
-    if (config.length === MATERIALS_OPTIONS.length) return 'Todos';
-    return config.map(c => MATERIALS_OPTIONS.find(m => m.value === c)?.label || c).join(', ');
+    const filtered = config.filter(c => materialsList.some(m => m.value === c));
+    if (filtered.length === 0) return 'Nenhum';
+    if (filtered.length === materialsList.length) return 'Todos';
+    return filtered.map(c => materialsList.find(m => m.value === c)?.label || c).join(', ');
   };
+
+  const getPrimaryMaterialsLabel = (config: string[]) => getMaterialsLabel(config, PRIMARY_MATERIALS);
+  const getResearchMaterialsLabel = (config: string[]) => getMaterialsLabel(config, RESEARCH_MATERIALS);
 
   const toggleSecondaryMaterial = (moduleId: number) => {
     setEditForm(prev => {
@@ -395,12 +406,18 @@ export default function Settings() {
                       </span>
                       <span className="flex items-center gap-1">
                         <FileText className="h-3 w-3" />
-                        Primários: {getMaterialsLabel(config.materials_config)}
+                        Primários: {getPrimaryMaterialsLabel(config.materials_config)}
                       </span>
+                      {getResearchMaterialsLabel(config.materials_config) !== 'Nenhum' && (
+                        <span className="flex items-center gap-1">
+                          <Search className="h-3 w-3" />
+                          Pesquisas: {getResearchMaterialsLabel(config.materials_config)}
+                        </span>
+                      )}
                       {config.secondary_materials_config && config.secondary_materials_config.length > 0 && (
                         <span className="flex items-center gap-1">
                           <Bot className="h-3 w-3" />
-                          Secundários: {getSecondaryMaterialsLabel(config.secondary_materials_config)}
+                          Agentes: {getSecondaryMaterialsLabel(config.secondary_materials_config)}
                         </span>
                       )}
                     </div>
@@ -434,7 +451,7 @@ export default function Settings() {
                         Materiais Primários
                       </label>
                       <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
-                        {MATERIALS_OPTIONS.map((material) => (
+                        {PRIMARY_MATERIALS.map((material) => (
                           <label key={material.value} className="flex items-center gap-2 cursor-pointer">
                             <Checkbox
                               checked={editForm.materials_config.includes(material.value)}
@@ -445,15 +462,37 @@ export default function Settings() {
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Documentos base que serão enviados para este agente
+                        Documentos enviados pelo consultor
                       </p>
                     </div>
 
-                    {/* 3. Materiais Secundários (resultados de outros agentes) */}
+                    {/* 3. Resultado de Pesquisa */}
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                        <Search className="h-4 w-4" />
+                        Resultado de Pesquisa
+                      </label>
+                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
+                        {RESEARCH_MATERIALS.map((material) => (
+                          <label key={material.value} className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={editForm.materials_config.includes(material.value)}
+                              onCheckedChange={() => toggleMaterial(material.value)}
+                            />
+                            <span className="text-sm">{material.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Dados coletados automaticamente via pesquisa
+                      </p>
+                    </div>
+
+                    {/* 4. Resultados do Agente */}
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
                         <Bot className="h-4 w-4" />
-                        Materiais Secundários
+                        Resultados do Agente
                       </label>
                       <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
                         {configs

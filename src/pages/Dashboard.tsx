@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Logo";
 import { ProgressRing } from "@/components/ProgressRing";
-import { useStore } from "@/lib/store";
+import { useHotels } from "@/hooks/useHotels";
+import { useAgentResults } from "@/hooks/useAgentResults";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format, parseISO } from "date-fns";
@@ -19,13 +20,32 @@ import {
   LayoutGrid,
   List,
   Settings,
-  CalendarIcon
+  CalendarIcon,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function HotelProgress({ hotelId }: { hotelId: string }) {
+  const { results } = useAgentResults(hotelId);
+  const completedAgents = results.filter(r => r.status === 'completed').length;
+  const progress = Math.round((completedAgents / 11) * 100);
+  
+  return (
+    <div className="flex items-center gap-3">
+      <ProgressRing progress={progress} size={40} strokeWidth={3} />
+      <div className="text-sm">
+        <div className="text-foreground font-medium">Progresso</div>
+        <div className="text-muted-foreground">
+          {progress === 100 ? "Completo" : "Em andamento"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { hotels, getHotelProgress } = useStore();
+  const { hotels, loading } = useHotels();
   const { isAdmin } = useUserRole();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -57,6 +77,14 @@ export default function Dashboard() {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -167,66 +195,55 @@ export default function Dashboard() {
                 : "flex flex-col gap-3"
             )}
           >
-            {filteredHotels.map((hotel, index) => {
-              const progress = getHotelProgress(hotel.id);
-              
-              return (
-                <div
-                  key={hotel.id}
-                  onClick={() => navigate(`/hotel/${hotel.id}`)}
-                  className={cn(
-                    "bg-card border border-border rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30 group animate-slide-up",
-                    viewMode === "list" && "flex items-center gap-6"
-                  )}
-                  style={{ animationDelay: `${0.1 + index * 0.05}s` }}
-                >
-                  <div className={cn(
-                    "flex items-start gap-4",
-                    viewMode === "list" && "flex-1"
-                  )}>
-                    <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center shrink-0">
-                      <Building2 className="h-6 w-6 text-primary-foreground" />
+            {filteredHotels.map((hotel, index) => (
+              <div
+                key={hotel.id}
+                onClick={() => navigate(`/hotel/${hotel.id}`)}
+                className={cn(
+                  "bg-card border border-border rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30 group animate-slide-up",
+                  viewMode === "list" && "flex items-center gap-6"
+                )}
+                style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+              >
+                <div className={cn(
+                  "flex items-start gap-4",
+                  viewMode === "list" && "flex-1"
+                )}>
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center shrink-0">
+                    <Building2 className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display text-lg text-foreground truncate group-hover:text-primary transition-colors">
+                      {hotel.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                      <MapPin className="h-3 w-3" />
+                      <span className="truncate">{hotel.city}</span>
                     </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-display text-lg text-foreground truncate group-hover:text-primary transition-colors">
-                        {hotel.name}
-                      </h3>
+                    {hotel.project_start_date && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{hotel.city}</span>
+                        <CalendarIcon className="h-3 w-3" />
+                        <span>Início: {format(parseISO(hotel.project_start_date), "dd/MM/yyyy", { locale: ptBR })}</span>
                       </div>
-                      {hotel.projectStartDate && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                          <CalendarIcon className="h-3 w-3" />
-                          <span>Início: {format(parseISO(hotel.projectStartDate), "dd/MM/yyyy", { locale: ptBR })}</span>
-                        </div>
-                      )}
+                    )}
+                    {hotel.category && (
                       <span className="inline-block mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
                         {hotel.category}
                       </span>
-                    </div>
-                  </div>
-                  
-                  <div className={cn(
-                    "flex items-center justify-between",
-                    viewMode === "grid" && "mt-6 pt-4 border-t border-border"
-                  )}>
-                    <div className="flex items-center gap-3">
-                      <ProgressRing progress={progress} size={40} strokeWidth={3} />
-                      <div className="text-sm">
-                        <div className="text-foreground font-medium">Progresso</div>
-                        <div className="text-muted-foreground">
-                          {progress === 100 ? "Completo" : "Em andamento"}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    )}
                   </div>
                 </div>
-              );
-            })}
+                
+                <div className={cn(
+                  "flex items-center justify-between",
+                  viewMode === "grid" && "mt-6 pt-4 border-t border-border"
+                )}>
+                  <HotelProgress hotelId={hotel.id} />
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>

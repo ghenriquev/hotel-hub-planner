@@ -8,13 +8,15 @@ import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
 import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { HotelChat } from "@/components/HotelChat";
-import { useStore, StrategicMaterials, ClientMilestone } from "@/lib/store";
+import { useHotel } from "@/hooks/useHotels";
+import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
+import { useHotelMilestones } from "@/hooks/useHotelMilestones";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
 import { AGENTS } from "@/lib/agents-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, addDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   ArrowLeft, 
@@ -71,21 +73,14 @@ import { toast } from "sonner";
 export default function HotelDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getHotel, updateHotel, deleteHotel } = useStore();
-
-  const hotel = getHotel(id || "");
-  const { results, loading: resultsLoading, getResultForModule } = useAgentResults(id || "");
+  
+  const { hotel, loading: hotelLoading, updateHotel, deleteHotel } = useHotel(id);
+  const { materialsState, upsertMaterial, deleteMaterial } = useHotelMaterials(id);
+  const { milestonesLegacy, createDefaultMilestones } = useHotelMilestones(id);
+  const { results, getResultForModule } = useAgentResults(id || "");
   const { websiteData, isCrawling, crawlWebsite } = useHotelWebsiteData(id);
-  const [materials, setMaterials] = useState<StrategicMaterials>({
-    manualFuncionamentoUrl: "",
-    manualFuncionamentoName: "",
-    dadosHotelUrl: "",
-    dadosHotelName: "",
-    transcricaoKickoffUrl: "",
-    transcricaoKickoffName: ""
-  });
+
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
-  const [milestones, setMilestones] = useState<ClientMilestone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -100,33 +95,7 @@ export default function HotelDetail() {
     hasNoWebsite: false,
   });
 
-  const DEFAULT_MILESTONES = [
-    { id: "etapa1", name: "Etapa 1 – Kickoff & Alinhamento", startWeek: 1, endWeek: 1 },
-    { id: "etapa2", name: "Etapa 2 – Estratégia", startWeek: 2, endWeek: 3 },
-    { id: "etapa3", name: "Etapa 3 – Construção", startWeek: 4, endWeek: 5 },
-    { id: "etapa4", name: "Etapa 4 – Ativação e Mensuração", startWeek: 6, endWeek: 7 },
-    { id: "etapa5", name: "Etapa 5 – Relatório Final e Proposta de Continuidade", startWeek: 8, endWeek: 8 }
-  ];
-
-  const calculateMilestoneDates = useCallback((startDate: Date, ms: typeof DEFAULT_MILESTONES) => {
-    return ms.map(m => ({
-      ...m,
-      startDate: addDays(startDate, (m.startWeek - 1) * 7).toISOString(),
-      endDate: addDays(startDate, m.endWeek * 7 - 1).toISOString()
-    }));
-  }, []);
-
   useEffect(() => {
-    if (hotel?.strategicMaterials) {
-      setMaterials({
-        manualFuncionamentoUrl: hotel.strategicMaterials.manualFuncionamentoUrl || "",
-        manualFuncionamentoName: hotel.strategicMaterials.manualFuncionamentoName || "",
-        dadosHotelUrl: hotel.strategicMaterials.dadosHotelUrl || "",
-        dadosHotelName: hotel.strategicMaterials.dadosHotelName || "",
-        transcricaoKickoffUrl: hotel.strategicMaterials.transcricaoKickoffUrl || "",
-        transcricaoKickoffName: hotel.strategicMaterials.transcricaoKickoffName || ""
-      });
-    }
     if (hotel) {
       setEditForm({
         name: hotel.name || "",
@@ -134,74 +103,73 @@ export default function HotelDetail() {
         contact: hotel.contact || "",
         category: hotel.category || "",
         website: hotel.website || "",
-        hasNoWebsite: hotel.hasNoWebsite || false,
+        hasNoWebsite: hotel.has_no_website || false,
       });
-    }
-    if (hotel?.projectStartDate) {
-      const date = parseISO(hotel.projectStartDate);
-      setProjectStartDate(date);
       
-      const newMilestones = DEFAULT_MILESTONES.map(defaultM => ({
-        id: defaultM.id,
-        name: defaultM.name,
-        startWeek: defaultM.startWeek,
-        endWeek: defaultM.endWeek,
-        startDate: addDays(date, (defaultM.startWeek - 1) * 7).toISOString(),
-        endDate: addDays(date, defaultM.endWeek * 7 - 1).toISOString()
-      }));
-      
-      setMilestones(newMilestones);
-      updateHotel(hotel.id, { milestones: newMilestones });
+      if (hotel.project_start_date) {
+        setProjectStartDate(parseISO(hotel.project_start_date));
+      }
     }
   }, [hotel?.id]);
 
-  useEffect(() => {
-    if (!hotel) return;
-    
-    const timeout = setTimeout(() => {
-      setIsSaving(true);
-      updateHotel(hotel.id, { strategicMaterials: materials });
-      setTimeout(() => {
-        setIsSaving(false);
-        setLastSaved(new Date());
-      }, 300);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [materials]);
-
-  const handleStartDateChange = (date: Date | undefined) => {
+  const handleStartDateChange = async (date: Date | undefined) => {
     if (!date || !hotel) return;
     setProjectStartDate(date);
-    const newMilestones = calculateMilestoneDates(date, DEFAULT_MILESTONES);
-    setMilestones(newMilestones);
-    updateHotel(hotel.id, { 
-      projectStartDate: date.toISOString(),
-      milestones: newMilestones
-    });
+    
+    await updateHotel({ project_start_date: format(date, 'yyyy-MM-dd') });
+    await createDefaultMilestones(date);
     setLastSaved(new Date());
   };
 
-  const handleMilestonesChange = (newMilestones: ClientMilestone[]) => {
+  const handleSaveEdit = async () => {
     if (!hotel) return;
-    setMilestones(newMilestones);
-    updateHotel(hotel.id, { milestones: newMilestones });
-    setLastSaved(new Date());
-  };
-
-  const handleSaveEdit = () => {
-    if (!hotel) return;
-    updateHotel(hotel.id, {
+    
+    setIsSaving(true);
+    const success = await updateHotel({
       name: editForm.name,
       city: editForm.city,
       contact: editForm.contact,
       category: editForm.category,
-      website: editForm.hasNoWebsite ? undefined : editForm.website,
-      hasNoWebsite: editForm.hasNoWebsite,
+      website: editForm.hasNoWebsite ? null : editForm.website,
+      has_no_website: editForm.hasNoWebsite,
     });
-    setIsEditDialogOpen(false);
-    toast.success("Informações atualizadas com sucesso!");
+    
+    if (success) {
+      setIsEditDialogOpen(false);
+      toast.success("Informações atualizadas com sucesso!");
+      setLastSaved(new Date());
+    }
+    setIsSaving(false);
   };
+
+  const handleDeleteHotel = async () => {
+    const success = await deleteHotel();
+    if (success) {
+      navigate("/dashboard");
+    }
+  };
+
+  const handleMaterialUpload = async (materialType: MaterialType, url: string, name: string) => {
+    setIsSaving(true);
+    await upsertMaterial(materialType, url, name);
+    setIsSaving(false);
+    setLastSaved(new Date());
+  };
+
+  const handleMaterialRemove = async (materialType: MaterialType) => {
+    setIsSaving(true);
+    await deleteMaterial(materialType);
+    setIsSaving(false);
+    setLastSaved(new Date());
+  };
+
+  if (hotelLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   if (!hotel) {
     return (
@@ -214,7 +182,6 @@ export default function HotelDetail() {
     );
   }
 
-  // Calculate progress based on completed agent results
   const completedAgents = results.filter(r => r.status === 'completed').length;
   const hotelProgress = Math.round((completedAgents / 11) * 100);
 
@@ -247,15 +214,19 @@ export default function HotelDetail() {
                     <MapPin className="h-4 w-4" />
                     {hotel.city}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    {hotel.contact}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Tag className="h-4 w-4" />
-                    {hotel.category}
-                  </div>
-                  {hotel.website && !hotel.hasNoWebsite && (
+                  {hotel.contact && (
+                    <div className="flex items-center gap-1">
+                      <Phone className="h-4 w-4" />
+                      {hotel.contact}
+                    </div>
+                  )}
+                  {hotel.category && (
+                    <div className="flex items-center gap-1">
+                      <Tag className="h-4 w-4" />
+                      {hotel.category}
+                    </div>
+                  )}
+                  {hotel.website && !hotel.has_no_website && (
                     <a 
                       href={hotel.website.startsWith('http') ? hotel.website : `https://${hotel.website}`} 
                       target="_blank" 
@@ -266,7 +237,7 @@ export default function HotelDetail() {
                       {hotel.website.replace(/^https?:\/\//, '')}
                     </a>
                   )}
-                  {hotel.hasNoWebsite && (
+                  {hotel.has_no_website && (
                     <div className="flex items-center gap-1 text-muted-foreground/60">
                       <Globe className="h-4 w-4" />
                       <span className="italic">Sem site</span>
@@ -306,10 +277,7 @@ export default function HotelDetail() {
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction 
-                      onClick={() => {
-                        deleteHotel(hotel.id);
-                        navigate("/dashboard");
-                      }}
+                      onClick={handleDeleteHotel}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Excluir
@@ -407,8 +375,8 @@ export default function HotelDetail() {
                     <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                       Cancelar
                     </Button>
-                    <Button onClick={handleSaveEdit} disabled={!editForm.name || !editForm.city}>
-                      Salvar
+                    <Button onClick={handleSaveEdit} disabled={!editForm.name || !editForm.city || isSaving}>
+                      {isSaving ? "Salvando..." : "Salvar"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -442,20 +410,10 @@ export default function HotelDetail() {
               <FileUpload
                 hotelId={hotel.id}
                 field="manual"
-                currentUrl={materials.manualFuncionamentoUrl}
-                currentName={materials.manualFuncionamentoName}
-                onUploadComplete={(url, name) => {
-                  const newMaterials = { ...materials, manualFuncionamentoUrl: url, manualFuncionamentoName: name };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
-                onRemove={() => {
-                  const newMaterials = { ...materials, manualFuncionamentoUrl: "", manualFuncionamentoName: "" };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
+                currentUrl={materialsState.manual?.url}
+                currentName={materialsState.manual?.name}
+                onUploadComplete={(url, name) => handleMaterialUpload('manual', url, name)}
+                onRemove={() => handleMaterialRemove('manual')}
               />
             </div>
 
@@ -468,20 +426,10 @@ export default function HotelDetail() {
               <FileUpload
                 hotelId={hotel.id}
                 field="dados"
-                currentUrl={materials.dadosHotelUrl}
-                currentName={materials.dadosHotelName}
-                onUploadComplete={(url, name) => {
-                  const newMaterials = { ...materials, dadosHotelUrl: url, dadosHotelName: name };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
-                onRemove={() => {
-                  const newMaterials = { ...materials, dadosHotelUrl: "", dadosHotelName: "" };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
+                currentUrl={materialsState.dados?.url}
+                currentName={materialsState.dados?.name}
+                onUploadComplete={(url, name) => handleMaterialUpload('dados', url, name)}
+                onRemove={() => handleMaterialRemove('dados')}
               />
             </div>
 
@@ -494,20 +442,10 @@ export default function HotelDetail() {
               <FileUpload
                 hotelId={hotel.id}
                 field="transcricao"
-                currentUrl={materials.transcricaoKickoffUrl}
-                currentName={materials.transcricaoKickoffName}
-                onUploadComplete={(url, name) => {
-                  const newMaterials = { ...materials, transcricaoKickoffUrl: url, transcricaoKickoffName: name };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
-                onRemove={() => {
-                  const newMaterials = { ...materials, transcricaoKickoffUrl: "", transcricaoKickoffName: "" };
-                  setMaterials(newMaterials);
-                  updateHotel(hotel.id, { strategicMaterials: newMaterials });
-                  setLastSaved(new Date());
-                }}
+                currentUrl={materialsState.transcricao?.url}
+                currentName={materialsState.transcricao?.name}
+                onUploadComplete={(url, name) => handleMaterialUpload('transcricao', url, name)}
+                onRemove={() => handleMaterialRemove('transcricao')}
               />
             </div>
 
@@ -519,7 +457,7 @@ export default function HotelDetail() {
               </label>
               
               <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
-                {hotel.hasNoWebsite ? (
+                {hotel.has_no_website ? (
                   <div className="text-center text-muted-foreground text-sm">
                     <Globe className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     <p>Hotel não possui site</p>
@@ -605,7 +543,6 @@ export default function HotelDetail() {
           pages={Array.isArray(websiteData?.crawled_content) ? websiteData.crawled_content : []}
           crawledAt={websiteData?.crawled_at || null}
         />
-
 
         {/* HotelGPT Chat */}
         <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>

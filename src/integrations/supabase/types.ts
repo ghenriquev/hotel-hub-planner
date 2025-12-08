@@ -266,11 +266,14 @@ export type Database = {
       }
       hotel_reviews_data: {
         Row: {
+          crawl_progress: number | null
           crawled_at: string | null
           created_at: string
           error_message: string | null
           hotel_id: string
           id: string
+          items_collected: number | null
+          progress_message: string | null
           reviews_count: number | null
           reviews_data: Json | null
           source: string
@@ -279,11 +282,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          crawl_progress?: number | null
           crawled_at?: string | null
           created_at?: string
           error_message?: string | null
           hotel_id: string
           id?: string
+          items_collected?: number | null
+          progress_message?: string | null
           reviews_count?: number | null
           reviews_data?: Json | null
           source: string
@@ -292,11 +298,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          crawl_progress?: number | null
           crawled_at?: string | null
           created_at?: string
           error_message?: string | null
           hotel_id?: string
           id?: string
+          items_collected?: number | null
+          progress_message?: string | null
           reviews_count?: number | null
           reviews_data?: Json | null
           source?: string

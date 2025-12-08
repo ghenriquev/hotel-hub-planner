@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye } from "lucide-react";
 import { useHotelReviews, ReviewData } from "@/hooks/useHotelReviews";
 import { format } from "date-fns";
@@ -98,6 +99,20 @@ function SourceCard({
         <p className="text-xs text-muted-foreground">
           Coletado em {format(new Date(data.crawled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
         </p>
+      )}
+
+      {/* Progress indicator during crawling */}
+      {status === 'crawling' && (
+        <div className="space-y-2 py-2">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{data?.items_collected || 0} reviews coletados</span>
+            <span>{data?.crawl_progress || 0}%</span>
+          </div>
+          <Progress value={data?.crawl_progress || 0} className="h-2" />
+          {data?.progress_message && (
+            <p className="text-xs text-muted-foreground animate-pulse">{data.progress_message}</p>
+          )}
+        </div>
       )}
 
       {data?.error_message && (

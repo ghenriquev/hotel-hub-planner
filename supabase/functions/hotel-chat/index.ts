@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { hotelId, messages } = await req.json();
+    const { hotelId, messages, contextMode = 'all' } = await req.json();
 
     if (!hotelId || !messages || !Array.isArray(messages)) {
       return new Response(
@@ -20,6 +20,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Hotel chat request with contextMode:', contextMode);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -68,35 +70,39 @@ serve(async (req) => {
       console.error('Error fetching website data:', websiteError);
     }
 
-    // Build dynamic context
+    // Build dynamic context based on contextMode
     let contextParts: string[] = [];
 
-    // Add primary materials context info
-    contextParts.push(`## MATERIAIS PRIMÁRIOS DISPONÍVEIS
+    // Add primary materials context info (only if contextMode is 'all' or 'materials')
+    if (contextMode === 'all' || contextMode === 'materials') {
+      contextParts.push(`## MATERIAIS PRIMÁRIOS DISPONÍVEIS
 
-Os materiais primários (Manual de Funcionamento, Briefing de Criação, Transcrição de Kickoff) são arquivos que foram enviados para o sistema. Eles foram processados pelos agentes estratégicos e os resultados estão disponíveis abaixo.`);
+Os materiais primários (Manual de Funcionamento, Briefing de Criação, Transcrição de Kickoff) são arquivos que foram enviados para o sistema.`);
 
-    // Add website content if available
-    if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
-      contextParts.push(`\n### Conteúdo do Site (${websiteData.crawled_content.length} páginas extraídas)`);
-      websiteData.crawled_content.slice(0, 5).forEach((page: any, index: number) => {
-        if (page.text) {
-          const truncatedText = page.text.substring(0, 2000);
-          contextParts.push(`\n#### Página ${index + 1}: ${page.url || 'N/A'}\n${truncatedText}`);
-        }
-      });
+      // Add website content if available
+      if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
+        contextParts.push(`\n### Conteúdo do Site (${websiteData.crawled_content.length} páginas extraídas)`);
+        websiteData.crawled_content.slice(0, 5).forEach((page: any, index: number) => {
+          if (page.text) {
+            const truncatedText = page.text.substring(0, 2000);
+            contextParts.push(`\n#### Página ${index + 1}: ${page.url || 'N/A'}\n${truncatedText}`);
+          }
+        });
+      }
     }
 
-    // Add agent results dynamically
-    if (agentResults && agentResults.length > 0) {
-      contextParts.push(`\n## ANÁLISES ESTRATÉGICAS (${agentResults.length} agentes concluídos)\n`);
-      
-      agentResults.forEach((result) => {
-        const title = configMap.get(result.module_id) || `Agente ${result.module_id}`;
-        contextParts.push(`### ${title}\n${result.result || 'Sem resultado disponível'}\n`);
-      });
-    } else {
-      contextParts.push(`\n## ANÁLISES ESTRATÉGICAS\nNenhum agente foi executado ainda para este hotel.`);
+    // Add agent results dynamically (only if contextMode is 'all' or 'agents')
+    if (contextMode === 'all' || contextMode === 'agents') {
+      if (agentResults && agentResults.length > 0) {
+        contextParts.push(`\n## ANÁLISES ESTRATÉGICAS (${agentResults.length} agentes concluídos)\n`);
+        
+        agentResults.forEach((result) => {
+          const title = configMap.get(result.module_id) || `Agente ${result.module_id}`;
+          contextParts.push(`### ${title}\n${result.result || 'Sem resultado disponível'}\n`);
+        });
+      } else {
+        contextParts.push(`\n## ANÁLISES ESTRATÉGICAS\nNenhum agente foi executado ainda para este hotel.`);
+      }
     }
 
     const systemPrompt = `Você é o HotelGPT, um assistente especializado em consultoria hoteleira da Reprotel Marketing Hoteleiro.

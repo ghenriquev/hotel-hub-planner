@@ -5,6 +5,14 @@ import { useHotelWebsiteData } from '@/hooks/useHotelWebsiteData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   MessageSquare, 
   Send, 
@@ -19,6 +27,8 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type ContextMode = 'all' | 'materials' | 'agents';
 
 interface HotelChatProps {
   hotelId: string;
@@ -35,10 +45,11 @@ const SUGGESTED_QUESTIONS = [
 
 export function HotelChat({ hotelId, hotelName, onClose }: HotelChatProps) {
   const [input, setInput] = useState('');
+  const [contextMode, setContextMode] = useState<ContextMode>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  const { messages, isLoading, error, sendMessage, clearMessages } = useHotelChat({ hotelId });
+  const { messages, isLoading, error, sendMessage, clearMessages } = useHotelChat({ hotelId, contextMode });
   const { results } = useAgentResults(hotelId);
   const { websiteData } = useHotelWebsiteData(hotelId);
 
@@ -105,17 +116,31 @@ export function HotelChat({ hotelId, hotelName, onClose }: HotelChatProps) {
           </div>
         </div>
         
+        {/* Context selector */}
+        <div className="mt-3">
+          <Select value={contextMode} onValueChange={(value: ContextMode) => setContextMode(value)}>
+            <SelectTrigger className="w-full h-8 text-xs bg-background">
+              <SelectValue placeholder="Selecione o contexto" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">Materiais + Agentes</SelectItem>
+              <SelectItem value="materials">Apenas Materiais Primários</SelectItem>
+              <SelectItem value="agents">Apenas Agentes Estratégicos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Context badges */}
-        <div className="flex items-center gap-2 mt-3">
-          <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+        <div className="flex items-center gap-2 mt-2">
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
             <Database className="h-3 w-3" />
             {completedAgents} agentes
-          </span>
+          </Badge>
           {hasWebsiteData && (
-            <span className="inline-flex items-center gap-1 text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded-full">
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
               <FileText className="h-3 w-3" />
               Site analisado
-            </span>
+            </Badge>
           )}
         </div>
       </div>

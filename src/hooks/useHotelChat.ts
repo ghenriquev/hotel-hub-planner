@@ -5,11 +5,14 @@ export interface ChatMessage {
   content: string;
 }
 
+type ContextMode = 'all' | 'materials' | 'agents';
+
 interface UseHotelChatOptions {
   hotelId: string;
+  contextMode?: ContextMode;
 }
 
-export function useHotelChat({ hotelId }: UseHotelChatOptions) {
+export function useHotelChat({ hotelId, contextMode = 'all' }: UseHotelChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +52,7 @@ export function useHotelChat({ hotelId }: UseHotelChatOptions) {
         body: JSON.stringify({
           hotelId,
           messages: [...messages, userMsg],
+          contextMode,
         }),
       });
 
@@ -118,7 +122,7 @@ export function useHotelChat({ hotelId }: UseHotelChatOptions) {
     } finally {
       setIsLoading(false);
     }
-  }, [hotelId, messages]);
+  }, [hotelId, messages, contextMode]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

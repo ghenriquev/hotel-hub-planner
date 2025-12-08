@@ -8,6 +8,7 @@ import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
 import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { HotelChat } from "@/components/HotelChat";
+import { ReviewsCard } from "@/components/ReviewsCard";
 import { useHotel } from "@/hooks/useHotels";
 import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
 import { useHotelMilestones } from "@/hooks/useHotelMilestones";
@@ -590,7 +591,7 @@ export default function HotelDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Conteúdo do Site */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -673,9 +674,19 @@ export default function HotelDetail() {
                     </Button>
                   </div>
                 )}
-              </div>
             </div>
+
+            {/* Avaliações */}
+            <ReviewsCard
+              hotelId={id!}
+              hotelUrls={{
+                google_business_url: hotel.google_business_url,
+                tripadvisor_url: hotel.tripadvisor_url,
+                booking_url: hotel.booking_url,
+              }}
+            />
           </div>
+        </div>
         </div>
 
         {/* Website Content Modal */}

@@ -1,0 +1,240 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { useHotelReviews, ReviewData } from "@/hooks/useHotelReviews";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+
+interface ReviewsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  hotelId: string;
+  hotelUrls: {
+    google_business_url?: string | null;
+    tripadvisor_url?: string | null;
+    booking_url?: string | null;
+  };
+}
+
+const SOURCE_CONFIG = {
+  google: {
+    label: 'Google',
+    icon: MapPin,
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10',
+  },
+  tripadvisor: {
+    label: 'TripAdvisor',
+    icon: Star,
+    color: 'text-green-500',
+    bgColor: 'bg-green-500/10',
+  },
+  booking: {
+    label: 'Booking.com',
+    icon: Star,
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500/10',
+  },
+};
+
+function SourceCard({ 
+  source, 
+  data, 
+  url, 
+  onCrawl, 
+  isCrawling 
+}: { 
+  source: 'google' | 'tripadvisor' | 'booking';
+  data?: ReviewData;
+  url?: string | null;
+  onCrawl: () => void;
+  isCrawling: boolean;
+}) {
+  const config = SOURCE_CONFIG[source];
+  const Icon = config.icon;
+  const status = data?.status || 'pending';
+  const hasUrl = !!url;
+
+  const getStatusBadge = () => {
+    if (!hasUrl) {
+      return <Badge variant="outline" className="text-muted-foreground">URL não cadastrada</Badge>;
+    }
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle2 className="h-3 w-3 mr-1" /> Coletado</Badge>;
+      case 'crawling':
+        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Coletando...</Badge>;
+      case 'error':
+        return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" /> Erro</Badge>;
+      default:
+        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" /> Pendente</Badge>;
+    }
+  };
+
+  return (
+    <div className="border border-border rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.bgColor}`}>
+            <Icon className={`h-4 w-4 ${config.color}`} />
+          </div>
+          <span className="font-medium">{config.label}</span>
+        </div>
+        {getStatusBadge()}
+      </div>
+
+      {data?.reviews_count !== undefined && data.reviews_count > 0 && (
+        <div className="text-2xl font-bold">{data.reviews_count} reviews</div>
+      )}
+
+      {data?.crawled_at && (
+        <p className="text-xs text-muted-foreground">
+          Coletado em {format(new Date(data.crawled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+        </p>
+      )}
+
+      {data?.error_message && (
+        <p className="text-xs text-destructive">{data.error_message}</p>
+      )}
+
+      {url && (
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-xs text-primary hover:underline flex items-center gap-1"
+        >
+          Ver perfil <ExternalLink className="h-3 w-3" />
+        </a>
+      )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={onCrawl}
+        disabled={!hasUrl || isCrawling || status === 'crawling'}
+      >
+        {status === 'crawling' ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
+        ) : (
+          <><RefreshCw className="h-4 w-4 mr-2" /> {status === 'completed' ? 'Atualizar' : 'Coletar'}</>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: ReviewsModalProps) {
+  const { 
+    loading, 
+    crawling, 
+    crawlReviews, 
+    getSourceData, 
+    getTotalReviewsCount,
+    getLastCrawledAt,
+    isAnyCrawling,
+  } = useHotelReviews(hotelId);
+
+  const handleCrawlAll = async () => {
+    try {
+      await crawlReviews('all');
+      toast.success('Coleta de avaliações iniciada');
+    } catch (err) {
+      toast.error('Erro ao coletar avaliações');
+    }
+  };
+
+  const handleCrawlSource = async (source: 'google' | 'tripadvisor' | 'booking') => {
+    try {
+      await crawlReviews(source);
+      toast.success(`Coleta de ${SOURCE_CONFIG[source].label} iniciada`);
+    } catch (err) {
+      toast.error(`Erro ao coletar ${SOURCE_CONFIG[source].label}`);
+    }
+  };
+
+  const totalReviews = getTotalReviewsCount();
+  const lastCrawled = getLastCrawledAt();
+  const anyMissingUrl = !hotelUrls.google_business_url || !hotelUrls.tripadvisor_url || !hotelUrls.booking_url;
+  const isBusy = crawling || isAnyCrawling();
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-primary" />
+            Avaliações do Hotel
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Source Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <SourceCard
+                source="google"
+                data={getSourceData('google')}
+                url={hotelUrls.google_business_url}
+                onCrawl={() => handleCrawlSource('google')}
+                isCrawling={isBusy}
+              />
+              <SourceCard
+                source="tripadvisor"
+                data={getSourceData('tripadvisor')}
+                url={hotelUrls.tripadvisor_url}
+                onCrawl={() => handleCrawlSource('tripadvisor')}
+                isCrawling={isBusy}
+              />
+              <SourceCard
+                source="booking"
+                data={getSourceData('booking')}
+                url={hotelUrls.booking_url}
+                onCrawl={() => handleCrawlSource('booking')}
+                isCrawling={isBusy}
+              />
+            </div>
+
+            {/* Summary */}
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total coletado</p>
+                  <p className="text-2xl font-bold">{totalReviews} avaliações</p>
+                  {lastCrawled && (
+                    <p className="text-xs text-muted-foreground">
+                      Última coleta: {format(new Date(lastCrawled), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleCrawlAll}
+                  disabled={isBusy || anyMissingUrl}
+                >
+                  {isBusy ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
+                  ) : (
+                    <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todas</>
+                  )}
+                </Button>
+              </div>
+
+              {anyMissingUrl && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Algumas URLs de plataformas não estão cadastradas. Edite o hotel para adicionar.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -264,6 +264,56 @@ export type Database = {
           },
         ]
       }
+      hotel_reviews_data: {
+        Row: {
+          crawled_at: string | null
+          created_at: string
+          error_message: string | null
+          hotel_id: string
+          id: string
+          reviews_count: number | null
+          reviews_data: Json | null
+          source: string
+          source_url: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          crawled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          hotel_id: string
+          id?: string
+          reviews_count?: number | null
+          reviews_data?: Json | null
+          source: string
+          source_url?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          crawled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          hotel_id?: string
+          id?: string
+          reviews_count?: number | null
+          reviews_data?: Json | null
+          source?: string
+          source_url?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_reviews_data_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_website_data: {
         Row: {
           crawled_at: string | null

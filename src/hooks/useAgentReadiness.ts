@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelMaterials } from './useHotelMaterials';
 import { useHotelWebsiteData } from './useHotelWebsiteData';
+import { useHotelReviews } from './useHotelReviews';
 import { useAgentResults } from './useAgentResults';
 import { useAgentConfigs, AgentConfig } from './useAgentConfigs';
 
@@ -8,7 +9,7 @@ interface MaterialStatus {
   id: string;
   label: string;
   ready: boolean;
-  type: 'primary' | 'secondary';
+  type: 'primary' | 'research' | 'secondary';
 }
 
 interface AgentReadiness {
@@ -23,16 +24,21 @@ const PRIMARY_MATERIALS_LABELS: Record<string, string> = {
   manual: 'Manual de Funcionamento',
   dados: 'Briefing de Criação',
   transcricao: 'Transcrição de Kickoff',
+};
+
+const RESEARCH_MATERIALS_LABELS: Record<string, string> = {
   website: 'Conteúdo do Site',
+  reviews: 'Avaliações Consolidadas',
 };
 
 export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadiness {
   const { getMaterial, loading: materialsLoading } = useHotelMaterials(hotelId);
   const { websiteData, loading: websiteLoading } = useHotelWebsiteData(hotelId);
+  const { hasAnyCompleted: hasReviewsCompleted, loading: reviewsLoading } = useHotelReviews(hotelId);
   const { results: agentResults, loading: resultsLoading } = useAgentResults(hotelId);
   const { configs, loading: configsLoading } = useAgentConfigs();
 
-  const isLoading = materialsLoading || websiteLoading || resultsLoading || configsLoading;
+  const isLoading = materialsLoading || websiteLoading || reviewsLoading || resultsLoading || configsLoading;
 
   const materials = useMemo(() => {
     const config = configs.find(c => c.module_id === moduleId);
@@ -40,31 +46,48 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
 
     const materialsList: MaterialStatus[] = [];
 
-    // Check primary materials
-    const primaryMaterials = config.materials_config || [];
-    primaryMaterials.forEach(materialId => {
+    // Check all materials from materials_config
+    const allMaterials = config.materials_config || [];
+    allMaterials.forEach(materialId => {
       let ready = false;
+      let type: 'primary' | 'research' = 'primary';
+      let label = '';
       
       switch (materialId) {
         case 'manual':
           ready = !!getMaterial('manual');
+          label = PRIMARY_MATERIALS_LABELS[materialId];
+          type = 'primary';
           break;
         case 'dados':
           ready = !!getMaterial('dados');
+          label = PRIMARY_MATERIALS_LABELS[materialId];
+          type = 'primary';
           break;
         case 'transcricao':
           ready = !!getMaterial('transcricao');
+          label = PRIMARY_MATERIALS_LABELS[materialId];
+          type = 'primary';
           break;
         case 'website':
           ready = websiteData?.status === 'completed';
+          label = RESEARCH_MATERIALS_LABELS[materialId];
+          type = 'research';
           break;
+        case 'reviews':
+          ready = hasReviewsCompleted();
+          label = RESEARCH_MATERIALS_LABELS[materialId];
+          type = 'research';
+          break;
+        default:
+          label = materialId;
       }
 
       materialsList.push({
         id: materialId,
-        label: PRIMARY_MATERIALS_LABELS[materialId] || materialId,
+        label,
         ready,
-        type: 'primary',
+        type,
       });
     });
 
@@ -85,7 +108,7 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
     });
 
     return materialsList;
-  }, [configs, moduleId, getMaterial, websiteData, agentResults]);
+  }, [configs, moduleId, getMaterial, websiteData, hasReviewsCompleted, agentResults]);
 
   const missingMaterials = useMemo(() => 
     materials.filter(m => !m.ready), 

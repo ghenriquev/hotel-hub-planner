@@ -3,9 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye, FileText } from "lucide-react";
+import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye } from "lucide-react";
 import { useHotelReviews, ReviewData } from "@/hooks/useHotelReviews";
-import { useHotelMaterials } from "@/hooks/useHotelMaterials";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -67,86 +66,6 @@ function normalizeReviews(source: 'google' | 'tripadvisor' | 'booking', rawRevie
         };
     }
   });
-}
-
-// Filter reviews from the last 24 months
-function filterReviewsByDate(reviews: NormalizedReview[]): NormalizedReview[] {
-  const twentyFourMonthsAgo = new Date();
-  twentyFourMonthsAgo.setMonth(twentyFourMonthsAgo.getMonth() - 24);
-  
-  return reviews.filter(r => {
-    if (!r.publishedAtDate) return true; // Keep reviews without dates
-    const reviewDate = new Date(r.publishedAtDate);
-    return !isNaN(reviewDate.getTime()) && reviewDate >= twentyFourMonthsAgo;
-  });
-}
-
-// Generate consolidated reviews document text
-function generateConsolidatedReviewsDocument(
-  googleReviews: NormalizedReview[],
-  tripadvisorReviews: NormalizedReview[],
-  bookingReviews: NormalizedReview[]
-): { text: string; totalCount: number } {
-  const filteredGoogle = filterReviewsByDate(googleReviews);
-  const filteredTripadvisor = filterReviewsByDate(tripadvisorReviews);
-  const filteredBooking = filterReviewsByDate(bookingReviews);
-  
-  const totalCount = filteredGoogle.length + filteredTripadvisor.length + filteredBooking.length;
-  
-  let document = `# AVALIAÇÕES CONSOLIDADAS DO HOTEL\n`;
-  document += `## Período: Últimos 24 meses\n`;
-  document += `## Data de geração: ${new Date().toLocaleDateString('pt-BR')}\n`;
-  document += `## Total de avaliações: ${totalCount}\n\n`;
-  
-  // Google Reviews
-  if (filteredGoogle.length > 0) {
-    document += `---\n\n# AVALIAÇÕES GOOGLE (${filteredGoogle.length} avaliações)\n\n`;
-    filteredGoogle.forEach((review, i) => {
-      document += `## Avaliação ${i + 1}\n`;
-      document += `- **Autor**: ${review.name || 'Anônimo'}\n`;
-      document += `- **Nota**: ${review.stars || 'N/A'}/5\n`;
-      document += `- **Data**: ${review.publishedAtDate || 'Não informada'}\n`;
-      document += `- **Comentário**: ${review.text || 'Sem comentário'}\n`;
-      if (review.responseFromOwnerText) {
-        document += `- **Resposta do Hotel**: ${review.responseFromOwnerText}\n`;
-      }
-      document += `\n`;
-    });
-  }
-  
-  // TripAdvisor Reviews
-  if (filteredTripadvisor.length > 0) {
-    document += `---\n\n# AVALIAÇÕES TRIPADVISOR (${filteredTripadvisor.length} avaliações)\n\n`;
-    filteredTripadvisor.forEach((review, i) => {
-      document += `## Avaliação ${i + 1}\n`;
-      document += `- **Autor**: ${review.name || 'Anônimo'}\n`;
-      document += `- **Nota**: ${review.stars || 'N/A'}/5\n`;
-      document += `- **Data**: ${review.publishedAtDate || 'Não informada'}\n`;
-      document += `- **Comentário**: ${review.text || 'Sem comentário'}\n`;
-      if (review.responseFromOwnerText) {
-        document += `- **Resposta do Hotel**: ${review.responseFromOwnerText}\n`;
-      }
-      document += `\n`;
-    });
-  }
-  
-  // Booking.com Reviews
-  if (filteredBooking.length > 0) {
-    document += `---\n\n# AVALIAÇÕES BOOKING.COM (${filteredBooking.length} avaliações)\n\n`;
-    filteredBooking.forEach((review, i) => {
-      document += `## Avaliação ${i + 1}\n`;
-      document += `- **Autor**: ${review.name || 'Anônimo'}\n`;
-      document += `- **Nota**: ${review.stars || 'N/A'}/5\n`;
-      document += `- **Data**: ${review.publishedAtDate || 'Não informada'}\n`;
-      document += `- **Comentário**: ${review.text || 'Sem comentário'}\n`;
-      if (review.responseFromOwnerText) {
-        document += `- **Resposta do Hotel**: ${review.responseFromOwnerText}\n`;
-      }
-      document += `\n`;
-    });
-  }
-  
-  return { text: document, totalCount };
 }
 
 interface ReviewsModalProps {
@@ -301,7 +220,6 @@ function SourceCard({
 export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: ReviewsModalProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerSource, setViewerSource] = useState<'google' | 'tripadvisor' | 'booking'>('google');
-  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   
   const { 
     loading, 
@@ -312,8 +230,6 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
     getLastCrawledAt,
     isAnyCrawling,
   } = useHotelReviews(hotelId);
-
-  const { upsertMaterial, getMaterial } = useHotelMaterials(hotelId);
 
   const handleCrawlAll = async () => {
     try {
@@ -338,47 +254,10 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
     setViewerOpen(true);
   };
 
-  const handleGenerateDocument = async () => {
-    setIsGeneratingDoc(true);
-    try {
-      // Get reviews from all sources
-      const googleData = getSourceData('google');
-      const tripadvisorData = getSourceData('tripadvisor');
-      const bookingData = getSourceData('booking');
-
-      const googleReviews = normalizeReviews('google', (googleData?.reviews_data as any[]) || []);
-      const tripadvisorReviews = normalizeReviews('tripadvisor', (tripadvisorData?.reviews_data as any[]) || []);
-      const bookingReviews = normalizeReviews('booking', (bookingData?.reviews_data as any[]) || []);
-
-      // Generate the consolidated document
-      const { text, totalCount } = generateConsolidatedReviewsDocument(googleReviews, tripadvisorReviews, bookingReviews);
-
-      if (totalCount === 0) {
-        toast.error('Nenhuma avaliação disponível para gerar documento');
-        return;
-      }
-
-      // Save as a material
-      const fileName = `Avaliações Consolidadas - ${totalCount} reviews`;
-      const success = await upsertMaterial('reviews', 'text://reviews-document', fileName, text);
-
-      if (success) {
-        toast.success(`Documento gerado com ${totalCount} avaliações dos últimos 24 meses`);
-      }
-    } catch (err) {
-      console.error('Error generating reviews document:', err);
-      toast.error('Erro ao gerar documento de avaliações');
-    } finally {
-      setIsGeneratingDoc(false);
-    }
-  };
-
   const totalReviews = getTotalReviewsCount();
   const lastCrawled = getLastCrawledAt();
   const anyMissingUrl = !hotelUrls.google_business_url || !hotelUrls.tripadvisor_url || !hotelUrls.booking_url;
   const isBusy = crawling || isAnyCrawling();
-  const hasAnyReviews = totalReviews > 0;
-  const existingReviewsDoc = getMaterial('reviews');
 
   const currentSourceData = getSourceData(viewerSource);
   const rawReviews = (currentSourceData?.reviews_data as any[]) || [];
@@ -457,41 +336,6 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
                   <p className="text-xs text-muted-foreground mt-2">
                     Algumas URLs de plataformas não estão cadastradas. Edite o hotel para adicionar.
                   </p>
-                )}
-
-                {/* Generate Document Button */}
-                {hasAnyReviews && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Documento Central de Avaliações</p>
-                        <p className="text-xs text-muted-foreground">
-                          {existingReviewsDoc 
-                            ? `Última geração: ${existingReviewsDoc.file_name}` 
-                            : 'Gere um documento consolidado com todas as avaliações dos últimos 24 meses para uso pelos agentes de IA'}
-                        </p>
-                      </div>
-                      <Button
-                        variant={existingReviewsDoc ? "outline" : "default"}
-                        onClick={handleGenerateDocument}
-                        disabled={isGeneratingDoc}
-                      >
-                        {isGeneratingDoc ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</>
-                        ) : existingReviewsDoc ? (
-                          <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Documento</>
-                        ) : (
-                          <><FileText className="h-4 w-4 mr-2" /> Gerar Documento</>
-                        )}
-                      </Button>
-                    </div>
-                    {existingReviewsDoc && (
-                      <Badge variant="outline" className="mt-2 text-green-600 border-green-500/30 bg-green-500/10">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Documento disponível para agentes
-                      </Badge>
-                    )}
-                  </div>
                 )}
               </div>
             </div>

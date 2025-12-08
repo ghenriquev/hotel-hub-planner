@@ -13,6 +13,7 @@ import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
 import { useHotelMilestones } from "@/hooks/useHotelMilestones";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
+import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { AGENTS } from "@/lib/agents-data";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -79,6 +80,7 @@ export default function HotelDetail() {
   const { milestonesLegacy, createDefaultMilestones } = useHotelMilestones(id);
   const { results, getResultForModule } = useAgentResults(id || "");
   const { websiteData, isCrawling, crawlWebsite } = useHotelWebsiteData(id);
+  const { getReadiness } = useAgentsReadiness(id || "");
 
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -562,6 +564,8 @@ export default function HotelDetail() {
             const isCompleted = status === 'completed';
             const isGenerating = status === 'generating';
             const hasError = status === 'error';
+            const isPending = status === 'pending';
+            const readiness = getReadiness(agent.id);
 
             return (
               <div
@@ -608,7 +612,7 @@ export default function HotelDetail() {
                     </p>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     {isGenerating && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         Gerando...
@@ -623,6 +627,19 @@ export default function HotelDetail() {
                       <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
                         Erro
                       </span>
+                    )}
+                    {isPending && readiness && (
+                      readiness.isReady ? (
+                        <span className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Pronto para iniciar
+                        </span>
+                      ) : readiness.missingCount > 0 && (
+                        <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Materiais pendentes ({readiness.missingCount})
+                        </span>
+                      )
                     )}
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>

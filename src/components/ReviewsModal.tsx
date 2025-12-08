@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink } from "lucide-react";
+import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye } from "lucide-react";
 import { useHotelReviews, ReviewData } from "@/hooks/useHotelReviews";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { ReviewsViewer } from "./ReviewsViewer";
 
 interface ReviewsModalProps {
   open: boolean;
@@ -44,18 +46,21 @@ function SourceCard({
   data, 
   url, 
   onCrawl, 
+  onViewReviews,
   isCrawling 
 }: { 
   source: 'google' | 'tripadvisor' | 'booking';
   data?: ReviewData;
   url?: string | null;
   onCrawl: () => void;
+  onViewReviews: () => void;
   isCrawling: boolean;
 }) {
   const config = SOURCE_CONFIG[source];
   const Icon = config.icon;
   const status = data?.status || 'pending';
   const hasUrl = !!url;
+  const hasReviews = status === 'completed' && (data?.reviews_count || 0) > 0;
 
   const getStatusBadge = () => {
     if (!hasUrl) {
@@ -74,10 +79,10 @@ function SourceCard({
   };
 
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3">
+    <div className="border border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.bgColor}`}>
+          <div className={`w-8 h-8 flex items-center justify-center ${config.bgColor}`}>
             <Icon className={`h-4 w-4 ${config.color}`} />
           </div>
           <span className="font-medium">{config.label}</span>
@@ -110,24 +115,39 @@ function SourceCard({
         </a>
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={onCrawl}
-        disabled={!hasUrl || isCrawling || status === 'crawling'}
-      >
-        {status === 'crawling' ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
-        ) : (
-          <><RefreshCw className="h-4 w-4 mr-2" /> {status === 'completed' ? 'Atualizar' : 'Coletar'}</>
+      <div className="flex gap-2">
+        {hasReviews && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1"
+            onClick={onViewReviews}
+          >
+            <Eye className="h-4 w-4 mr-2" /> Ver Reviews
+          </Button>
         )}
-      </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className={hasReviews ? "" : "w-full"}
+          onClick={onCrawl}
+          disabled={!hasUrl || isCrawling || status === 'crawling'}
+        >
+          {status === 'crawling' ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
+          ) : (
+            <><RefreshCw className="h-4 w-4 mr-2" /> {status === 'completed' ? 'Atualizar' : 'Coletar'}</>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
 
 export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: ReviewsModalProps) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerSource, setViewerSource] = useState<'google' | 'tripadvisor' | 'booking'>('google');
+  
   const { 
     loading, 
     crawling, 
@@ -156,85 +176,106 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
     }
   };
 
+  const handleViewReviews = (source: 'google' | 'tripadvisor' | 'booking') => {
+    setViewerSource(source);
+    setViewerOpen(true);
+  };
+
   const totalReviews = getTotalReviewsCount();
   const lastCrawled = getLastCrawledAt();
   const anyMissingUrl = !hotelUrls.google_business_url || !hotelUrls.tripadvisor_url || !hotelUrls.booking_url;
   const isBusy = crawling || isAnyCrawling();
 
+  const currentSourceData = getSourceData(viewerSource);
+  const currentReviews = (currentSourceData?.reviews_data as any[]) || [];
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-primary" />
-            Avaliações do Hotel
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-primary" />
+              Avaliações do Hotel
+            </DialogTitle>
+          </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Source Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <SourceCard
-                source="google"
-                data={getSourceData('google')}
-                url={hotelUrls.google_business_url}
-                onCrawl={() => handleCrawlSource('google')}
-                isCrawling={isBusy}
-              />
-              <SourceCard
-                source="tripadvisor"
-                data={getSourceData('tripadvisor')}
-                url={hotelUrls.tripadvisor_url}
-                onCrawl={() => handleCrawlSource('tripadvisor')}
-                isCrawling={isBusy}
-              />
-              <SourceCard
-                source="booking"
-                data={getSourceData('booking')}
-                url={hotelUrls.booking_url}
-                onCrawl={() => handleCrawlSource('booking')}
-                isCrawling={isBusy}
-              />
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-
-            {/* Summary */}
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total coletado</p>
-                  <p className="text-2xl font-bold">{totalReviews} avaliações</p>
-                  {lastCrawled && (
-                    <p className="text-xs text-muted-foreground">
-                      Última coleta: {format(new Date(lastCrawled), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  onClick={handleCrawlAll}
-                  disabled={isBusy || anyMissingUrl}
-                >
-                  {isBusy ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
-                  ) : (
-                    <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todas</>
-                  )}
-                </Button>
+          ) : (
+            <div className="space-y-6">
+              {/* Source Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <SourceCard
+                  source="google"
+                  data={getSourceData('google')}
+                  url={hotelUrls.google_business_url}
+                  onCrawl={() => handleCrawlSource('google')}
+                  onViewReviews={() => handleViewReviews('google')}
+                  isCrawling={isBusy}
+                />
+                <SourceCard
+                  source="tripadvisor"
+                  data={getSourceData('tripadvisor')}
+                  url={hotelUrls.tripadvisor_url}
+                  onCrawl={() => handleCrawlSource('tripadvisor')}
+                  onViewReviews={() => handleViewReviews('tripadvisor')}
+                  isCrawling={isBusy}
+                />
+                <SourceCard
+                  source="booking"
+                  data={getSourceData('booking')}
+                  url={hotelUrls.booking_url}
+                  onCrawl={() => handleCrawlSource('booking')}
+                  onViewReviews={() => handleViewReviews('booking')}
+                  isCrawling={isBusy}
+                />
               </div>
 
-              {anyMissingUrl && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Algumas URLs de plataformas não estão cadastradas. Edite o hotel para adicionar.
-                </p>
-              )}
+              {/* Summary */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total coletado</p>
+                    <p className="text-2xl font-bold">{totalReviews} avaliações</p>
+                    {lastCrawled && (
+                      <p className="text-xs text-muted-foreground">
+                        Última coleta: {format(new Date(lastCrawled), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleCrawlAll}
+                    disabled={isBusy || anyMissingUrl}
+                  >
+                    {isBusy ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
+                    ) : (
+                      <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todas</>
+                    )}
+                  </Button>
+                </div>
+
+                {anyMissingUrl && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Algumas URLs de plataformas não estão cadastradas. Edite o hotel para adicionar.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ReviewsViewer
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        source={viewerSource}
+        reviews={currentReviews}
+        totalCount={currentSourceData?.reviews_count || 0}
+      />
+    </>
   );
 }

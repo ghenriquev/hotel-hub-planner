@@ -15,13 +15,15 @@ import {
   AlertCircle,
   Trash2,
   Database,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HotelChatProps {
   hotelId: string;
   hotelName: string;
+  onClose?: () => void;
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -31,7 +33,7 @@ const SUGGESTED_QUESTIONS = [
   "Como está a presença digital do hotel?",
 ];
 
-export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
+export function HotelChat({ hotelId, hotelName, onClose }: HotelChatProps) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,12 +66,12 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col h-[600px]">
+    <div className="bg-card border border-border rounded-none overflow-hidden flex flex-col h-full shadow-2xl">
       {/* Header */}
       <div className="bg-primary/5 border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary/10 rounded-none flex items-center justify-center">
               <Bot className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -83,17 +85,24 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
             </div>
           </div>
           
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearMessages}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Limpar
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearMessages}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Limpar
+              </Button>
+            )}
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         
         {/* Context badges */}

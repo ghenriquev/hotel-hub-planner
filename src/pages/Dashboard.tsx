@@ -90,20 +90,20 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Logo />
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">
               Olá, <span className="text-foreground font-medium">{userName}</span>
             </span>
             {isAdmin && (
-              <Button variant="ghost" size="sm" onClick={() => navigate("/settings")} className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
                 <Settings className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </Button>
@@ -111,19 +111,19 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-8">
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground mb-0.5">
+            <h1 className="font-display text-3xl text-foreground mb-1">
               Meus Hotéis
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground">
               Gerencie o plano estratégico de vendas diretas
             </p>
           </div>
           
-          <Button onClick={() => navigate("/hotel/new")} size="sm">
+          <Button onClick={() => navigate("/hotel/new")} variant="premium">
             <Plus className="h-4 w-4 mr-2" />
             Novo Hotel
           </Button>
@@ -195,7 +195,7 @@ export default function Dashboard() {
           <div
             className={cn(
               viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 : "flex flex-col gap-3"
             )}
           >
@@ -204,35 +204,35 @@ export default function Dashboard() {
                 key={hotel.id}
                 onClick={() => navigate(`/hotel/${hotel.id}`)}
                 className={cn(
-                  "bg-card rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-md group animate-slide-up shadow-sm",
+                  "bg-card border border-border rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30 group animate-slide-up",
                   viewMode === "list" && "flex items-center gap-6"
                 )}
                 style={{ animationDelay: `${0.1 + index * 0.05}s` }}
               >
                 <div className={cn(
-                  "flex items-start gap-3",
+                  "flex items-start gap-4",
                   viewMode === "list" && "flex-1"
                 )}>
-                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shrink-0">
-                    <Building2 className="h-5 w-5 text-primary-foreground" />
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center shrink-0">
+                    <Building2 className="h-6 w-6 text-primary-foreground" />
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                    <h3 className="font-display text-lg text-foreground truncate group-hover:text-primary transition-colors">
                       {hotel.name}
                     </h3>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                       <MapPin className="h-3 w-3" />
                       <span className="truncate">{hotel.city}</span>
                     </div>
                     {hotel.project_start_date && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                         <CalendarIcon className="h-3 w-3" />
                         <span>Início: {format(parseISO(hotel.project_start_date), "dd/MM/yyyy", { locale: ptBR })}</span>
                       </div>
                     )}
                     {hotel.category && (
-                      <span className="inline-block mt-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                      <span className="inline-block mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
                         {hotel.category}
                       </span>
                     )}
@@ -241,10 +241,10 @@ export default function Dashboard() {
                 
                 <div className={cn(
                   "flex items-center justify-between",
-                  viewMode === "grid" && "mt-4 pt-3 border-t border-border"
+                  viewMode === "grid" && "mt-6 pt-4 border-t border-border"
                 )}>
                   <HotelProgress hotelId={hotel.id} />
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
               </div>
             ))}

@@ -87,7 +87,17 @@ async function getHotelUrls(supabase: any, hotelId: string) {
   return data;
 }
 
-async function runApifyActor(apiKey: string, actorId: string, input: any): Promise<any[]> {
+interface ProgressCallback {
+  (itemsCollected: number, progress: number, message: string): Promise<void>;
+}
+
+async function runApifyActor(
+  apiKey: string, 
+  actorId: string, 
+  input: any,
+  maxItems: number,
+  onProgress?: ProgressCallback
+): Promise<any[]> {
   // Converter o separador de / para ~ conforme exigido pela API do Apify
   const formattedActorId = actorId.replace('/', '~');
   
@@ -112,7 +122,8 @@ async function runApifyActor(apiKey: string, actorId: string, input: any): Promi
 
   const runData = await runResponse.json();
   const runId = runData.data.id;
-  console.log(`Actor run started with ID: ${runId}`);
+  const datasetId = runData.data.defaultDatasetId;
+  console.log(`Actor run started with ID: ${runId}, dataset: ${datasetId}`);
 
   // Wait for the run to complete (poll every 5 seconds, max 5 minutes)
   const maxWaitTime = 5 * 60 * 1000; // 5 minutes
@@ -130,12 +141,31 @@ async function runApifyActor(apiKey: string, actorId: string, input: any): Promi
 
     const statusData = await statusResponse.json();
     const status = statusData.data.status;
+    const statusMessage = statusData.data.statusMessage || '';
 
     console.log(`Actor run status: ${status}`);
 
+    // Get current item count from dataset
+    if (onProgress && datasetId) {
+      try {
+        const countResponse = await fetch(
+          `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiKey}&offset=0&limit=1`
+        );
+        
+        if (countResponse.ok) {
+          const totalItems = parseInt(countResponse.headers.get('x-apify-pagination-total') || '0');
+          const progress = Math.min(Math.round((totalItems / maxItems) * 100), 99);
+          const message = statusMessage || `Coletando reviews... (${totalItems}/${maxItems})`;
+          
+          await onProgress(totalItems, progress, message);
+        }
+      } catch (err) {
+        console.error('Error fetching dataset count:', err);
+      }
+    }
+
     if (status === 'SUCCEEDED') {
       // Get the results from the dataset
-      const datasetId = statusData.data.defaultDatasetId;
       const resultsResponse = await fetch(
         `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiKey}`
       );
@@ -173,7 +203,7 @@ async function crawlSource(
     return { success: false, reviewsCount: 0, error: `URL do ${source} não cadastrada` };
   }
 
-  // Update status to crawling
+  // Update status to crawling with initial progress
   await supabase
     .from('hotel_reviews_data')
     .upsert({
@@ -181,16 +211,35 @@ async function crawlSource(
       source,
       source_url: sourceUrl,
       status: 'crawling',
+      crawl_progress: 0,
+      items_collected: 0,
+      progress_message: 'Iniciando coleta...',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'hotel_id,source' });
 
   try {
     const config = ACTOR_CONFIGS[source];
-    const input = config.buildInput(sourceUrl);
-    const results = await runApifyActor(apiKey, config.actorId, input);
+    const input = config.buildInput(sourceUrl) as Record<string, any>;
+    const maxItems = (input.maxItems || input.maxReviews || 500) as number;
+
+    // Progress callback to update database
+    const onProgress: ProgressCallback = async (itemsCollected, progress, message) => {
+      await supabase
+        .from('hotel_reviews_data')
+        .update({
+          crawl_progress: progress,
+          items_collected: itemsCollected,
+          progress_message: message,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('hotel_id', hotelId)
+        .eq('source', source);
+    };
+
+    const results = await runApifyActor(apiKey, config.actorId, input, maxItems, onProgress);
     const reviews = config.extractReviews(results);
 
-    // Save the results
+    // Save the results with 100% progress
     await supabase
       .from('hotel_reviews_data')
       .upsert({
@@ -202,6 +251,9 @@ async function crawlSource(
         reviews_data: reviews,
         crawled_at: new Date().toISOString(),
         error_message: null,
+        crawl_progress: 100,
+        items_collected: reviews.length,
+        progress_message: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'hotel_id,source' });
 
@@ -221,6 +273,9 @@ async function crawlSource(
         source_url: sourceUrl,
         status: 'error',
         error_message: errorMessage,
+        crawl_progress: 0,
+        items_collected: 0,
+        progress_message: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'hotel_id,source' });
 

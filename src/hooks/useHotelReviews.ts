@@ -13,6 +13,10 @@ export interface ReviewData {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  // Progress tracking fields
+  crawl_progress: number;
+  items_collected: number;
+  progress_message: string | null;
 }
 
 export function useHotelReviews(hotelId: string | undefined) {

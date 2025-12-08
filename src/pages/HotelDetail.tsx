@@ -204,25 +204,25 @@ export default function HotelDetail() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-4 py-3 flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <Logo />
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         {/* Hotel header */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-fade-in">
+        <div className="bg-card rounded-xl p-6 mb-6 shadow-sm animate-fade-in">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 gradient-primary rounded-xl flex items-center justify-center shrink-0">
-                <Building2 className="h-8 w-8 text-primary-foreground" />
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shrink-0">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-display text-2xl lg:text-3xl text-foreground mb-2">
+                <h1 className="text-xl lg:text-2xl font-semibold text-foreground mb-1">
                   {hotel.name}
                 </h1>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -320,23 +320,21 @@ export default function HotelDetail() {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-sm text-muted-foreground mb-1">Progresso Geral</div>
-                <div className="text-2xl font-display text-foreground">{hotelProgress}%</div>
+                <div className="text-xs text-muted-foreground">Progresso</div>
+                <div className="text-lg font-semibold text-foreground">{hotelProgress}%</div>
               </div>
-              <ProgressRing progress={hotelProgress} size={64} strokeWidth={5} />
+              <ProgressRing progress={hotelProgress} size={48} strokeWidth={4} />
               
-              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
+              <Button variant="ghost" size="sm" onClick={() => setIsEditDialogOpen(true)} className="text-muted-foreground hover:text-foreground">
+                <Pencil className="h-4 w-4" />
               </Button>
               
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -515,15 +513,15 @@ export default function HotelDetail() {
         </div>
 
         {/* Strategic Materials */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.05s" }}>
+        <div className="bg-card rounded-xl p-6 mb-6 shadow-sm animate-slide-up" style={{ animationDelay: "0.05s" }}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <FileSpreadsheet className="h-5 w-5 text-primary" />
+              <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h2 className="font-display text-lg text-foreground">Materiais Primários</h2>
-                <p className="text-sm text-muted-foreground">Documentos base para análise dos agentes</p>
+                <h2 className="text-base font-semibold text-foreground">Materiais Primários</h2>
+                <p className="text-xs text-muted-foreground">Documentos base para análise dos agentes</p>
               </div>
             </div>
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
@@ -581,14 +579,14 @@ export default function HotelDetail() {
         </div>
 
         {/* Pesquisas Section */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.08s" }}>
+        <div className="bg-card rounded-xl p-6 mb-6 shadow-sm animate-slide-up" style={{ animationDelay: "0.08s" }}>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Search className="h-5 w-5 text-primary" />
+            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Search className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h2 className="font-display text-lg text-foreground">Pesquisas</h2>
-              <p className="text-sm text-muted-foreground">Dados coletados automaticamente de fontes externas</p>
+              <h2 className="text-base font-semibold text-foreground">Pesquisas</h2>
+              <p className="text-xs text-muted-foreground">Dados coletados automaticamente de fontes externas</p>
             </div>
           </div>
 
@@ -600,7 +598,7 @@ export default function HotelDetail() {
                 Conteúdo do Site
               </label>
               
-              <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
+              <div className="border border-border rounded-lg p-4 bg-muted/20 min-h-[120px] flex flex-col justify-center">
                 {hotel.has_no_website ? (
                   <div className="text-center text-muted-foreground text-sm">
                     <Globe className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -705,17 +703,17 @@ export default function HotelDetail() {
         />
 
         {/* Agents grid */}
-        <div className="mb-6 animate-slide-up" style={{ animationDelay: "0.15s" }}>
-          <div className="flex items-center gap-3 mb-1">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="font-display text-xl text-foreground">Agentes Estratégicos</h2>
+        <div className="mb-4 animate-slide-up" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h2 className="text-base font-semibold text-foreground">Agentes Estratégicos</h2>
           </div>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs">
             Cada agente analisa os materiais e gera insights específicos
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {AGENTS.map((agent, index) => {
             const result = getResultForModule(agent.id);
             const status = result?.status || 'pending';
@@ -730,77 +728,77 @@ export default function HotelDetail() {
                 key={agent.id}
                 onClick={() => navigate(`/hotel/${hotel.id}/module/${agent.id}`)}
                 className={cn(
-                  "bg-card border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-lg group animate-slide-up",
+                  "bg-card rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md group animate-slide-up shadow-sm",
                   isCompleted 
-                    ? "border-gold/50 bg-gold-muted/20" 
+                    ? "border-l-4 border-l-success" 
                     : hasError
-                      ? "border-destructive/50"
-                      : "border-border hover:border-primary/30"
+                      ? "border-l-4 border-l-destructive"
+                      : "border-l-4 border-l-transparent hover:border-l-primary/50"
                 )}
                 style={{ animationDelay: `${0.2 + index * 0.03}s` }}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
                   <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-colors",
+                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold transition-colors",
                     isCompleted 
-                      ? "bg-gold text-foreground" 
+                      ? "bg-success/10 text-success" 
                       : isGenerating
-                        ? "gradient-primary text-primary-foreground"
+                        ? "bg-primary/10 text-primary"
                         : hasError
-                          ? "bg-destructive/20 text-destructive"
+                          ? "bg-destructive/10 text-destructive"
                           : "bg-muted text-muted-foreground"
                   )}>
                     {isCompleted ? (
-                      <Check className="h-5 w-5" />
+                      <Check className="h-4 w-4" />
                     ) : isGenerating ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : hasError ? (
-                      <AlertCircle className="h-5 w-5" />
+                      <AlertCircle className="h-4 w-4" />
                     ) : (
-                      `#${agent.id}`
+                      `${agent.id}`
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                    <h3 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
                       {agent.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                       {agent.description}
                     </p>
                   </div>
                   
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {isGenerating && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         Gerando...
                       </span>
                     )}
                     {isCompleted && (
-                      <span className="text-xs bg-gold/20 text-foreground px-2 py-1 rounded-full">
+                      <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded">
                         Concluído
                       </span>
                     )}
                     {hasError && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
+                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
                         Erro
                       </span>
                     )}
                     {isPending && readiness && (
                       readiness.isReady ? (
-                        <span className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full flex items-center gap-1">
+                        <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
-                          Pronto para iniciar
+                          Pronto
                         </span>
                       ) : readiness.missingCount > 0 && (
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
                               onClick={(e) => e.stopPropagation()}
-                              className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-amber-500/20 transition-colors"
+                              className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-amber-500/20 transition-colors"
                             >
                               <AlertCircle className="h-3 w-3" />
-                              Materiais pendentes ({readiness.missingCount})
+                              {readiness.missingCount} pendente
                             </button>
                           </PopoverTrigger>
                           <PopoverContent 
@@ -820,7 +818,7 @@ export default function HotelDetail() {
                         </Popover>
                       )
                     )}
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </div>
               </div>

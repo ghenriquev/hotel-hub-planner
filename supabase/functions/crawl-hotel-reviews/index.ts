@@ -41,18 +41,34 @@ const ACTOR_CONFIGS = {
 };
 
 async function getApifyApiKey(supabase: any): Promise<string | null> {
-  const { data, error } = await supabase
+  // Primeiro tenta buscar por key_type = 'apify'
+  let { data, error } = await supabase
     .from('api_keys')
     .select('api_key')
     .eq('key_type', 'apify')
     .eq('is_active', true)
     .maybeSingle();
 
+  // Se não encontrar, busca pelo nome contendo 'apify'
+  if (!data) {
+    console.log('No key found with key_type=apify, searching by name...');
+    const result = await supabase
+      .from('api_keys')
+      .select('api_key')
+      .ilike('name', '%apify%')
+      .eq('is_active', true)
+      .maybeSingle();
+    
+    data = result.data;
+    error = result.error;
+  }
+
   if (error || !data) {
     console.error('Error fetching Apify API key:', error);
     return null;
   }
 
+  console.log('Apify API key found successfully');
   return data.api_key;
 }
 

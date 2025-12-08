@@ -23,12 +23,10 @@ const ACTOR_CONFIGS = {
     extractReviews: (data: any) => data,
   },
   tripadvisor: {
-    actorId: 'maxcopell/tripadvisor-reviews',
+    actorId: 'Hvp4YfFGyLM635Q2F',
     buildInput: (url: string) => ({
       startUrls: [{ url }],
-      maxItemsPerQuery: 500,
-      reviewRatings: ['ALL_REVIEW_RATINGS'],
-      reviewsLanguages: ['ALL_REVIEW_LANGUAGES'],
+      maxItems: 500,
     }),
     extractReviews: (data: any) => data,
   },

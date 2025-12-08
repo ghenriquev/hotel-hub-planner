@@ -635,10 +635,31 @@ export default function HotelDetail() {
                           Pronto para iniciar
                         </span>
                       ) : readiness.missingCount > 0 && (
-                        <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Materiais pendentes ({readiness.missingCount})
-                        </span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-amber-500/20 transition-colors"
+                            >
+                              <AlertCircle className="h-3 w-3" />
+                              Materiais pendentes ({readiness.missingCount})
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent 
+                            className="w-64 p-3" 
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <p className="font-medium text-sm mb-2">Materiais pendentes:</p>
+                            <ul className="text-sm space-y-1">
+                              {readiness.missingLabels.map((label, idx) => (
+                                <li key={idx} className="flex items-center gap-2 text-muted-foreground">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                                  {label}
+                                </li>
+                              ))}
+                            </ul>
+                          </PopoverContent>
+                        </Popover>
                       )
                     )}
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />

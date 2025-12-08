@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye } from "lucide-react";
+import { Star, MapPin, RefreshCw, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, Eye, FileText } from "lucide-react";
 import { useHotelReviews, ReviewData } from "@/hooks/useHotelReviews";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ReviewsViewer } from "./ReviewsViewer";
-
+import { ReviewsContentModal } from "./ReviewsContentModal";
+import { supabase } from "@/integrations/supabase/client";
 // Normalized review interface expected by ReviewsViewer
 interface NormalizedReview {
   name?: string;
@@ -220,6 +221,9 @@ function SourceCard({
 export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: ReviewsModalProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerSource, setViewerSource] = useState<'google' | 'tripadvisor' | 'booking'>('google');
+  const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [consolidatedContent, setConsolidatedContent] = useState<string>('');
+  const [consolidatedUpdatedAt, setConsolidatedUpdatedAt] = useState<string | null>(null);
   
   const { 
     loading, 
@@ -230,6 +234,31 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
     getLastCrawledAt,
     isAnyCrawling,
   } = useHotelReviews(hotelId);
+
+  // Fetch consolidated reviews document
+  useEffect(() => {
+    const fetchConsolidatedDocument = async () => {
+      if (!hotelId) return;
+      
+      const { data } = await supabase
+        .from('hotel_materials')
+        .select('text_content, updated_at')
+        .eq('hotel_id', hotelId)
+        .eq('material_type', 'reviews')
+        .maybeSingle();
+      
+      if (data) {
+        setConsolidatedContent(data.text_content || '');
+        setConsolidatedUpdatedAt(data.updated_at);
+      }
+    };
+
+    if (open) {
+      fetchConsolidatedDocument();
+    }
+  }, [hotelId, open, crawling]);
+
+  const hasConsolidatedDocument = !!consolidatedContent;
 
   const handleCrawlAll = async () => {
     try {
@@ -320,16 +349,26 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
                       </p>
                     )}
                   </div>
-                  <Button
-                    onClick={handleCrawlAll}
-                    disabled={isBusy || anyMissingUrl}
-                  >
-                    {isBusy ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
-                    ) : (
-                      <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todas</>
+                  <div className="flex gap-2">
+                    {hasConsolidatedDocument && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setContentModalOpen(true)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" /> Ver Conteúdo
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      onClick={handleCrawlAll}
+                      disabled={isBusy || anyMissingUrl}
+                    >
+                      {isBusy ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Coletando...</>
+                      ) : (
+                        <><RefreshCw className="h-4 w-4 mr-2" /> Atualizar Todas</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {anyMissingUrl && (
@@ -349,6 +388,13 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
         source={viewerSource}
         reviews={currentReviews}
         totalCount={currentSourceData?.reviews_count || 0}
+      />
+
+      <ReviewsContentModal
+        open={contentModalOpen}
+        onOpenChange={setContentModalOpen}
+        content={consolidatedContent}
+        lastUpdated={consolidatedUpdatedAt}
       />
     </>
   );

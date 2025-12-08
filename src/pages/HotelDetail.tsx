@@ -527,7 +527,7 @@ export default function HotelDetail() {
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Manual de Funcionamento */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -575,7 +575,22 @@ export default function HotelDetail() {
                 onRemove={() => handleMaterialRemove('transcricao')}
               />
             </div>
+          </div>
+        </div>
 
+        {/* Pesquisas Section */}
+        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-slide-up" style={{ animationDelay: "0.08s" }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Search className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg text-foreground">Pesquisas</h2>
+              <p className="text-sm text-muted-foreground">Dados coletados automaticamente de fontes externas</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Conteúdo do Site */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">

@@ -10,6 +10,64 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { ReviewsViewer } from "./ReviewsViewer";
 
+// Normalized review interface expected by ReviewsViewer
+interface NormalizedReview {
+  name?: string;
+  text?: string;
+  stars?: number;
+  publishedAtDate?: string;
+  reviewerPhotoUrl?: string;
+  responseFromOwnerText?: string;
+}
+
+// Normalize reviews from different sources to a common format
+function normalizeReviews(source: 'google' | 'tripadvisor' | 'booking', rawReviews: any[]): NormalizedReview[] {
+  if (!rawReviews || !Array.isArray(rawReviews)) return [];
+
+  return rawReviews.map((review) => {
+    switch (source) {
+      case 'booking':
+        // Booking.com format: userName, rating (1-10), reviewTitle, likedText, dislikedText, reviewDate, userAvatar, propertyResponse
+        const textParts: string[] = [];
+        if (review.reviewTitle) textParts.push(`**${review.reviewTitle}**`);
+        if (review.likedText) textParts.push(`👍 ${review.likedText}`);
+        if (review.dislikedText) textParts.push(`👎 ${review.dislikedText}`);
+        
+        return {
+          name: review.userName || review.name,
+          text: textParts.length > 0 ? textParts.join('\n\n') : review.text,
+          stars: review.rating ? Math.round(review.rating / 2) : review.stars,
+          publishedAtDate: review.reviewDate || review.publishedAtDate,
+          reviewerPhotoUrl: review.userAvatar || review.reviewerPhotoUrl,
+          responseFromOwnerText: review.propertyResponse || review.responseFromOwnerText,
+        };
+
+      case 'tripadvisor':
+        // TripAdvisor may have different field names - normalize them
+        return {
+          name: review.user?.username || review.name,
+          text: review.text || review.reviewText,
+          stars: review.rating || review.stars,
+          publishedAtDate: review.publishedDate || review.publishedAtDate,
+          reviewerPhotoUrl: review.user?.avatar || review.reviewerPhotoUrl,
+          responseFromOwnerText: review.ownerResponse?.text || review.responseFromOwnerText,
+        };
+
+      case 'google':
+      default:
+        // Google format is already compatible with our interface
+        return {
+          name: review.name,
+          text: review.text,
+          stars: review.stars,
+          publishedAtDate: review.publishedAtDate,
+          reviewerPhotoUrl: review.reviewerPhotoUrl,
+          responseFromOwnerText: review.responseFromOwnerText,
+        };
+    }
+  });
+}
+
 interface ReviewsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -202,7 +260,8 @@ export function ReviewsModal({ open, onOpenChange, hotelId, hotelUrls }: Reviews
   const isBusy = crawling || isAnyCrawling();
 
   const currentSourceData = getSourceData(viewerSource);
-  const currentReviews = (currentSourceData?.reviews_data as any[]) || [];
+  const rawReviews = (currentSourceData?.reviews_data as any[]) || [];
+  const currentReviews = normalizeReviews(viewerSource, rawReviews);
 
   return (
     <>

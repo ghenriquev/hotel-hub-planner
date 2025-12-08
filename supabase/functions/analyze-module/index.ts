@@ -159,6 +159,24 @@ serve(async (req) => {
       }
     }
 
+    // Fetch consolidated reviews if configured to use it
+    if (configuredMaterials.includes('reviews')) {
+      console.log("[analyze-module] Fetching consolidated reviews for hotel:", hotelId);
+      const { data: reviewsMaterial } = await supabase
+        .from('hotel_materials')
+        .select('text_content, file_name')
+        .eq('hotel_id', hotelId)
+        .eq('material_type', 'reviews')
+        .maybeSingle();
+
+      if (reviewsMaterial?.text_content) {
+        console.log(`[analyze-module] Found consolidated reviews document: ${reviewsMaterial.file_name}`);
+        materialsContext += `\n\n## Avaliações Consolidadas (Últimos 24 Meses)\n${reviewsMaterial.text_content}`;
+      } else {
+        console.log("[analyze-module] No consolidated reviews available for this hotel");
+      }
+    }
+
     // Fetch secondary materials (results from other agents)
     if (secondaryMaterials.length > 0) {
       console.log(`[analyze-module] Fetching secondary materials from agents: ${secondaryMaterials.join(', ')}`);

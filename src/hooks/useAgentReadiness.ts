@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useStore } from '@/lib/store';
+import { useHotelMaterials } from './useHotelMaterials';
 import { useHotelWebsiteData } from './useHotelWebsiteData';
 import { useAgentResults } from './useAgentResults';
 import { useAgentConfigs, AgentConfig } from './useAgentConfigs';
@@ -27,17 +27,16 @@ const PRIMARY_MATERIALS_LABELS: Record<string, string> = {
 };
 
 export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadiness {
-  const { getHotel } = useStore();
-  const hotel = getHotel(hotelId);
+  const { getMaterial, loading: materialsLoading } = useHotelMaterials(hotelId);
   const { websiteData, loading: websiteLoading } = useHotelWebsiteData(hotelId);
   const { results: agentResults, loading: resultsLoading } = useAgentResults(hotelId);
   const { configs, loading: configsLoading } = useAgentConfigs();
 
-  const isLoading = websiteLoading || resultsLoading || configsLoading;
+  const isLoading = materialsLoading || websiteLoading || resultsLoading || configsLoading;
 
   const materials = useMemo(() => {
     const config = configs.find(c => c.module_id === moduleId);
-    if (!config || !hotel) return [];
+    if (!config) return [];
 
     const materialsList: MaterialStatus[] = [];
 
@@ -48,13 +47,13 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
       
       switch (materialId) {
         case 'manual':
-          ready = !!hotel.strategicMaterials?.manualFuncionamentoUrl;
+          ready = !!getMaterial('manual');
           break;
         case 'dados':
-          ready = !!hotel.strategicMaterials?.dadosHotelUrl;
+          ready = !!getMaterial('dados');
           break;
         case 'transcricao':
-          ready = !!hotel.strategicMaterials?.transcricaoKickoffUrl;
+          ready = !!getMaterial('transcricao');
           break;
         case 'website':
           ready = websiteData?.status === 'completed';
@@ -86,7 +85,7 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
     });
 
     return materialsList;
-  }, [configs, moduleId, hotel, websiteData, agentResults]);
+  }, [configs, moduleId, getMaterial, websiteData, agentResults]);
 
   const missingMaterials = useMemo(() => 
     materials.filter(m => !m.ready), 

@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { useStore } from "@/lib/store";
 import { useAgentResult } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useAgentReadiness } from "@/hooks/useAgentReadiness";
 import { getAgentById } from "@/lib/agents-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,9 +23,21 @@ import {
   ExternalLink,
   Presentation,
   Cpu,
-  Edit3
+  Edit3,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Helper to get friendly model name
 function getModelDisplayName(model: string | null): string {
@@ -61,6 +74,8 @@ export default function AgentModule() {
   
   const { result, loading, refetch } = useAgentResult(hotelId || "", moduleIdNum);
   const { configs } = useAgentConfigs();
+  const { isReady, isLoading: readinessLoading, materials, missingMaterials } = useAgentReadiness(hotelId || "", moduleIdNum);
+  const [materialsExpanded, setMaterialsExpanded] = useState(false);
   
   // Get the output type for this module
   const agentConfig = configs.find(c => c.module_id === moduleIdNum);
@@ -260,13 +275,55 @@ export default function AgentModule() {
               <h1 className="font-display text-2xl lg:text-3xl text-foreground">
                 {agent.title}
               </h1>
-              <div className="flex items-center gap-2">
                 <p className="text-muted-foreground">{agent.description}</p>
+              <div className="flex items-center gap-2 mt-2">
                 {outputType === 'presentation' && (
                   <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5">
                     <Presentation className="h-3 w-3" />
                     Apresentação
                   </span>
+                )}
+                
+                {/* Readiness Badge */}
+                {!readinessLoading && materials.length > 0 && (
+                  isReady ? (
+                    <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Pronto para iniciar
+                    </Badge>
+                  ) : (
+                    <Collapsible open={materialsExpanded} onOpenChange={setMaterialsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <Badge 
+                          variant="outline" 
+                          className="text-amber-600 border-amber-500 hover:bg-amber-500/10 cursor-pointer gap-1"
+                        >
+                          <AlertCircle className="h-3 w-3" />
+                          Materiais pendentes ({missingMaterials.length})
+                        </Badge>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="absolute mt-2 z-10 bg-card border border-border p-3 shadow-lg min-w-[280px]">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Materiais necessários:</p>
+                        <ul className="space-y-1.5">
+                          {materials.map((material) => (
+                            <li key={material.id} className="flex items-center gap-2 text-sm">
+                              {material.ready ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                              )}
+                              <span className={material.ready ? 'text-muted-foreground' : 'text-foreground'}>
+                                {material.label}
+                              </span>
+                              {material.type === 'secondary' && (
+                                <span className="text-[10px] text-muted-foreground">(resultado)</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )
                 )}
               </div>
             </div>
@@ -320,29 +377,47 @@ export default function AgentModule() {
                   Cancelar e Reiniciar
                 </Button>
               )}
-              <Button
-                onClick={handleGenerateAnalysis}
-                disabled={isProcessing && !isStuck}
-                className="gap-2"
-                variant={currentStatus === 'completed' ? 'outline' : 'default'}
-              >
-                {isProcessing && !isStuck ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Gerando...
-                  </>
-                ) : currentStatus === 'completed' ? (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    Regenerar
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Gerar Análise
-                  </>
-                )}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        onClick={handleGenerateAnalysis}
+                        disabled={(isProcessing && !isStuck) || (!isReady && currentStatus !== 'completed')}
+                        className="gap-2"
+                        variant={currentStatus === 'completed' ? 'outline' : 'default'}
+                      >
+                        {isProcessing && !isStuck ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Gerando...
+                          </>
+                        ) : currentStatus === 'completed' ? (
+                          <>
+                            <RefreshCw className="h-4 w-4" />
+                            Regenerar
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Gerar Análise
+                          </>
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!isReady && currentStatus !== 'completed' && missingMaterials.length > 0 && (
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p className="font-medium mb-1">Materiais faltando:</p>
+                      <ul className="text-xs space-y-0.5">
+                        {missingMaterials.map(m => (
+                          <li key={m.id}>• {m.label}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>

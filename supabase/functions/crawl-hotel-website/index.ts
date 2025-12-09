@@ -63,6 +63,19 @@ serve(async (req) => {
 
     console.log("[crawl-hotel-website] Found Apify API key, starting crawler...");
 
+    // Fetch research settings for crawler configuration
+    const { data: researchSettings } = await supabase
+      .from('research_settings')
+      .select('website_max_pages, website_max_depth, website_crawler_type')
+      .limit(1)
+      .maybeSingle();
+
+    const maxPages = researchSettings?.website_max_pages || 10;
+    const maxDepth = researchSettings?.website_max_depth || 2;
+    const crawlerType = researchSettings?.website_crawler_type || 'playwright:firefox';
+
+    console.log(`[crawl-hotel-website] Using settings: maxPages=${maxPages}, maxDepth=${maxDepth}, crawlerType=${crawlerType}`);
+
     // Normalize URL
     let normalizedUrl = websiteUrl;
     if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
@@ -78,9 +91,9 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           startUrls: [{ url: normalizedUrl }],
-          maxCrawlPages: 10,
-          maxCrawlDepth: 2,
-          crawlerType: "playwright:firefox",
+          maxCrawlPages: maxPages,
+          maxCrawlDepth: maxDepth,
+          crawlerType: crawlerType,
           proxyConfiguration: {
             useApifyProxy: true,
           },

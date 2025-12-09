@@ -93,6 +93,19 @@ serve(async (req) => {
 
     console.log("[crawl-competitor-websites] Found Apify API key, starting crawls...");
 
+    // Fetch research settings for crawler configuration
+    const { data: researchSettings } = await supabase
+      .from('research_settings')
+      .select('competitor_max_pages, competitor_max_depth, competitor_crawler_type')
+      .limit(1)
+      .maybeSingle();
+
+    const maxPages = researchSettings?.competitor_max_pages || 8;
+    const maxDepth = researchSettings?.competitor_max_depth || 2;
+    const crawlerType = researchSettings?.competitor_crawler_type || 'playwright:firefox';
+
+    console.log(`[crawl-competitor-websites] Using settings: maxPages=${maxPages}, maxDepth=${maxDepth}, crawlerType=${crawlerType}`);
+
     const results: { competitorNumber: number; success: boolean; pagesCount?: number; error?: string }[] = [];
 
     // Crawl each competitor
@@ -114,9 +127,9 @@ serve(async (req) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               startUrls: [{ url: normalizedUrl }],
-              maxCrawlPages: 8,
-              maxCrawlDepth: 2,
-              crawlerType: "playwright:firefox",
+              maxCrawlPages: maxPages,
+              maxCrawlDepth: maxDepth,
+              crawlerType: crawlerType,
               proxyConfiguration: {
                 useApifyProxy: true,
               },

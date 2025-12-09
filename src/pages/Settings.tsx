@@ -26,6 +26,7 @@ import {
   GAMMA_CARD_DIMENSIONS,
   GAMMA_LANGUAGES
 } from "@/hooks/useGammaSettings";
+import { useResearchSettings, ResearchSettings, ResearchSettingsUpdate } from "@/hooks/useResearchSettings";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   ArrowLeft, 
@@ -47,8 +48,25 @@ import {
   Type,
   Image,
   LayoutGrid,
-  Search
+  Search,
+  Globe,
+  Star,
+  Building2
 } from "lucide-react";
+
+const CRAWLER_TYPES = [
+  { value: 'playwright:firefox', label: 'Playwright Firefox' },
+  { value: 'playwright:chrome', label: 'Playwright Chrome' },
+  { value: 'cheerio', label: 'Cheerio (Rápido)' },
+];
+
+const REVIEW_PERIODS = [
+  { value: 6, label: '6 meses' },
+  { value: 12, label: '12 meses' },
+  { value: 18, label: '18 meses' },
+  { value: 24, label: '24 meses' },
+  { value: 36, label: '36 meses' },
+];
 
 const KEY_TYPES = [
   { value: "openai", label: "OpenAI" },
@@ -95,6 +113,29 @@ export default function Settings() {
   const { apiKeys, loading: apiKeysLoading, addApiKey, updateApiKey, deleteApiKey, toggleApiKey } = useApiKeys();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { settings: gammaSettings, loading: gammaLoading, saving: gammaSaving, updateSettings: updateGammaSettings } = useGammaSettings();
+  const { settings: researchSettings, loading: researchLoading, saving: researchSaving, updateSettings: updateResearchSettings } = useResearchSettings();
+  
+  // Research settings local state
+  const [researchForm, setResearchForm] = useState<ResearchSettingsUpdate>({});
+  const [researchFormDirty, setResearchFormDirty] = useState(false);
+
+  const getResearchFormValue = <K extends keyof ResearchSettingsUpdate>(key: K): ResearchSettingsUpdate[K] | undefined => {
+    if (researchForm[key] !== undefined) return researchForm[key];
+    if (researchSettings) return researchSettings[key as keyof ResearchSettings] as ResearchSettingsUpdate[K];
+    return undefined;
+  };
+
+  const updateResearchForm = <K extends keyof ResearchSettingsUpdate>(key: K, value: ResearchSettingsUpdate[K]) => {
+    setResearchForm(prev => ({ ...prev, [key]: value }));
+    setResearchFormDirty(true);
+  };
+
+  const handleSaveResearchSettings = async () => {
+    if (!researchFormDirty) return;
+    await updateResearchSettings(researchForm);
+    setResearchForm({});
+    setResearchFormDirty(false);
+  };
   
   // Materials options - separated into categories
   const PRIMARY_MATERIALS = [
@@ -372,10 +413,14 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="agents" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="agents" className="flex items-center gap-2">
               <Bot className="h-4 w-4" />
               Agentes
+            </TabsTrigger>
+            <TabsTrigger value="research" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Pesquisa
             </TabsTrigger>
             <TabsTrigger value="apikeys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
@@ -1042,6 +1087,231 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground">
                     Estas configurações serão aplicadas a todas as apresentações geradas pelos agentes. 
                     Para usar o Gamma, certifique-se de que você tem uma API Key do Gamma configurada na aba "API Keys".
+                  </p>
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          {/* Research Tab */}
+          <TabsContent value="research" className="space-y-6">
+            {researchLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : researchSettings && (
+              <>
+                {/* Competitor Sites Section */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Sites dos Concorrentes</h3>
+                      <p className="text-sm text-muted-foreground">Configurações do crawler para sites de concorrentes</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Máximo de Páginas
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[getResearchFormValue('competitor_max_pages') || 8]}
+                          onValueChange={([value]) => updateResearchForm('competitor_max_pages', value)}
+                          min={1}
+                          max={20}
+                          step={1}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
+                          {getResearchFormValue('competitor_max_pages') || 8}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Profundidade Máxima
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[getResearchFormValue('competitor_max_depth') || 2]}
+                          onValueChange={([value]) => updateResearchForm('competitor_max_depth', value)}
+                          min={1}
+                          max={5}
+                          step={1}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
+                          {getResearchFormValue('competitor_max_depth') || 2}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Tipo de Crawler
+                      </label>
+                      <Select
+                        value={getResearchFormValue('competitor_crawler_type') || 'playwright:firefox'}
+                        onValueChange={(value) => updateResearchForm('competitor_crawler_type', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CRAWLER_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hotel Website Section */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Globe className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Site do Hotel</h3>
+                      <p className="text-sm text-muted-foreground">Configurações do crawler para o site do hotel</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Máximo de Páginas
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[getResearchFormValue('website_max_pages') || 10]}
+                          onValueChange={([value]) => updateResearchForm('website_max_pages', value)}
+                          min={1}
+                          max={30}
+                          step={1}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
+                          {getResearchFormValue('website_max_pages') || 10}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Profundidade Máxima
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[getResearchFormValue('website_max_depth') || 2]}
+                          onValueChange={([value]) => updateResearchForm('website_max_depth', value)}
+                          min={1}
+                          max={5}
+                          step={1}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
+                          {getResearchFormValue('website_max_depth') || 2}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Tipo de Crawler
+                      </label>
+                      <Select
+                        value={getResearchFormValue('website_crawler_type') || 'playwright:firefox'}
+                        onValueChange={(value) => updateResearchForm('website_crawler_type', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CRAWLER_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Star className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Avaliações</h3>
+                      <p className="text-sm text-muted-foreground">Configurações para coleta de avaliações</p>
+                    </div>
+                  </div>
+
+                  <div className="max-w-xs">
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Período Máximo
+                    </label>
+                    <Select
+                      value={String(getResearchFormValue('reviews_max_months') || 24)}
+                      onValueChange={(value) => updateResearchForm('reviews_max_months', parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REVIEW_PERIODS.map((period) => (
+                          <SelectItem key={period.value} value={String(period.value)}>
+                            {period.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Apenas avaliações dos últimos {getResearchFormValue('reviews_max_months') || 24} meses serão coletadas
+                    </p>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSaveResearchSettings} 
+                    disabled={researchSaving || !researchFormDirty}
+                    size="lg"
+                  >
+                    {researchSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Salvar Configurações de Pesquisa
+                  </Button>
+                </div>
+
+                {/* Info Note */}
+                <div className="bg-muted/50 rounded-xl p-4">
+                  <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                    Sobre as Configurações de Pesquisa
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Estas configurações controlam como os crawlers extraem dados dos sites e avaliações. 
+                    Aumentar o número de páginas e profundidade resulta em mais dados, mas também maior tempo de processamento.
+                    Para usar os crawlers, certifique-se de que você tem uma API Key do Apify configurada na aba "API Keys".
                   </p>
                 </div>
               </>

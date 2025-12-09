@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useHotelChat } from '@/hooks/useHotelChat';
 import { useAgentResults } from '@/hooks/useAgentResults';
 import { useHotelWebsiteData } from '@/hooks/useHotelWebsiteData';
+import { useHotelMaterials } from '@/hooks/useHotelMaterials';
+import { useHotelReviews } from '@/hooks/useHotelReviews';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +26,8 @@ import {
   Trash2,
   Database,
   FileText,
+  Globe,
+  Star,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,9 +56,13 @@ export function HotelChat({ hotelId, hotelName, onClose }: HotelChatProps) {
   const { messages, isLoading, error, sendMessage, clearMessages } = useHotelChat({ hotelId, contextMode });
   const { results } = useAgentResults(hotelId);
   const { websiteData } = useHotelWebsiteData(hotelId);
+  const { materialsState } = useHotelMaterials(hotelId);
+  const { hasAnyCompleted: hasReviews, getTotalReviewsCount } = useHotelReviews(hotelId);
 
   const completedAgents = results.filter(r => r.status === 'completed').length;
   const hasWebsiteData = websiteData?.status === 'completed';
+  const hasPrimaryMaterials = materialsState.manual || materialsState.dados || materialsState.transcricao;
+  const hasResearch = hasWebsiteData || hasReviews();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -130,18 +138,59 @@ export function HotelChat({ hotelId, hotelName, onClose }: HotelChatProps) {
           </Select>
         </div>
 
-        {/* Context badges */}
-        <div className="flex items-center gap-2 mt-2">
-          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-            <Database className="h-3 w-3" />
-            {completedAgents} agentes
-          </Badge>
-          {hasWebsiteData && (
+        {/* Context badges - Materiais Primários */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <span className="text-xs text-muted-foreground font-medium">Primários:</span>
+          {materialsState.manual && (
             <Badge variant="secondary" className="text-xs flex items-center gap-1">
               <FileText className="h-3 w-3" />
-              Site analisado
+              Manual
             </Badge>
           )}
+          {materialsState.dados && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Briefing
+            </Badge>
+          )}
+          {materialsState.transcricao && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              Transcrição
+            </Badge>
+          )}
+          {!hasPrimaryMaterials && (
+            <span className="text-xs text-muted-foreground italic">Nenhum</span>
+          )}
+        </div>
+
+        {/* Context badges - Pesquisas */}
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground font-medium">Pesquisas:</span>
+          {hasWebsiteData && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <Globe className="h-3 w-3" />
+              Site
+            </Badge>
+          )}
+          {hasReviews() && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <Star className="h-3 w-3" />
+              {getTotalReviewsCount()} avaliações
+            </Badge>
+          )}
+          {!hasResearch && (
+            <span className="text-xs text-muted-foreground italic">Nenhuma</span>
+          )}
+        </div>
+
+        {/* Context badges - Agentes */}
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground font-medium">Agentes:</span>
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+            <Database className="h-3 w-3" />
+            {completedAgents} concluídos
+          </Badge>
         </div>
       </div>
 

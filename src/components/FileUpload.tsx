@@ -1,8 +1,14 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, FileText, Loader2, Eye } from "lucide-react";
+import { Upload, X, FileText, Loader2, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface FileUploadProps {
   hotelId: string;
@@ -24,6 +30,7 @@ export function FileUpload({
   accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,32 +80,69 @@ export function FileUpload({
     onRemove();
   };
 
+  const handleDownload = () => {
+    if (currentUrl) {
+      const link = document.createElement('a');
+      link.href = currentUrl;
+      link.download = currentName || 'arquivo';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   if (currentUrl && currentName) {
     return (
-      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
-        <FileText className="h-5 w-5 text-primary shrink-0" />
-        <span className="flex-1 text-sm text-foreground truncate">
-          {currentName}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => window.open(currentUrl, '_blank', 'noopener,noreferrer')}
-          title="Visualizar arquivo"
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={handleRemove}
-          title="Remover arquivo"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      <>
+        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+          <FileText className="h-5 w-5 text-primary shrink-0" />
+          <span className="flex-1 text-sm text-foreground truncate">
+            {currentName}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setIsViewerOpen(true)}
+            title="Visualizar arquivo"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleDownload}
+            title="Baixar arquivo"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleRemove}
+            title="Remover arquivo"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+          <DialogContent className="max-w-5xl h-[85vh] p-0">
+            <DialogHeader className="p-4 pb-0">
+              <DialogTitle className="text-sm truncate pr-8">{currentName}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 p-4 pt-2 h-full">
+              <iframe
+                src={currentUrl}
+                className="w-full h-full border-0 rounded"
+                title={currentName}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

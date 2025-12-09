@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, FileText, Loader2 } from "lucide-react";
+import { Upload, X, FileText, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface FileUploadProps {
@@ -77,19 +77,24 @@ export function FileUpload({
     return (
       <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
         <FileText className="h-5 w-5 text-primary shrink-0" />
-        <a 
-          href={currentUrl} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex-1 text-sm text-foreground hover:text-primary truncate"
-        >
+        <span className="flex-1 text-sm text-foreground truncate">
           {currentName}
-        </a>
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => window.open(currentUrl, '_blank', 'noopener,noreferrer')}
+          title="Visualizar arquivo"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8 shrink-0"
           onClick={handleRemove}
+          title="Remover arquivo"
         >
           <X className="h-4 w-4" />
         </Button>

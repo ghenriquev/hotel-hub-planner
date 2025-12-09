@@ -493,6 +493,45 @@ export type Database = {
         }
         Relationships: []
       }
+      research_settings: {
+        Row: {
+          competitor_crawler_type: string | null
+          competitor_max_depth: number | null
+          competitor_max_pages: number | null
+          created_at: string | null
+          id: string
+          reviews_max_months: number | null
+          updated_at: string | null
+          website_crawler_type: string | null
+          website_max_depth: number | null
+          website_max_pages: number | null
+        }
+        Insert: {
+          competitor_crawler_type?: string | null
+          competitor_max_depth?: number | null
+          competitor_max_pages?: number | null
+          created_at?: string | null
+          id?: string
+          reviews_max_months?: number | null
+          updated_at?: string | null
+          website_crawler_type?: string | null
+          website_max_depth?: number | null
+          website_max_pages?: number | null
+        }
+        Update: {
+          competitor_crawler_type?: string | null
+          competitor_max_depth?: number | null
+          competitor_max_pages?: number | null
+          created_at?: string | null
+          id?: string
+          reviews_max_months?: number | null
+          updated_at?: string | null
+          website_crawler_type?: string | null
+          website_max_depth?: number | null
+          website_max_pages?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

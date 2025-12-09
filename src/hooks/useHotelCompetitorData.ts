@@ -16,6 +16,7 @@ export interface CompetitorData {
   generated_analysis: string | null;
   analysis_status: string | null;
   llm_model_used: string | null;
+  manus_task_id: string | null;
 }
 
 export function useHotelCompetitorData(hotelId: string | undefined) {
@@ -41,9 +42,14 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
       if (data) {
         setCompetitors(data as unknown as CompetitorData[]);
         
-        // Check if any is still crawling or generating analysis
-        const anyCrawling = data.some(c => c.status === 'crawling' || c.analysis_status === 'generating');
-        setIsCrawling(anyCrawling);
+        // Check if any is still crawling, generating, or processing with Manus
+        const anyProcessing = data.some(c => 
+          c.status === 'crawling' || 
+          c.status === 'generating' ||
+          c.analysis_status === 'generating' ||
+          c.analysis_status === 'processing_manus'
+        );
+        setIsCrawling(anyProcessing);
       } else {
         setCompetitors([]);
       }
@@ -54,20 +60,78 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
     }
   }, [hotelId]);
 
+  // Check Manus task status for competitors processing with Manus
+  const checkManusStatus = useCallback(async () => {
+    const processingWithManus = competitors.filter(c => 
+      c.analysis_status === 'processing_manus' && c.manus_task_id
+    );
+
+    if (processingWithManus.length === 0) return;
+
+    console.log(`[useHotelCompetitorData] Checking Manus status for ${processingWithManus.length} competitor(s)`);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    for (const comp of processingWithManus) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manus-check-status`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              hotelId: comp.hotel_id,
+              taskId: comp.manus_task_id,
+              competitorNumber: comp.competitor_number,
+              type: 'competitor'
+            }),
+          }
+        );
+
+        const result = await response.json();
+        console.log(`[useHotelCompetitorData] Manus status for competitor ${comp.competitor_number}:`, result.status);
+
+        if (result.status === 'completed') {
+          toast.success(`Análise do concorrente ${comp.competitor_number} concluída!`);
+        } else if (result.status === 'error') {
+          toast.error(`Erro na análise do concorrente ${comp.competitor_number}`);
+        }
+      } catch (error) {
+        console.error(`Error checking Manus status for competitor ${comp.competitor_number}:`, error);
+      }
+    }
+
+    // Refetch data after checking status
+    await fetchCompetitorData();
+  }, [competitors, fetchCompetitorData]);
+
   useEffect(() => {
     fetchCompetitorData();
   }, [fetchCompetitorData]);
 
-  // Poll for updates while crawling
+  // Poll for updates while processing
   useEffect(() => {
     if (!isCrawling) return;
 
+    // Check if any are processing with Manus
+    const hasManusProcessing = competitors.some(c => 
+      c.analysis_status === 'processing_manus' && c.manus_task_id
+    );
+
     const interval = setInterval(() => {
-      fetchCompetitorData();
-    }, 5000);
+      if (hasManusProcessing) {
+        checkManusStatus();
+      } else {
+        fetchCompetitorData();
+      }
+    }, hasManusProcessing ? 10000 : 5000); // 10s for Manus, 5s for regular
 
     return () => clearInterval(interval);
-  }, [isCrawling, fetchCompetitorData]);
+  }, [isCrawling, competitors, fetchCompetitorData, checkManusStatus]);
 
   const crawlCompetitors = async (): Promise<boolean> => {
     if (!hotelId) {
@@ -102,7 +166,13 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
       }
 
       const successCount = result.results?.filter((r: any) => r.success).length || 0;
-      toast.success(`Concorrentes analisados! ${successCount} site(s) extraído(s).`);
+      
+      if (result.mode === 'manus') {
+        toast.success(`Análise iniciada no Manus Agent! ${successCount} tarefa(s) criada(s).`);
+      } else {
+        toast.success(`Concorrentes analisados! ${successCount} site(s) processado(s).`);
+      }
+      
       await fetchCompetitorData();
       return true;
     } catch (error) {
@@ -130,6 +200,10 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
     return competitors.some(c => c.analysis_status === 'completed' && c.generated_analysis);
   }, [competitors]);
 
+  const isProcessingManus = useCallback(() => {
+    return competitors.some(c => c.analysis_status === 'processing_manus');
+  }, [competitors]);
+
   return {
     competitors,
     loading,
@@ -140,5 +214,6 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
     getCompletedCount,
     getAnalysisCompletedCount,
     hasAnyAnalysis,
+    isProcessingManus,
   };
 }

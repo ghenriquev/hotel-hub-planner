@@ -1,4 +1,4 @@
-// Manus Task Status Checker
+// Manus Task Status Checker - Supports both agent_results and hotel_competitor_data
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -15,9 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    const { hotelId, moduleId, taskId } = await req.json();
+    const body = await req.json();
+    const { hotelId, moduleId, taskId, competitorNumber, type } = body;
     
-    console.log(`[manus-check-status] Checking task ${taskId} for hotel: ${hotelId}, module: ${moduleId}`);
+    // Determine the type of task we're checking
+    const taskType = type || (competitorNumber ? 'competitor' : 'agent');
+    
+    console.log(`[manus-check-status] Checking task ${taskId} - type: ${taskType}, hotel: ${hotelId}`);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -42,7 +46,7 @@ serve(async (req) => {
 
     const MANUS_API_KEY = apiKeyData.api_key;
 
-    // Check task status
+    // Check task status from Manus API
     console.log(`[manus-check-status] Fetching status from Manus API for task ${taskId}`);
     const response = await fetch(`https://api.manus.im/v1/tasks/${taskId}`, {
       method: "GET",
@@ -87,22 +91,51 @@ serve(async (req) => {
         break;
     }
 
-    // Update database if status changed to completed or error
-    if (newStatus === 'completed' || newStatus === 'error') {
-      const { error: updateError } = await supabase
-        .from('agent_results')
-        .update({
-          status: newStatus,
-          result: result,
-          generated_at: newStatus === 'completed' ? new Date().toISOString() : null,
-        })
-        .eq('hotel_id', hotelId)
-        .eq('module_id', moduleId);
+    // Update the appropriate table based on task type
+    if (taskType === 'competitor') {
+      // Update hotel_competitor_data table
+      if (newStatus === 'completed' || newStatus === 'error') {
+        const updateData: any = {
+          analysis_status: newStatus,
+        };
+        
+        if (newStatus === 'completed' && result) {
+          updateData.generated_analysis = result;
+          updateData.crawled_at = new Date().toISOString();
+        } else if (newStatus === 'error') {
+          updateData.error_message = result;
+        }
 
-      if (updateError) {
-        console.error("[manus-check-status] Error updating result:", updateError);
-      } else {
-        console.log(`[manus-check-status] Updated status to ${newStatus}`);
+        const { error: updateError } = await supabase
+          .from('hotel_competitor_data')
+          .update(updateData)
+          .eq('hotel_id', hotelId)
+          .eq('competitor_number', competitorNumber);
+
+        if (updateError) {
+          console.error("[manus-check-status] Error updating competitor data:", updateError);
+        } else {
+          console.log(`[manus-check-status] Updated competitor ${competitorNumber} status to ${newStatus}`);
+        }
+      }
+    } else {
+      // Update agent_results table (original behavior)
+      if (newStatus === 'completed' || newStatus === 'error') {
+        const { error: updateError } = await supabase
+          .from('agent_results')
+          .update({
+            status: newStatus,
+            result: result,
+            generated_at: newStatus === 'completed' ? new Date().toISOString() : null,
+          })
+          .eq('hotel_id', hotelId)
+          .eq('module_id', moduleId);
+
+        if (updateError) {
+          console.error("[manus-check-status] Error updating agent result:", updateError);
+        } else {
+          console.log(`[manus-check-status] Updated agent status to ${newStatus}`);
+        }
       }
     }
 
@@ -110,7 +143,8 @@ serve(async (req) => {
       success: true,
       status: newStatus,
       taskStatus: data.status,
-      result: newStatus === 'completed' ? result : null
+      result: newStatus === 'completed' ? result : null,
+      type: taskType
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

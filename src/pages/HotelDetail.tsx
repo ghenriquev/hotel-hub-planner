@@ -473,6 +473,17 @@ export default function HotelDetail() {
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Globe className="h-4 w-4 text-muted-foreground" />
                 Conteúdo do Site
+                {websiteData?.status === 'completed' ? null : hotel.website && !hotel.has_no_website ? (
+                  <span className="ml-auto text-xs bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Pronto para iniciar
+                  </span>
+                ) : (
+                  <span className="ml-auto text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Pendente: Site não configurado
+                  </span>
+                )}
               </label>
               
               <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">

@@ -79,7 +79,10 @@ export default function HotelDetail() {
     instagramUrl: "",
     tripadvisorUrl: "",
     bookingUrl: "",
-    googleBusinessUrl: ""
+    googleBusinessUrl: "",
+    competitorSite1: "",
+    competitorSite2: "",
+    competitorSite3: ""
   });
   useEffect(() => {
     if (hotel) {
@@ -93,7 +96,10 @@ export default function HotelDetail() {
         instagramUrl: hotel.instagram_url || "",
         tripadvisorUrl: hotel.tripadvisor_url || "",
         bookingUrl: hotel.booking_url || "",
-        googleBusinessUrl: hotel.google_business_url || ""
+        googleBusinessUrl: hotel.google_business_url || "",
+        competitorSite1: (hotel as any).competitor_site_1 || "",
+        competitorSite2: (hotel as any).competitor_site_2 || "",
+        competitorSite3: (hotel as any).competitor_site_3 || ""
       });
       if (hotel.project_start_date) {
         setProjectStartDate(parseISO(hotel.project_start_date));
@@ -122,8 +128,11 @@ export default function HotelDetail() {
       instagram_url: editForm.instagramUrl || null,
       tripadvisor_url: editForm.tripadvisorUrl || null,
       booking_url: editForm.bookingUrl || null,
-      google_business_url: editForm.googleBusinessUrl || null
-    });
+      google_business_url: editForm.googleBusinessUrl || null,
+      competitor_site_1: editForm.competitorSite1 || null,
+      competitor_site_2: editForm.competitorSite2 || null,
+      competitor_site_3: editForm.competitorSite3 || null
+    } as any);
     if (success) {
       setIsEditDialogOpen(false);
       toast.success("Informações atualizadas com sucesso!");
@@ -388,6 +397,36 @@ export default function HotelDetail() {
                         ...editForm,
                         googleBusinessUrl: e.target.value
                       })} placeholder="https://g.page/seuhotel" />
+                      </div>
+
+                      {/* Concorrentes */}
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground mt-4 mb-2">
+                        <Building2 className="h-4 w-4" />
+                        Concorrentes
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-competitor-1">Site Concorrente 1</Label>
+                        <Input id="edit-competitor-1" value={editForm.competitorSite1} onChange={e => setEditForm({
+                        ...editForm,
+                        competitorSite1: e.target.value
+                      })} placeholder="https://www.concorrente1.com.br" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-competitor-2">Site Concorrente 2</Label>
+                        <Input id="edit-competitor-2" value={editForm.competitorSite2} onChange={e => setEditForm({
+                        ...editForm,
+                        competitorSite2: e.target.value
+                      })} placeholder="https://www.concorrente2.com.br" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-competitor-3">Site Concorrente 3</Label>
+                        <Input id="edit-competitor-3" value={editForm.competitorSite3} onChange={e => setEditForm({
+                        ...editForm,
+                        competitorSite3: e.target.value
+                      })} placeholder="https://www.concorrente3.com.br" />
                       </div>
                     </div>
                   </div>

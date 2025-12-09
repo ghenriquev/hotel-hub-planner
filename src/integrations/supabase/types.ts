@@ -182,6 +182,53 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_competitor_data: {
+        Row: {
+          competitor_number: number
+          competitor_url: string
+          crawled_at: string | null
+          crawled_content: Json | null
+          created_at: string | null
+          error_message: string | null
+          hotel_id: string
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          competitor_number: number
+          competitor_url: string
+          crawled_at?: string | null
+          crawled_content?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          hotel_id: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          competitor_number?: number
+          competitor_url?: string
+          crawled_at?: string | null
+          crawled_content?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          hotel_id?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_competitor_data_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_materials: {
         Row: {
           created_at: string | null

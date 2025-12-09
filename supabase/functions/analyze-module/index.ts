@@ -177,6 +177,42 @@ serve(async (req) => {
       }
     }
 
+    // Fetch competitor data if configured to use it
+    if (configuredMaterials.includes('competitors')) {
+      console.log("[analyze-module] Fetching competitor data for hotel:", hotelId);
+      
+      const { data: competitorData } = await supabase
+        .from('hotel_competitor_data')
+        .select('competitor_url, competitor_number, crawled_content')
+        .eq('hotel_id', hotelId)
+        .eq('status', 'completed')
+        .order('competitor_number', { ascending: true });
+
+      if (competitorData && competitorData.length > 0) {
+        console.log(`[analyze-module] Found ${competitorData.length} competitor(s) with crawled data`);
+        materialsContext += `\n\n## Análise dos Sites Concorrentes`;
+        
+        for (const competitor of competitorData) {
+          materialsContext += `\n\n### Concorrente ${competitor.competitor_number}: ${competitor.competitor_url}`;
+          
+          if (competitor.crawled_content && Array.isArray(competitor.crawled_content)) {
+            for (const page of competitor.crawled_content) {
+              materialsContext += `\n\n#### ${page.title || 'Página'}`;
+              materialsContext += `\nURL: ${page.url}`;
+              if (page.description) {
+                materialsContext += `\nDescrição: ${page.description}`;
+              }
+              if (page.text) {
+                materialsContext += `\nConteúdo:\n${page.text.substring(0, 2500)}`;
+              }
+            }
+          }
+        }
+      } else {
+        console.log("[analyze-module] No competitor data available for this hotel");
+      }
+    }
+
     // Fetch secondary materials (results from other agents)
     if (secondaryMaterials.length > 0) {
       console.log(`[analyze-module] Fetching secondary materials from agents: ${secondaryMaterials.join(', ')}`);

@@ -14,6 +14,7 @@ import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
 import { useHotelMilestones } from "@/hooks/useHotelMilestones";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
+import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { AGENTS } from "@/lib/agents-data";
 import { Calendar } from "@/components/ui/calendar";
@@ -61,6 +62,12 @@ export default function HotelDetail() {
     isCrawling,
     crawlWebsite
   } = useHotelWebsiteData(id);
+  const {
+    competitors: competitorData,
+    isCrawling: isCompetitorsCrawling,
+    crawlCompetitors,
+    getCompletedCount: getCompletedCompetitorsCount
+  } = useHotelCompetitorData(id);
   const {
     getReadiness
   } = useAgentsReadiness(id || "");
@@ -524,7 +531,7 @@ export default function HotelDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Conteúdo do Site */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -590,12 +597,107 @@ export default function HotelDetail() {
 
             {/* Avaliações */}
             <div className="space-y-2">
-              
               <ReviewsCard hotelId={id!} hotelUrls={{
-              google_business_url: hotel.google_business_url,
-              tripadvisor_url: hotel.tripadvisor_url,
-              booking_url: hotel.booking_url
-            }} />
+                google_business_url: hotel.google_business_url,
+                tripadvisor_url: hotel.tripadvisor_url,
+                booking_url: hotel.booking_url
+              }} />
+            </div>
+
+            {/* Concorrentes */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Conteúdo dos Concorrentes
+                {(() => {
+                  const competitorCount = [
+                    (hotel as any).competitor_site_1,
+                    (hotel as any).competitor_site_2,
+                    (hotel as any).competitor_site_3
+                  ].filter(Boolean).length;
+                  
+                  const completedCount = getCompletedCompetitorsCount();
+                  
+                  if (completedCount > 0) {
+                    return null; // Não mostrar badge quando já tem dados
+                  } else if (competitorCount > 0) {
+                    return (
+                      <span className="ml-auto text-xs bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {competitorCount} concorrente(s)
+                      </span>
+                    );
+                  } else {
+                    return (
+                      <span className="ml-auto text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Nenhum configurado
+                      </span>
+                    );
+                  }
+                })()}
+              </label>
+              
+              <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
+                {(() => {
+                  const competitorUrls = [
+                    (hotel as any).competitor_site_1,
+                    (hotel as any).competitor_site_2,
+                    (hotel as any).competitor_site_3
+                  ].filter(Boolean);
+                  
+                  const completedCount = getCompletedCompetitorsCount();
+                  
+                  if (competitorUrls.length === 0) {
+                    return (
+                      <div className="text-center text-muted-foreground text-sm">
+                        <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                        <p>Nenhum concorrente configurado</p>
+                        <Button variant="link" size="sm" className="mt-1 h-auto p-0" onClick={() => setIsEditDialogOpen(true)}>
+                          Adicionar concorrentes
+                        </Button>
+                      </div>
+                    );
+                  }
+                  
+                  if (isCompetitorsCrawling) {
+                    return (
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Analisando concorrentes...</p>
+                      </div>
+                    );
+                  }
+                  
+                  if (completedCount > 0) {
+                    return (
+                      <div className="text-center">
+                        <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                        <p className="text-sm text-foreground font-medium mb-1">
+                          {completedCount} de {competitorUrls.length} analisado(s)
+                        </p>
+                        <div className="flex items-center justify-center gap-2 mt-2">
+                          <Button variant="ghost" size="sm" onClick={() => crawlCompetitors()}>
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Reanalisar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="text-center">
+                      <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm text-muted-foreground mb-2">{competitorUrls.length} concorrente(s) configurado(s)</p>
+                      <Button variant="outline" size="sm" onClick={() => crawlCompetitors()}>
+                        <Search className="h-3 w-3 mr-1" />
+                        Analisar Concorrentes
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>

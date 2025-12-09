@@ -106,6 +106,7 @@ export default function Settings() {
   const RESEARCH_MATERIALS = [
     { value: 'website', label: 'Conteúdo do Site' },
     { value: 'reviews', label: 'Avaliações Consolidadas' },
+    { value: 'competitors', label: 'Conteúdo dos Concorrentes' },
   ];
 
   const ALL_MATERIALS = [...PRIMARY_MATERIALS, ...RESEARCH_MATERIALS];

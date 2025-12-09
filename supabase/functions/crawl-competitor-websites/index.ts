@@ -6,6 +6,129 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to call LLM for competitor analysis
+async function generateCompetitorAnalysis(
+  crawledContent: any[],
+  competitorUrl: string,
+  prompt: string,
+  llmModel: string,
+  lovableApiKey: string,
+  supabase: any
+): Promise<{ analysis: string; success: boolean; error?: string }> {
+  
+  // Build context from crawled content
+  let contentContext = `## Conteúdo extraído do site concorrente: ${competitorUrl}\n\n`;
+  for (const page of crawledContent) {
+    contentContext += `### ${page.title || 'Página'}\n`;
+    contentContext += `URL: ${page.url}\n`;
+    if (page.description) {
+      contentContext += `Descrição: ${page.description}\n`;
+    }
+    if (page.text) {
+      contentContext += `Conteúdo:\n${page.text}\n\n`;
+    }
+  }
+
+  const userPrompt = `Analise o seguinte conteúdo extraído do site de um hotel concorrente e forneça uma análise detalhada conforme as instruções:
+
+${contentContext}
+
+Por favor, forneça uma análise profissional em português do Brasil.`;
+
+  try {
+    // Check if it's a Lovable AI model
+    const isLovableAIModel = llmModel.startsWith('lovable/') || 
+                              llmModel.startsWith('google/') || 
+                              llmModel.startsWith('openai/');
+    
+    if (isLovableAIModel) {
+      console.log(`[crawl-competitor-websites] Calling Lovable AI with model: ${llmModel}`);
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: llmModel,
+          messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[crawl-competitor-websites] Lovable AI error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return { analysis: '', success: false, error: 'Limite de requisições excedido. Tente novamente em alguns minutos.' };
+        }
+        if (response.status === 402) {
+          return { analysis: '', success: false, error: 'Créditos insuficientes. Adicione créditos na sua conta.' };
+        }
+        
+        return { analysis: '', success: false, error: `Lovable AI error: ${response.status}` };
+      }
+
+      const aiData = await response.json();
+      const analysis = aiData.choices?.[0]?.message?.content || "";
+      return { analysis, success: true };
+      
+    } else if (llmModel.startsWith('anthropic/')) {
+      // Use Anthropic/Claude directly with API key from database
+      const { data: apiKeyData, error: keyError } = await supabase
+        .from('api_keys')
+        .select('api_key')
+        .eq('key_type', 'anthropic')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (keyError || !apiKeyData) {
+        return { analysis: '', success: false, error: 'No active Anthropic API key found' };
+      }
+
+      const modelName = llmModel.replace('anthropic/', '');
+      console.log(`[crawl-competitor-websites] Calling Anthropic with model: ${modelName}`);
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKeyData.api_key,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          max_tokens: 4096,
+          system: prompt,
+          messages: [
+            { role: "user", content: userPrompt }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[crawl-competitor-websites] Anthropic error:", response.status, errorText);
+        return { analysis: '', success: false, error: `Anthropic API error: ${response.status}` };
+      }
+
+      const aiData = await response.json();
+      const analysis = aiData.content?.[0]?.text || "";
+      return { analysis, success: true };
+      
+    } else {
+      return { analysis: '', success: false, error: `Unsupported LLM model: ${llmModel}` };
+    }
+  } catch (error) {
+    console.error("[crawl-competitor-websites] Error generating analysis:", error);
+    return { analysis: '', success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,6 +146,7 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Missing Supabase configuration");
@@ -60,6 +184,7 @@ serve(async (req) => {
         competitor_url: comp.url,
         competitor_number: comp.number,
         status: 'crawling',
+        analysis_status: 'pending',
         error_message: null,
       }, { onConflict: 'hotel_id,competitor_number' });
     }
@@ -93,20 +218,22 @@ serve(async (req) => {
 
     console.log("[crawl-competitor-websites] Found Apify API key, starting crawls...");
 
-    // Fetch research settings for crawler configuration
+    // Fetch research settings for crawler configuration AND LLM analysis settings
     const { data: researchSettings } = await supabase
       .from('research_settings')
-      .select('competitor_max_pages, competitor_max_depth, competitor_crawler_type')
+      .select('competitor_max_pages, competitor_max_depth, competitor_crawler_type, competitor_prompt, competitor_llm_model')
       .limit(1)
       .maybeSingle();
 
     const maxPages = researchSettings?.competitor_max_pages || 8;
     const maxDepth = researchSettings?.competitor_max_depth || 2;
     const crawlerType = researchSettings?.competitor_crawler_type || 'playwright:firefox';
+    const competitorPrompt = researchSettings?.competitor_prompt || 'Você é um especialista em análise competitiva do setor hoteleiro. Analise o conteúdo do site deste hotel concorrente e forneça insights sobre: posicionamento de marca, diferenciais, público-alvo aparente, estratégias de marketing visíveis, e pontos fortes/fracos.';
+    const llmModel = researchSettings?.competitor_llm_model || 'google/gemini-3-pro-preview';
 
-    console.log(`[crawl-competitor-websites] Using settings: maxPages=${maxPages}, maxDepth=${maxDepth}, crawlerType=${crawlerType}`);
+    console.log(`[crawl-competitor-websites] Using settings: maxPages=${maxPages}, maxDepth=${maxDepth}, crawlerType=${crawlerType}, llmModel=${llmModel}`);
 
-    const results: { competitorNumber: number; success: boolean; pagesCount?: number; error?: string }[] = [];
+    const results: { competitorNumber: number; success: boolean; pagesCount?: number; analysisGenerated?: boolean; error?: string }[] = [];
 
     // Crawl each competitor
     for (const comp of competitors) {
@@ -161,15 +288,54 @@ serve(async (req) => {
           text: page.text?.substring(0, 5000) || '',
         })) : [];
 
-        // Save result
+        // Save crawled content and update status to 'crawled' (intermediate status before analysis)
         await supabase.from('hotel_competitor_data').update({
           crawled_content: processedContent,
           crawled_at: new Date().toISOString(),
           status: 'completed',
+          analysis_status: 'generating',
           error_message: null,
         }).eq('hotel_id', hotelId).eq('competitor_number', comp.number);
 
-        results.push({ competitorNumber: comp.number, success: true, pagesCount: processedContent.length });
+        // Now generate LLM analysis for this competitor
+        console.log(`[crawl-competitor-websites] Generating analysis for competitor ${comp.number}...`);
+        
+        if (LOVABLE_API_KEY && processedContent.length > 0) {
+          const analysisResult = await generateCompetitorAnalysis(
+            processedContent,
+            comp.url,
+            competitorPrompt,
+            llmModel,
+            LOVABLE_API_KEY,
+            supabase
+          );
+
+          if (analysisResult.success) {
+            await supabase.from('hotel_competitor_data').update({
+              generated_analysis: analysisResult.analysis,
+              analysis_status: 'completed',
+              llm_model_used: llmModel,
+            }).eq('hotel_id', hotelId).eq('competitor_number', comp.number);
+            
+            console.log(`[crawl-competitor-websites] Analysis generated for competitor ${comp.number}`);
+            results.push({ competitorNumber: comp.number, success: true, pagesCount: processedContent.length, analysisGenerated: true });
+          } else {
+            await supabase.from('hotel_competitor_data').update({
+              analysis_status: 'error',
+              error_message: analysisResult.error,
+            }).eq('hotel_id', hotelId).eq('competitor_number', comp.number);
+            
+            console.error(`[crawl-competitor-websites] Analysis error for competitor ${comp.number}:`, analysisResult.error);
+            results.push({ competitorNumber: comp.number, success: true, pagesCount: processedContent.length, analysisGenerated: false, error: analysisResult.error });
+          }
+        } else {
+          // No LOVABLE_API_KEY or no content - skip analysis
+          await supabase.from('hotel_competitor_data').update({
+            analysis_status: 'skipped',
+          }).eq('hotel_id', hotelId).eq('competitor_number', comp.number);
+          
+          results.push({ competitorNumber: comp.number, success: true, pagesCount: processedContent.length, analysisGenerated: false });
+        }
 
       } catch (compError) {
         console.error(`[crawl-competitor-websites] Error crawling competitor ${comp.number}:`, compError);
@@ -184,7 +350,8 @@ serve(async (req) => {
     }
 
     const successCount = results.filter(r => r.success).length;
-    console.log(`[crawl-competitor-websites] Completed. ${successCount}/${competitors.length} successful`);
+    const analysisCount = results.filter(r => r.analysisGenerated).length;
+    console.log(`[crawl-competitor-websites] Completed. ${successCount}/${competitors.length} crawled, ${analysisCount}/${competitors.length} analyzed`);
 
     return new Response(JSON.stringify({ 
       success: successCount > 0, 

@@ -183,33 +183,28 @@ serve(async (req) => {
       
       const { data: competitorData } = await supabase
         .from('hotel_competitor_data')
-        .select('competitor_url, competitor_number, crawled_content')
+        .select('competitor_url, competitor_number, generated_analysis, analysis_status, llm_model_used')
         .eq('hotel_id', hotelId)
         .eq('status', 'completed')
+        .eq('analysis_status', 'completed')
         .order('competitor_number', { ascending: true });
 
       if (competitorData && competitorData.length > 0) {
-        console.log(`[analyze-module] Found ${competitorData.length} competitor(s) with crawled data`);
+        console.log(`[analyze-module] Found ${competitorData.length} competitor(s) with generated analysis`);
         materialsContext += `\n\n## Análise dos Sites Concorrentes`;
         
         for (const competitor of competitorData) {
-          materialsContext += `\n\n### Concorrente ${competitor.competitor_number}: ${competitor.competitor_url}`;
+          materialsContext += `\n\n### Análise Concorrente ${competitor.competitor_number}: ${competitor.competitor_url}`;
+          materialsContext += `\n(Gerado por: ${competitor.llm_model_used || 'LLM'})`;
           
-          if (competitor.crawled_content && Array.isArray(competitor.crawled_content)) {
-            for (const page of competitor.crawled_content) {
-              materialsContext += `\n\n#### ${page.title || 'Página'}`;
-              materialsContext += `\nURL: ${page.url}`;
-              if (page.description) {
-                materialsContext += `\nDescrição: ${page.description}`;
-              }
-              if (page.text) {
-                materialsContext += `\nConteúdo:\n${page.text.substring(0, 2500)}`;
-              }
-            }
+          if (competitor.generated_analysis) {
+            materialsContext += `\n\n${competitor.generated_analysis}`;
+          } else {
+            materialsContext += `\n\nAnálise não disponível.`;
           }
         }
       } else {
-        console.log("[analyze-module] No competitor data available for this hotel");
+        console.log("[analyze-module] No competitor analysis available for this hotel");
       }
     }
 

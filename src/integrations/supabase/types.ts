@@ -367,6 +367,9 @@ export type Database = {
           booking_url: string | null
           category: string | null
           city: string
+          competitor_site_1: string | null
+          competitor_site_2: string | null
+          competitor_site_3: string | null
           contact: string | null
           created_at: string | null
           created_by: string | null
@@ -384,6 +387,9 @@ export type Database = {
           booking_url?: string | null
           category?: string | null
           city: string
+          competitor_site_1?: string | null
+          competitor_site_2?: string | null
+          competitor_site_3?: string | null
           contact?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -401,6 +407,9 @@ export type Database = {
           booking_url?: string | null
           category?: string | null
           city?: string
+          competitor_site_1?: string | null
+          competitor_site_2?: string | null
+          competitor_site_3?: string | null
           contact?: string | null
           created_at?: string | null
           created_by?: string | null

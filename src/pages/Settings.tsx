@@ -83,6 +83,10 @@ const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: stri
   google: [
     { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Google Gemini (via API Key)" },
   ],
+  manus: [
+    { value: "manus/agent-1.5", label: "Manus Agent 1.5", icon: "🔧", description: "Modo agente assíncrono - pesquisa web em tempo real" },
+    { value: "manus/agent-1.5-lite", label: "Manus Agent Lite", icon: "🔧", description: "Modo agente rápido - tarefas simples" },
+  ],
 };
 
 export default function Settings() {

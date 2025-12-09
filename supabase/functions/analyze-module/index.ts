@@ -229,6 +229,46 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
 
     let generatedResult: string;
 
+    // Check if it's a Manus model - route to manus-agent function
+    if (llmModel.startsWith('manus/')) {
+      console.log("[analyze-module] Routing to Manus Agent...");
+      
+      // Call manus-agent function with full context
+      const manusResponse = await fetch(`${SUPABASE_URL}/functions/v1/manus-agent`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          hotelId,
+          moduleId,
+          prompt: systemPrompt + "\n\n" + userPrompt,
+          materials: materialsContext
+        }),
+      });
+
+      if (!manusResponse.ok) {
+        const errorText = await manusResponse.text();
+        console.error("[analyze-module] Manus agent error:", manusResponse.status, errorText);
+        throw new Error(`Manus agent error: ${errorText}`);
+      }
+
+      const manusData = await manusResponse.json();
+      console.log("[analyze-module] Manus task created:", manusData);
+
+      // Manus is async - return immediately with task ID
+      return new Response(JSON.stringify({ 
+        success: true,
+        async: true,
+        taskId: manusData.taskId,
+        message: "Análise sendo processada pelo Manus Agent. O resultado será atualizado automaticamente.",
+        llmModelUsed: llmModel
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check if it's a Lovable AI model (lovable/, google/, or openai/ prefixes are all supported)
     const isLovableAIModel = llmModel.startsWith('lovable/') || 
                               llmModel.startsWith('google/') || 

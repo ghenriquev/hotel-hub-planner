@@ -20,7 +20,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star } from "lucide-react";
+import { ArrowLeft, Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -290,146 +291,163 @@ export default function HotelDetail() {
                     </DialogDescription>
                   </DialogHeader>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                    {/* Coluna Esquerda - Dados do Hotel */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                        <Building2 className="h-4 w-4" />
-                        Dados do Hotel
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-name">Nome do Hotel</Label>
-                        <Input id="edit-name" value={editForm.name} onChange={e => setEditForm({
-                        ...editForm,
-                        name: e.target.value
-                      })} placeholder="Ex: Grand Hotel Resort" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-city">Cidade / Estado</Label>
-                        <Input id="edit-city" value={editForm.city} onChange={e => setEditForm({
-                        ...editForm,
-                        city: e.target.value
-                      })} placeholder="Ex: São Paulo, SP" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-contact">Contato Principal</Label>
-                        <Input id="edit-contact" value={editForm.contact} onChange={e => setEditForm({
-                        ...editForm,
-                        contact: e.target.value
-                      })} placeholder="Ex: João Silva - (11) 99999-9999" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-category">Categoria</Label>
-                        <Select value={editForm.category} onValueChange={value => setEditForm({
-                        ...editForm,
-                        category: value
-                      })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a categoria" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Hotel Urbano">Hotel Urbano</SelectItem>
-                            <SelectItem value="Resort">Resort</SelectItem>
-                            <SelectItem value="Pousada">Pousada</SelectItem>
-                            <SelectItem value="Hotel Fazenda">Hotel Fazenda</SelectItem>
-                            <SelectItem value="Flat/Apart-Hotel">Flat/Apart-Hotel</SelectItem>
-                            <SelectItem value="Hostel">Hostel</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="edit-nowebsite" checked={editForm.hasNoWebsite} onCheckedChange={checked => setEditForm({
-                          ...editForm,
-                          hasNoWebsite: checked as boolean,
-                          website: checked ? "" : editForm.website
-                        })} />
-                          <Label htmlFor="edit-nowebsite" className="text-sm text-muted-foreground">
-                            Hotel não possui site
-                          </Label>
+                  <Accordion type="single" collapsible defaultValue="dados-hotel" className="w-full py-4">
+                    {/* Accordion 1 - Dados do Hotel */}
+                    <AccordionItem value="dados-hotel">
+                      <AccordionTrigger className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          Dados do Hotel
                         </div>
-                        {!editForm.hasNoWebsite && <Input id="edit-website" value={editForm.website} onChange={e => setEditForm({
-                        ...editForm,
-                        website: e.target.value
-                      })} placeholder="https://www.seuhotel.com.br" />}
-                      </div>
-                    </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-name">Nome do Hotel</Label>
+                            <Input id="edit-name" value={editForm.name} onChange={e => setEditForm({
+                              ...editForm,
+                              name: e.target.value
+                            })} placeholder="Ex: Grand Hotel Resort" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-city">Cidade / Estado</Label>
+                            <Input id="edit-city" value={editForm.city} onChange={e => setEditForm({
+                              ...editForm,
+                              city: e.target.value
+                            })} placeholder="Ex: São Paulo, SP" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-contact">Contato Principal</Label>
+                            <Input id="edit-contact" value={editForm.contact} onChange={e => setEditForm({
+                              ...editForm,
+                              contact: e.target.value
+                            })} placeholder="Ex: João Silva - (11) 99999-9999" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-category">Categoria</Label>
+                            <Select value={editForm.category} onValueChange={value => setEditForm({
+                              ...editForm,
+                              category: value
+                            })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a categoria" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Hotel Urbano">Hotel Urbano</SelectItem>
+                                <SelectItem value="Resort">Resort</SelectItem>
+                                <SelectItem value="Pousada">Pousada</SelectItem>
+                                <SelectItem value="Hotel Fazenda">Hotel Fazenda</SelectItem>
+                                <SelectItem value="Flat/Apart-Hotel">Flat/Apart-Hotel</SelectItem>
+                                <SelectItem value="Hostel">Hostel</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2 md:col-span-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox id="edit-nowebsite" checked={editForm.hasNoWebsite} onCheckedChange={checked => setEditForm({
+                                ...editForm,
+                                hasNoWebsite: checked as boolean,
+                                website: checked ? "" : editForm.website
+                              })} />
+                              <Label htmlFor="edit-nowebsite" className="text-sm text-muted-foreground">
+                                Hotel não possui site
+                              </Label>
+                            </div>
+                            {!editForm.hasNoWebsite && <Input id="edit-website" value={editForm.website} onChange={e => setEditForm({
+                              ...editForm,
+                              website: e.target.value
+                            })} placeholder="https://www.seuhotel.com.br" />}
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                    {/* Coluna Direita - Perfis de Plataformas */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                        <Globe className="h-4 w-4" />
-                        Perfis de Plataformas
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-instagram">Instagram</Label>
-                        <Input id="edit-instagram" value={editForm.instagramUrl} onChange={e => setEditForm({
-                        ...editForm,
-                        instagramUrl: e.target.value
-                      })} placeholder="https://instagram.com/seuhotel" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-tripadvisor">TripAdvisor</Label>
-                        <Input id="edit-tripadvisor" value={editForm.tripadvisorUrl} onChange={e => setEditForm({
-                        ...editForm,
-                        tripadvisorUrl: e.target.value
-                      })} placeholder="https://tripadvisor.com.br/Hotel_Review-..." />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-booking">Booking.com</Label>
-                        <Input id="edit-booking" value={editForm.bookingUrl} onChange={e => setEditForm({
-                        ...editForm,
-                        bookingUrl: e.target.value
-                      })} placeholder="https://booking.com/hotel/br/seuhotel.html" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-google-business">Google Meu Negócio</Label>
-                        <Input id="edit-google-business" value={editForm.googleBusinessUrl} onChange={e => setEditForm({
-                        ...editForm,
-                        googleBusinessUrl: e.target.value
-                      })} placeholder="https://g.page/seuhotel" />
-                      </div>
+                    {/* Accordion 2 - Perfil de Plataforma */}
+                    <AccordionItem value="perfil-plataforma">
+                      <AccordionTrigger className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          Perfil de Plataforma
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-instagram">Instagram</Label>
+                            <Input id="edit-instagram" value={editForm.instagramUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              instagramUrl: e.target.value
+                            })} placeholder="https://instagram.com/seuhotel" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-tripadvisor">TripAdvisor</Label>
+                            <Input id="edit-tripadvisor" value={editForm.tripadvisorUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              tripadvisorUrl: e.target.value
+                            })} placeholder="https://tripadvisor.com.br/Hotel_Review-..." />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-booking">Booking.com</Label>
+                            <Input id="edit-booking" value={editForm.bookingUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              bookingUrl: e.target.value
+                            })} placeholder="https://booking.com/hotel/br/seuhotel.html" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-google-business">Google Meu Negócio</Label>
+                            <Input id="edit-google-business" value={editForm.googleBusinessUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              googleBusinessUrl: e.target.value
+                            })} placeholder="https://g.page/seuhotel" />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                      {/* Concorrentes */}
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground mt-4 mb-2">
-                        <Building2 className="h-4 w-4" />
-                        Concorrentes
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-competitor-1">Site Concorrente 1</Label>
-                        <Input id="edit-competitor-1" value={editForm.competitorSite1} onChange={e => setEditForm({
-                        ...editForm,
-                        competitorSite1: e.target.value
-                      })} placeholder="https://www.concorrente1.com.br" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-competitor-2">Site Concorrente 2</Label>
-                        <Input id="edit-competitor-2" value={editForm.competitorSite2} onChange={e => setEditForm({
-                        ...editForm,
-                        competitorSite2: e.target.value
-                      })} placeholder="https://www.concorrente2.com.br" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-competitor-3">Site Concorrente 3</Label>
-                        <Input id="edit-competitor-3" value={editForm.competitorSite3} onChange={e => setEditForm({
-                        ...editForm,
-                        competitorSite3: e.target.value
-                      })} placeholder="https://www.concorrente3.com.br" />
-                      </div>
-                    </div>
-                  </div>
+                    {/* Accordion 3 - Concorrentes */}
+                    <AccordionItem value="concorrentes">
+                      <AccordionTrigger className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Concorrentes
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-competitor-1">Site Concorrente 1</Label>
+                            <Input id="edit-competitor-1" value={editForm.competitorSite1} onChange={e => setEditForm({
+                              ...editForm,
+                              competitorSite1: e.target.value
+                            })} placeholder="https://www.concorrente1.com.br" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-competitor-2">Site Concorrente 2</Label>
+                            <Input id="edit-competitor-2" value={editForm.competitorSite2} onChange={e => setEditForm({
+                              ...editForm,
+                              competitorSite2: e.target.value
+                            })} placeholder="https://www.concorrente2.com.br" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-competitor-3">Site Concorrente 3</Label>
+                            <Input id="edit-competitor-3" value={editForm.competitorSite3} onChange={e => setEditForm({
+                              ...editForm,
+                              competitorSite3: e.target.value
+                            })} placeholder="https://www.concorrente3.com.br" />
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>

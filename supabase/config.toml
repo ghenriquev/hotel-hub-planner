@@ -20,3 +20,9 @@ verify_jwt = true
 
 [functions.init-admin]
 verify_jwt = false
+
+[functions.manus-agent]
+verify_jwt = true
+
+[functions.manus-check-status]
+verify_jwt = true

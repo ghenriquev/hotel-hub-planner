@@ -57,6 +57,8 @@ function getModelDisplayName(model: string | null): string {
     'openai/gpt-5-nano': 'GPT-5 Nano',
     'anthropic/claude-sonnet-4-5': 'Claude Sonnet 4.5',
     'anthropic/claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+    'manus/agent-1.5': 'Manus Agent 1.5',
+    'manus/agent-1.5-lite': 'Manus Agent Lite',
   };
   
   return modelNames[model] || model.split('/').pop() || model;
@@ -91,15 +93,16 @@ export default function AgentModule() {
     }
   }, [result?.result]);
 
-  // Poll for updates while generating analysis OR presentation
+  // Poll for updates while generating analysis OR presentation OR processing in Manus
   useEffect(() => {
     const shouldPollAnalysis = result?.status === 'generating' || isGenerating;
     const shouldPollPresentation = result?.presentation_status === 'generating';
+    const shouldPollManus = result?.status === 'processing_manus';
     
-    if (shouldPollAnalysis || shouldPollPresentation) {
+    if (shouldPollAnalysis || shouldPollPresentation || shouldPollManus) {
       const interval = setInterval(() => {
         refetch();
-      }, 2000);
+      }, shouldPollManus ? 10000 : 2000); // Poll every 10s for Manus (slower)
       
       return () => clearInterval(interval);
     }
@@ -232,6 +235,7 @@ export default function AgentModule() {
 
   const currentStatus = result?.status || 'pending';
   const isProcessing = currentStatus === 'generating' || isGenerating;
+  const isProcessingManus = currentStatus === 'processing_manus';
   
   // Detect if stuck (generating for more than 3 minutes from when we started)
   const isStuck = isProcessing && generationStartTime !== null && 
@@ -468,25 +472,31 @@ export default function AgentModule() {
                   <span className="text-muted-foreground">Aguardando análise</span>
                 </>
               )}
-              {isProcessing && !isStuck && (
+              {isProcessing && !isStuck && !isProcessingManus && (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="text-primary">Gerando análise...</span>
                 </>
               )}
-              {isStuck && (
+              {isProcessingManus && (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                  <span className="text-amber-500">Processando no Manus Agent... (pode levar alguns minutos)</span>
+                </>
+              )}
+              {isStuck && !isProcessingManus && (
                 <>
                   <AlertCircle className="h-5 w-5 text-amber-500" />
                   <span className="text-amber-500">Processamento travado</span>
                 </>
               )}
-              {currentStatus === 'completed' && !isProcessing && (
+              {currentStatus === 'completed' && !isProcessing && !isProcessingManus && (
                 <>
                   <CheckCircle2 className="h-5 w-5 text-gold" />
                   <span className="text-foreground">Análise concluída</span>
                 </>
               )}
-              {currentStatus === 'error' && !isProcessing && (
+              {currentStatus === 'error' && !isProcessing && !isProcessingManus && (
                 <>
                   <AlertCircle className="h-5 w-5 text-destructive" />
                   <span className="text-destructive">Erro na análise</span>
@@ -495,7 +505,7 @@ export default function AgentModule() {
             </div>
 
             <div className="flex gap-2">
-              {isStuck && (
+              {isStuck && !isProcessingManus && (
                 <Button
                   onClick={handleCancelGeneration}
                   variant="outline"
@@ -511,14 +521,19 @@ export default function AgentModule() {
                     <span>
                       <Button
                         onClick={handleGenerateAnalysis}
-                        disabled={(isProcessing && !isStuck) || (!isReady && currentStatus !== 'completed')}
+                        disabled={(isProcessing && !isStuck) || isProcessingManus || (!isReady && currentStatus !== 'completed')}
                         className="gap-2"
                         variant={currentStatus === 'completed' ? 'outline' : 'default'}
                       >
-                        {isProcessing && !isStuck ? (
+                        {isProcessing && !isStuck && !isProcessingManus ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Gerando...
+                          </>
+                        ) : isProcessingManus ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Manus processando...
                           </>
                         ) : currentStatus === 'completed' ? (
                           <>

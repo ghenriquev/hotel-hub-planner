@@ -9,7 +9,7 @@ export interface AgentResult {
   presentation_url: string | null;
   presentation_status: 'generating' | 'completed' | 'error' | null;
   llm_model_used: string | null;
-  status: 'pending' | 'generating' | 'completed' | 'error';
+  status: 'pending' | 'generating' | 'completed' | 'error' | 'processing_manus';
   generated_at: string | null;
   created_at: string;
 }

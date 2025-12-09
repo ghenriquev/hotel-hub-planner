@@ -13,6 +13,9 @@ export interface CompetitorData {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  generated_analysis: string | null;
+  analysis_status: string | null;
+  llm_model_used: string | null;
 }
 
 export function useHotelCompetitorData(hotelId: string | undefined) {
@@ -38,8 +41,8 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
       if (data) {
         setCompetitors(data as unknown as CompetitorData[]);
         
-        // Check if any is still crawling
-        const anyCrawling = data.some(c => c.status === 'crawling');
+        // Check if any is still crawling or generating analysis
+        const anyCrawling = data.some(c => c.status === 'crawling' || c.analysis_status === 'generating');
         setIsCrawling(anyCrawling);
       } else {
         setCompetitors([]);
@@ -119,6 +122,14 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
     return competitors.filter(c => c.status === 'completed').length;
   }, [competitors]);
 
+  const getAnalysisCompletedCount = useCallback(() => {
+    return competitors.filter(c => c.analysis_status === 'completed').length;
+  }, [competitors]);
+
+  const hasAnyAnalysis = useCallback(() => {
+    return competitors.some(c => c.analysis_status === 'completed' && c.generated_analysis);
+  }, [competitors]);
+
   return {
     competitors,
     loading,
@@ -127,5 +138,7 @@ export function useHotelCompetitorData(hotelId: string | undefined) {
     refetch: fetchCompetitorData,
     hasAnyCompleted,
     getCompletedCount,
+    getAnalysisCompletedCount,
+    hasAnyAnalysis,
   };
 }

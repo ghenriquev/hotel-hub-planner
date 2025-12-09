@@ -7,6 +7,7 @@ import { SaveIndicator } from "@/components/SaveIndicator";
 import { GanttChart } from "@/components/GanttChart";
 import { FileUpload } from "@/components/FileUpload";
 import { WebsiteContentModal } from "@/components/WebsiteContentModal";
+import { CompetitorAnalysisModal } from "@/components/CompetitorAnalysisModal";
 import { HotelChat } from "@/components/HotelChat";
 import { ReviewsCard } from "@/components/ReviewsCard";
 import { useHotel } from "@/hooks/useHotels";
@@ -66,7 +67,9 @@ export default function HotelDetail() {
     competitors: competitorData,
     isCrawling: isCompetitorsCrawling,
     crawlCompetitors,
-    getCompletedCount: getCompletedCompetitorsCount
+    getCompletedCount: getCompletedCompetitorsCount,
+    getAnalysisCompletedCount,
+    hasAnyAnalysis
   } = useHotelCompetitorData(id);
   const {
     getReadiness
@@ -76,6 +79,7 @@ export default function HotelDetail() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWebsiteContentOpen, setIsWebsiteContentOpen] = useState(false);
+  const [isCompetitorAnalysisOpen, setIsCompetitorAnalysisOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -670,13 +674,21 @@ export default function HotelDetail() {
                   }
                   
                   if (completedCount > 0) {
+                    const analysisCount = getAnalysisCompletedCount();
                     return (
                       <div className="text-center">
                         <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
                         <p className="text-sm text-foreground font-medium mb-1">
                           {completedCount} de {competitorUrls.length} analisado(s)
+                          {analysisCount > 0 && ` (${analysisCount} com análise LLM)`}
                         </p>
                         <div className="flex items-center justify-center gap-2 mt-2">
+                          {hasAnyAnalysis() && (
+                            <Button variant="default" size="sm" onClick={() => setIsCompetitorAnalysisOpen(true)}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver Análises
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" onClick={() => crawlCompetitors()}>
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Reanalisar
@@ -794,5 +806,20 @@ export default function HotelDetail() {
             <HotelChat hotelId={hotel.id} hotelName={hotel.name} onClose={() => setIsChatOpen(false)} />
           </div>
         </div>}
+
+      {/* Website Content Modal */}
+      <WebsiteContentModal 
+        open={isWebsiteContentOpen} 
+        onOpenChange={setIsWebsiteContentOpen} 
+        pages={Array.isArray(websiteData?.crawled_content) ? websiteData.crawled_content : []}
+        crawledAt={websiteData?.crawled_at || null}
+      />
+
+      {/* Competitor Analysis Modal */}
+      <CompetitorAnalysisModal
+        open={isCompetitorAnalysisOpen}
+        onOpenChange={setIsCompetitorAnalysisOpen}
+        competitors={competitorData}
+      />
     </div>;
 }

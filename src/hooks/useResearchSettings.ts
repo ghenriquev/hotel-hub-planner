@@ -7,6 +7,8 @@ export interface ResearchSettings {
   competitor_max_pages: number;
   competitor_max_depth: number;
   competitor_crawler_type: string;
+  competitor_prompt: string | null;
+  competitor_llm_model: string;
   website_max_pages: number;
   website_max_depth: number;
   website_crawler_type: string;
@@ -19,6 +21,8 @@ const DEFAULT_SETTINGS: ResearchSettingsUpdate = {
   competitor_max_pages: 8,
   competitor_max_depth: 2,
   competitor_crawler_type: 'playwright:firefox',
+  competitor_prompt: null,
+  competitor_llm_model: 'google/gemini-3-pro-preview',
   website_max_pages: 10,
   website_max_depth: 2,
   website_crawler_type: 'playwright:firefox',

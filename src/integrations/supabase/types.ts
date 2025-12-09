@@ -496,8 +496,10 @@ export type Database = {
       research_settings: {
         Row: {
           competitor_crawler_type: string | null
+          competitor_llm_model: string | null
           competitor_max_depth: number | null
           competitor_max_pages: number | null
+          competitor_prompt: string | null
           created_at: string | null
           id: string
           reviews_max_months: number | null
@@ -508,8 +510,10 @@ export type Database = {
         }
         Insert: {
           competitor_crawler_type?: string | null
+          competitor_llm_model?: string | null
           competitor_max_depth?: number | null
           competitor_max_pages?: number | null
+          competitor_prompt?: string | null
           created_at?: string | null
           id?: string
           reviews_max_months?: number | null
@@ -520,8 +524,10 @@ export type Database = {
         }
         Update: {
           competitor_crawler_type?: string | null
+          competitor_llm_model?: string | null
           competitor_max_depth?: number | null
           competitor_max_pages?: number | null
+          competitor_prompt?: string | null
           created_at?: string | null
           id?: string
           reviews_max_months?: number | null

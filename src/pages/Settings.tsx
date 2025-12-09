@@ -1101,76 +1101,75 @@ export default function Settings() {
               </div>
             ) : researchSettings && (
               <>
-                {/* Competitor Sites Section */}
+                {/* Competitor Sites Agent Section */}
                 <div className="bg-card border border-border rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                       <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Sites dos Concorrentes</h3>
-                      <p className="text-sm text-muted-foreground">Configurações do crawler para sites de concorrentes</p>
+                      <h3 className="font-semibold text-foreground">Agente de Análise de Concorrentes</h3>
+                      <p className="text-sm text-muted-foreground">Configurações do agente que analisa os sites dos concorrentes</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-6">
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
-                        Máximo de Páginas
-                      </label>
-                      <div className="flex items-center gap-4">
-                        <Slider
-                          value={[getResearchFormValue('competitor_max_pages') || 8]}
-                          onValueChange={([value]) => updateResearchForm('competitor_max_pages', value)}
-                          min={1}
-                          max={20}
-                          step={1}
-                          className="flex-1"
-                        />
-                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
-                          {getResearchFormValue('competitor_max_pages') || 8}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Profundidade Máxima
-                      </label>
-                      <div className="flex items-center gap-4">
-                        <Slider
-                          value={[getResearchFormValue('competitor_max_depth') || 2]}
-                          onValueChange={([value]) => updateResearchForm('competitor_max_depth', value)}
-                          min={1}
-                          max={5}
-                          step={1}
-                          className="flex-1"
-                        />
-                        <span className="text-sm font-mono bg-muted px-2 py-1 rounded w-12 text-center">
-                          {getResearchFormValue('competitor_max_depth') || 2}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Tipo de Crawler
+                        Modelo LLM
                       </label>
                       <Select
-                        value={getResearchFormValue('competitor_crawler_type') || 'playwright:firefox'}
-                        onValueChange={(value) => updateResearchForm('competitor_crawler_type', value)}
+                        value={getResearchFormValue('competitor_llm_model') || 'google/gemini-3-pro-preview'}
+                        onValueChange={(value) => updateResearchForm('competitor_llm_model', value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full md:w-80">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {CRAWLER_TYPES.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            Lovable AI (sem API Key)
+                          </div>
+                          {LOVABLE_MODELS.map((model) => (
+                            <SelectItem key={model.value} value={model.value}>
+                              <div className="flex items-center gap-2">
+                                <span>{model.icon}</span>
+                                <span>{model.label}</span>
+                              </div>
                             </SelectItem>
                           ))}
+                          {getAvailableExternalModels().length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
+                                Modelos Externos (via API Key)
+                              </div>
+                              {getAvailableExternalModels().map((model) => (
+                                <SelectItem key={model.value} value={model.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{model.icon}</span>
+                                    <span>{model.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Prompt de Análise
+                      </label>
+                      <Textarea
+                        value={getResearchFormValue('competitor_prompt') || ''}
+                        onChange={(e) => updateResearchForm('competitor_prompt', e.target.value)}
+                        placeholder="Instrução para o agente analisar os sites dos concorrentes..."
+                        rows={12}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Este prompt será usado pelo agente para analisar o conteúdo extraído dos sites concorrentes.
+                      </p>
                     </div>
                   </div>
                 </div>

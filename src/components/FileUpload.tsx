@@ -31,6 +31,7 @@ export function FileUpload({
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isDocLoading, setIsDocLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,16 +129,25 @@ export function FileUpload({
           </Button>
         </div>
 
-        <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+        <Dialog open={isViewerOpen} onOpenChange={(open) => {
+          setIsViewerOpen(open);
+          if (!open) setIsDocLoading(true);
+        }}>
           <DialogContent className="max-w-5xl h-[85vh] p-0">
             <DialogHeader className="p-4 pb-0">
               <DialogTitle className="text-sm truncate pr-8">{currentName}</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 p-4 pt-2 h-full">
+            <div className="flex-1 p-4 pt-2 h-full relative">
+              {isDocLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              )}
               <iframe
-                src={currentUrl}
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(currentUrl)}&embedded=true`}
                 className="w-full h-full border-0 rounded"
                 title={currentName}
+                onLoad={() => setIsDocLoading(false)}
               />
             </div>
           </DialogContent>

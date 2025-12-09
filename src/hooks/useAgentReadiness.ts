@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useHotelMaterials } from './useHotelMaterials';
 import { useHotelWebsiteData } from './useHotelWebsiteData';
 import { useHotelReviews } from './useHotelReviews';
+import { useHotelCompetitorData } from './useHotelCompetitorData';
 import { useAgentResults } from './useAgentResults';
 import { useAgentConfigs, AgentConfig } from './useAgentConfigs';
 
@@ -29,16 +30,18 @@ const PRIMARY_MATERIALS_LABELS: Record<string, string> = {
 const RESEARCH_MATERIALS_LABELS: Record<string, string> = {
   website: 'Conteúdo do Site',
   reviews: 'Avaliações Consolidadas',
+  competitors: 'Conteúdo dos Concorrentes',
 };
 
 export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadiness {
   const { getMaterial, loading: materialsLoading } = useHotelMaterials(hotelId);
   const { websiteData, loading: websiteLoading } = useHotelWebsiteData(hotelId);
   const { hasAnyCompleted: hasReviewsCompleted, loading: reviewsLoading } = useHotelReviews(hotelId);
+  const { hasAnyCompleted: hasCompetitorsCompleted, loading: competitorsLoading } = useHotelCompetitorData(hotelId);
   const { results: agentResults, loading: resultsLoading } = useAgentResults(hotelId);
   const { configs, loading: configsLoading } = useAgentConfigs();
 
-  const isLoading = materialsLoading || websiteLoading || reviewsLoading || resultsLoading || configsLoading;
+  const isLoading = materialsLoading || websiteLoading || reviewsLoading || competitorsLoading || resultsLoading || configsLoading;
 
   const materials = useMemo(() => {
     const config = configs.find(c => c.module_id === moduleId);
@@ -79,6 +82,11 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
           label = RESEARCH_MATERIALS_LABELS[materialId];
           type = 'research';
           break;
+        case 'competitors':
+          ready = hasCompetitorsCompleted();
+          label = RESEARCH_MATERIALS_LABELS[materialId];
+          type = 'research';
+          break;
         default:
           label = materialId;
       }
@@ -108,7 +116,7 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
     });
 
     return materialsList;
-  }, [configs, moduleId, getMaterial, websiteData, hasReviewsCompleted, agentResults]);
+  }, [configs, moduleId, getMaterial, websiteData, hasReviewsCompleted, hasCompetitorsCompleted, agentResults]);
 
   const missingMaterials = useMemo(() => 
     materials.filter(m => !m.ready), 

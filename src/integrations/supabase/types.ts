@@ -184,38 +184,47 @@ export type Database = {
       }
       hotel_competitor_data: {
         Row: {
+          analysis_status: string | null
           competitor_number: number
           competitor_url: string
           crawled_at: string | null
           crawled_content: Json | null
           created_at: string | null
           error_message: string | null
+          generated_analysis: string | null
           hotel_id: string
           id: string
+          llm_model_used: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          analysis_status?: string | null
           competitor_number: number
           competitor_url: string
           crawled_at?: string | null
           crawled_content?: Json | null
           created_at?: string | null
           error_message?: string | null
+          generated_analysis?: string | null
           hotel_id: string
           id?: string
+          llm_model_used?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          analysis_status?: string | null
           competitor_number?: number
           competitor_url?: string
           crawled_at?: string | null
           crawled_content?: Json | null
           created_at?: string | null
           error_message?: string | null
+          generated_analysis?: string | null
           hotel_id?: string
           id?: string
+          llm_model_used?: string | null
           status?: string | null
           updated_at?: string | null
         }

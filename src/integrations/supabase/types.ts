@@ -195,6 +195,7 @@ export type Database = {
           hotel_id: string
           id: string
           llm_model_used: string | null
+          manus_task_id: string | null
           status: string | null
           updated_at: string | null
         }
@@ -210,6 +211,7 @@ export type Database = {
           hotel_id: string
           id?: string
           llm_model_used?: string | null
+          manus_task_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -225,6 +227,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           llm_model_used?: string | null
+          manus_task_id?: string | null
           status?: string | null
           updated_at?: string | null
         }

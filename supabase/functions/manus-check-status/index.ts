@@ -7,12 +7,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Extract clean text from Manus response
-function extractManusResult(data: any): string | null {
+// Extract clean text from Manus response, including downloading output files
+async function extractManusResult(data: any): Promise<string | null> {
+  console.log("[manus-check-status] Extracting result from Manus response");
+  
   // If already a simple string
-  if (typeof data.result === 'string' && !data.result.startsWith('[')) return data.result;
-  if (typeof data.output === 'string' && !data.output.startsWith('[')) return data.output;
-  if (typeof data.content === 'string' && !data.content.startsWith('[')) return data.content;
+  if (typeof data.result === 'string' && !data.result.startsWith('[') && !data.result.startsWith('{')) {
+    console.log("[manus-check-status] Found simple string result");
+    return data.result;
+  }
+  if (typeof data.output === 'string' && !data.output.startsWith('[') && !data.output.startsWith('{')) {
+    console.log("[manus-check-status] Found simple string output");
+    return data.output;
+  }
+  if (typeof data.content === 'string' && !data.content.startsWith('[') && !data.content.startsWith('{')) {
+    console.log("[manus-check-status] Found simple string content");
+    return data.content;
+  }
   
   // Try to get messages array from various possible locations
   let messages = data.messages || data.result || data.output;
@@ -26,9 +37,61 @@ function extractManusResult(data: any): string | null {
     }
   }
   
-  if (!Array.isArray(messages)) return null;
+  if (!Array.isArray(messages)) {
+    console.log("[manus-check-status] No messages array found");
+    return null;
+  }
   
-  // Filter only assistant messages with content
+  console.log(`[manus-check-status] Processing ${messages.length} messages`);
+  
+  // First pass: look for output_file (complete report)
+  for (const msg of messages) {
+    if (msg.role !== 'assistant' || !msg.content) continue;
+    
+    if (Array.isArray(msg.content)) {
+      for (const item of msg.content) {
+        // Check for output_file - this contains the complete report
+        if (item.type === 'output_file' && item.file_url) {
+          console.log(`[manus-check-status] Found output_file: ${item.file_url}`);
+          try {
+            const fileResponse = await fetch(item.file_url);
+            if (fileResponse.ok) {
+              const fileContent = await fileResponse.text();
+              console.log(`[manus-check-status] Downloaded file content: ${fileContent.length} chars`);
+              if (fileContent.length > 200) {
+                return fileContent;
+              }
+            } else {
+              console.log(`[manus-check-status] Failed to download file: ${fileResponse.status}`);
+            }
+          } catch (err) {
+            console.error("[manus-check-status] Error downloading file:", err);
+          }
+        }
+        
+        // Also check fileUrl (alternative casing)
+        if (item.type === 'output_file' && item.fileUrl) {
+          console.log(`[manus-check-status] Found output_file (fileUrl): ${item.fileUrl}`);
+          try {
+            const fileResponse = await fetch(item.fileUrl);
+            if (fileResponse.ok) {
+              const fileContent = await fileResponse.text();
+              console.log(`[manus-check-status] Downloaded file content: ${fileContent.length} chars`);
+              if (fileContent.length > 200) {
+                return fileContent;
+              }
+            } else {
+              console.log(`[manus-check-status] Failed to download file: ${fileResponse.status}`);
+            }
+          } catch (err) {
+            console.error("[manus-check-status] Error downloading file:", err);
+          }
+        }
+      }
+    }
+  }
+  
+  // Second pass: extract text from output_text messages
   const assistantTexts: string[] = [];
   
   for (const msg of messages) {
@@ -50,6 +113,8 @@ function extractManusResult(data: any): string | null {
       assistantTexts.push(msg.content);
     }
   }
+  
+  console.log(`[manus-check-status] Found ${assistantTexts.length} text segments`);
   
   // Return the last substantial message (the final analysis)
   return assistantTexts.length > 0 ? assistantTexts[assistantTexts.length - 1] : null;
@@ -121,9 +186,12 @@ serve(async (req) => {
       case 'completed':
       case 'done':
         newStatus = 'completed';
-        // Extract clean text from Manus response
-        result = extractManusResult(data);
+        // Extract clean text from Manus response (now async)
+        result = await extractManusResult(data);
         console.log("[manus-check-status] Task completed with extracted result length:", result?.length || 0);
+        if (result) {
+          console.log("[manus-check-status] Result preview:", result.substring(0, 500));
+        }
         break;
       case 'failed':
       case 'error':

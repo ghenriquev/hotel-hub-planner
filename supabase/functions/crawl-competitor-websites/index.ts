@@ -32,6 +32,7 @@ Acesse o site acima e realize a análise completa conforme as instruções. Nave
       },
       body: JSON.stringify({
         prompt: fullPrompt,
+        agentProfile: "manus-1.5",
       }),
     });
 

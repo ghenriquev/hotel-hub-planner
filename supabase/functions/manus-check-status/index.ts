@@ -7,6 +7,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extract clean text from Manus response
+function extractManusResult(data: any): string | null {
+  // If already a simple string
+  if (typeof data.result === 'string' && !data.result.startsWith('[')) return data.result;
+  if (typeof data.output === 'string' && !data.output.startsWith('[')) return data.output;
+  if (typeof data.content === 'string' && !data.content.startsWith('[')) return data.content;
+  
+  // Try to get messages array from various possible locations
+  let messages = data.messages || data.result || data.output;
+  
+  // If it's a string that looks like JSON, parse it
+  if (typeof messages === 'string') {
+    try {
+      messages = JSON.parse(messages);
+    } catch {
+      return messages; // Return as-is if not valid JSON
+    }
+  }
+  
+  if (!Array.isArray(messages)) return null;
+  
+  // Filter only assistant messages with content
+  const assistantTexts: string[] = [];
+  
+  for (const msg of messages) {
+    if (msg.role !== 'assistant' || !msg.content) continue;
+    
+    // Content can be an array of objects {type, text}
+    if (Array.isArray(msg.content)) {
+      for (const item of msg.content) {
+        if (item.type === 'output_text' && item.text) {
+          // Skip intermediate messages like "Entendido! Vou realizar..."
+          if (!item.text.includes('Entendido! Vou realizar') && 
+              !item.text.includes('Vou começar') &&
+              item.text.length > 200) { // Only include substantial content
+            assistantTexts.push(item.text);
+          }
+        }
+      }
+    } else if (typeof msg.content === 'string' && msg.content.length > 200) {
+      assistantTexts.push(msg.content);
+    }
+  }
+  
+  // Return the last substantial message (the final analysis)
+  return assistantTexts.length > 0 ? assistantTexts[assistantTexts.length - 1] : null;
+}
+
 serve(async (req) => {
   console.log("[manus-check-status] Request received");
   
@@ -73,10 +121,9 @@ serve(async (req) => {
       case 'completed':
       case 'done':
         newStatus = 'completed';
-        // Extract the result from Manus response
-        result = data.result || data.output || data.content || 
-                 (data.messages && data.messages.length > 0 ? data.messages[data.messages.length - 1].content : null);
-        console.log("[manus-check-status] Task completed with result length:", result?.length || 0);
+        // Extract clean text from Manus response
+        result = extractManusResult(data);
+        console.log("[manus-check-status] Task completed with extracted result length:", result?.length || 0);
         break;
       case 'failed':
       case 'error':

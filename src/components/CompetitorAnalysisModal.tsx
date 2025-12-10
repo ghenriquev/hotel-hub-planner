@@ -24,9 +24,112 @@ interface CompetitorAnalysisModalProps {
   competitors: CompetitorData[];
 }
 
+// Parse analysis content - handles both new clean text and legacy JSON format
+function parseAnalysisContent(content: string | null | undefined): string {
+  if (!content) return '';
+  
+  // Try to parse as JSON (legacy data)
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed)) {
+      // Extract text from assistant messages
+      const texts = parsed
+        .filter((m: any) => m.role === 'assistant' && m.content)
+        .flatMap((m: any) => {
+          if (Array.isArray(m.content)) {
+            return m.content
+              .filter((c: any) => c.type === 'output_text' && c.text)
+              .map((c: any) => c.text);
+          }
+          return [];
+        })
+        .filter((t: string) => 
+          t && 
+          !t.includes('Entendido! Vou realizar') && 
+          !t.includes('Vou começar') &&
+          t.length > 200
+        );
+      
+      return texts.length > 0 ? texts[texts.length - 1] : '';
+    }
+  } catch {
+    // Not JSON, return as-is
+  }
+  
+  return content;
+}
+
+// Render formatted analysis with sections and structure
+function FormattedAnalysis({ content }: { content: string }) {
+  const parsedContent = parseAnalysisContent(content);
+  
+  if (!parsedContent) {
+    return <p className="text-muted-foreground">Conteúdo não disponível</p>;
+  }
+  
+  const lines = parsedContent.split('\n');
+  
+  return (
+    <div className="space-y-2">
+      {lines.map((line, i) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return null;
+        
+        // Main section headers (Seção X:, ## Title, **Title**)
+        if (trimmedLine.match(/^(Seção \d+:|##\s|#{1,2}\s|\*\*[^*]+\*\*$)/i)) {
+          return (
+            <h3 key={i} className="text-base font-semibold text-foreground mt-6 mb-3 border-b border-border pb-2">
+              {trimmedLine.replace(/^#+\s*/, '').replace(/\*\*/g, '')}
+            </h3>
+          );
+        }
+        
+        // Sub-headers (lines ending with : that are short)
+        if (trimmedLine.match(/^[A-ZÀ-Ú][^:]{3,50}:$/) && trimmedLine.length < 60) {
+          return (
+            <h4 key={i} className="text-sm font-medium text-foreground mt-4 mb-2">
+              {trimmedLine}
+            </h4>
+          );
+        }
+        
+        // Bullet points
+        if (trimmedLine.match(/^[-•*]\s/)) {
+          return (
+            <div key={i} className="flex gap-2 ml-4 text-sm text-muted-foreground">
+              <span className="text-primary">•</span>
+              <span>{trimmedLine.replace(/^[-•*]\s*/, '')}</span>
+            </div>
+          );
+        }
+        
+        // Numbered lists
+        if (trimmedLine.match(/^\d+\.\s/)) {
+          return (
+            <div key={i} className="flex gap-2 ml-4 text-sm text-muted-foreground">
+              <span className="text-primary font-medium min-w-[1.5rem]">
+                {trimmedLine.match(/^\d+/)?.[0]}.
+              </span>
+              <span>{trimmedLine.replace(/^\d+\.\s*/, '')}</span>
+            </div>
+          );
+        }
+        
+        // Regular paragraphs
+        return (
+          <p key={i} className="text-sm text-muted-foreground leading-relaxed">
+            {trimmedLine}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: CompetitorAnalysisModalProps) {
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = (content: string) => {
+    const cleanContent = parseAnalysisContent(content);
+    navigator.clipboard.writeText(cleanContent);
     toast.success("Conteúdo copiado!");
   };
 
@@ -37,8 +140,8 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
     if (competitor.analysis_status === 'completed') {
       return <Badge className="bg-green-500/10 text-green-600 text-xs">Análise Concluída</Badge>;
     }
-    if (competitor.analysis_status === 'generating') {
-      return <Badge className="bg-blue-500/10 text-blue-600 text-xs">Gerando Análise...</Badge>;
+    if (competitor.analysis_status === 'generating' || competitor.analysis_status === 'processing_manus') {
+      return <Badge className="bg-blue-500/10 text-blue-600 text-xs">Processando...</Badge>;
     }
     if (competitor.analysis_status === 'error') {
       return <Badge variant="destructive" className="text-xs">Erro na Análise</Badge>;
@@ -85,7 +188,7 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                     <CheckCircle2 className="h-3 w-3 text-green-500" />
                   ) : competitor.status === 'error' || competitor.analysis_status === 'error' ? (
                     <XCircle className="h-3 w-3 text-destructive" />
-                  ) : competitor.analysis_status === 'generating' || competitor.status === 'crawling' ? (
+                  ) : competitor.analysis_status === 'generating' || competitor.analysis_status === 'processing_manus' || competitor.status === 'crawling' ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : null}
                 </TabsTrigger>
@@ -113,7 +216,7 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                     {getStatusBadge(competitor)}
                     {competitor.llm_model_used && (
                       <Badge variant="outline" className="text-xs">
-                        {competitor.llm_model_used.replace('google/', '').replace('openai/', '')}
+                        {competitor.llm_model_used.replace('google/', '').replace('openai/', '').replace('manus/', '')}
                       </Badge>
                     )}
                   </div>
@@ -138,10 +241,14 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                         <p className="font-medium mb-1">Erro no Crawl</p>
                         <p className="text-sm text-muted-foreground">{competitor.error_message || 'Erro desconhecido'}</p>
                       </div>
-                    ) : competitor.analysis_status === 'generating' ? (
+                    ) : competitor.analysis_status === 'generating' || competitor.analysis_status === 'processing_manus' ? (
                       <div className="text-center py-8">
                         <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
-                        <p className="text-muted-foreground">Gerando análise com LLM...</p>
+                        <p className="text-muted-foreground">
+                          {competitor.analysis_status === 'processing_manus' 
+                            ? 'Processando no Manus Agent...' 
+                            : 'Gerando análise com LLM...'}
+                        </p>
                       </div>
                     ) : competitor.analysis_status === 'error' ? (
                       <div className="text-center py-8 text-destructive">
@@ -150,9 +257,7 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                         <p className="text-sm text-muted-foreground">{competitor.error_message || 'Erro ao gerar análise com LLM'}</p>
                       </div>
                     ) : competitor.generated_analysis ? (
-                      <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
-                        {competitor.generated_analysis}
-                      </div>
+                      <FormattedAnalysis content={competitor.generated_analysis} />
                     ) : competitor.status === 'completed' ? (
                       <div className="text-center py-8 text-muted-foreground">
                         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />

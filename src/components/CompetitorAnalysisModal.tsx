@@ -233,7 +233,7 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                   )}
                 </div>
                 
-                <ScrollArea className="flex-1 border rounded-lg">
+                <ScrollArea className="flex-1 border rounded-lg h-[50vh]">
                   <div className="p-4">
                     {competitor.status === 'error' ? (
                       <div className="text-center py-8 text-destructive">

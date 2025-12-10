@@ -48,10 +48,10 @@ serve(async (req) => {
 
     // Check task status from Manus API
     console.log(`[manus-check-status] Fetching status from Manus API for task ${taskId}`);
-    const response = await fetch(`https://api.manus.im/v1/tasks/${taskId}`, {
+    const response = await fetch(`https://api.manus.ai/v1/tasks/${taskId}`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${MANUS_API_KEY}`,
+        "API_KEY": MANUS_API_KEY,
         "Content-Type": "application/json",
       },
     });

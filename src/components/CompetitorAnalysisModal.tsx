@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, ExternalLink, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
@@ -28,32 +28,43 @@ interface CompetitorAnalysisModalProps {
 function parseAnalysisContent(content: string | null | undefined): string {
   if (!content) return '';
   
-  // Try to parse as JSON (legacy data)
-  try {
-    const parsed = JSON.parse(content);
-    if (Array.isArray(parsed)) {
-      // Extract text from assistant messages
-      const texts = parsed
-        .filter((m: any) => m.role === 'assistant' && m.content)
-        .flatMap((m: any) => {
-          if (Array.isArray(m.content)) {
-            return m.content
-              .filter((c: any) => c.type === 'output_text' && c.text)
-              .map((c: any) => c.text);
-          }
-          return [];
-        })
-        .filter((t: string) => 
-          t && 
-          !t.includes('Entendido! Vou realizar') && 
-          !t.includes('Vou começar') &&
-          t.length > 200
-        );
+  const trimmed = content.trim();
+  
+  // Check if it looks like JSON (starts with [ or {)
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const messages = Array.isArray(parsed) ? parsed : [parsed];
       
-      return texts.length > 0 ? texts[texts.length - 1] : '';
+      // Extract text from assistant messages
+      const texts: string[] = [];
+      
+      for (const msg of messages) {
+        if (msg.role !== 'assistant' || !msg.content) continue;
+        
+        if (Array.isArray(msg.content)) {
+          for (const item of msg.content) {
+            if (item.type === 'output_text' && item.text) {
+              // Skip intermediate/short messages
+              if (item.text.length > 200 && 
+                  !item.text.includes('Entendido! Vou realizar') &&
+                  !item.text.includes('Vou começar')) {
+                texts.push(item.text);
+              }
+            }
+          }
+        } else if (typeof msg.content === 'string' && msg.content.length > 200) {
+          texts.push(msg.content);
+        }
+      }
+      
+      // Return the last substantial text (final analysis)
+      if (texts.length > 0) {
+        return texts[texts.length - 1];
+      }
+    } catch (e) {
+      console.error('Error parsing analysis JSON:', e);
     }
-  } catch {
-    // Not JSON, return as-is
   }
   
   return content;
@@ -233,8 +244,8 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                   )}
                 </div>
                 
-                <ScrollArea className="flex-1 border rounded-lg h-[50vh]">
-                  <div className="p-4">
+                <div className="flex-1 border rounded-lg overflow-y-auto max-h-[50vh]">
+                  <div className="p-4 min-h-0">
                     {competitor.status === 'error' ? (
                       <div className="text-center py-8 text-destructive">
                         <XCircle className="h-8 w-8 mx-auto mb-2" />
@@ -277,7 +288,7 @@ export function CompetitorAnalysisModal({ open, onOpenChange, competitors }: Com
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
             ))}
           </Tabs>

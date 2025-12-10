@@ -24,10 +24,10 @@ Site do Concorrente para Análise: ${competitorUrl}
 
 Acesse o site acima e realize a análise completa conforme as instruções. Navegue pelo site, analise todas as páginas relevantes, e forneça uma análise detalhada.`;
 
-    const response = await fetch("https://api.manus.im/v1/tasks", {
+    const response = await fetch("https://api.manus.ai/v1/tasks", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${manusApiKey}`,
+        "API_KEY": manusApiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

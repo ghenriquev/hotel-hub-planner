@@ -52,10 +52,10 @@ serve(async (req) => {
 
     // Call Manus API to create task
     console.log("[manus-agent] Calling Manus API...");
-    const response = await fetch("https://api.manus.im/v1/tasks", {
+    const response = await fetch("https://api.manus.ai/v1/tasks", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${MANUS_API_KEY}`,
+        "API_KEY": MANUS_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

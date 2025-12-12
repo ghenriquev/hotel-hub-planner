@@ -51,13 +51,13 @@
     --shadow-lg: 0 10px 15px -3px hsl(228 9% 11% / 0.1), 0 4px 6px -4px hsl(228 9% 11% / 0.1);
     --shadow-glow: 0 0 20px hsl(0 85% 58% / 0.15);
 
-    --sidebar-background: 228 9% 11%;
-    --sidebar-foreground: 40 20% 95%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 228 9% 20%;
     --sidebar-primary: 0 85% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 228 9% 18%;
-    --sidebar-accent-foreground: 40 20% 95%;
-    --sidebar-border: 228 9% 20%;
+    --sidebar-accent: 40 15% 96%;
+    --sidebar-accent-foreground: 228 9% 20%;
+    --sidebar-border: 40 20% 90%;
     --sidebar-ring: 0 85% 58%;
   }
 

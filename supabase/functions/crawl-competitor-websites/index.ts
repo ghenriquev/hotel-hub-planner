@@ -24,30 +24,64 @@ Site do Concorrente para Análise: ${competitorUrl}
 
 Acesse o site acima e realize a análise completa conforme as instruções. Navegue pelo site, analise todas as páginas relevantes, e forneça uma análise detalhada.`;
 
-    const response = await fetch("https://api.manus.ai/v1/tasks", {
+    const requestBody = JSON.stringify({
+      prompt: fullPrompt,
+      agentProfile: "manus-1.5",
+    });
+
+    // Try with API_KEY header first
+    console.log(`[crawl-competitor-websites] Trying Manus API with API_KEY header...`);
+    let response = await fetch("https://api.manus.ai/v1/tasks", {
       method: "POST",
       headers: {
         "API_KEY": manusApiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        prompt: fullPrompt,
-        agentProfile: "manus-1.5",
-      }),
+      body: requestBody,
     });
+
+    // If 401, retry with Authorization Bearer format
+    if (response.status === 401) {
+      console.log(`[crawl-competitor-websites] API_KEY failed with 401, trying Authorization Bearer...`);
+      response = await fetch("https://api.manus.ai/v1/tasks", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${manusApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[crawl-competitor-websites] Manus API error:`, response.status, errorText);
-      return { taskId: '', success: false, error: `Manus API error: ${response.status}` };
+      console.error(`[crawl-competitor-websites] Manus API error: ${response.status}`, errorText);
+      
+      // Update database with error immediately so user can see what happened
+      const errorMsg = `Erro Manus API: ${response.status} - ${errorText.substring(0, 200)}`;
+      await supabase.from('hotel_competitor_data').update({
+        status: 'error',
+        analysis_status: 'error',
+        error_message: errorMsg,
+      }).eq('hotel_id', hotelId).eq('competitor_number', competitorNumber);
+      
+      return { taskId: '', success: false, error: errorMsg };
     }
 
     const data = await response.json();
+    console.log(`[crawl-competitor-websites] Manus response:`, JSON.stringify(data).substring(0, 200));
+    
     const taskId = data.task_id || data.id;
 
     if (!taskId) {
-      console.error("[crawl-competitor-websites] No task_id in Manus response");
-      return { taskId: '', success: false, error: 'No task_id in Manus response' };
+      console.error("[crawl-competitor-websites] No task_id in Manus response:", data);
+      const errorMsg = 'Manus não retornou task_id';
+      await supabase.from('hotel_competitor_data').update({
+        status: 'error',
+        analysis_status: 'error',
+        error_message: errorMsg,
+      }).eq('hotel_id', hotelId).eq('competitor_number', competitorNumber);
+      return { taskId: '', success: false, error: errorMsg };
     }
 
     console.log(`[crawl-competitor-websites] Manus task created: ${taskId}`);
@@ -64,7 +98,16 @@ Acesse o site acima e realize a análise completa conforme as instruções. Nave
 
   } catch (error) {
     console.error("[crawl-competitor-websites] Error calling Manus:", error);
-    return { taskId: '', success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    
+    // Update database with error
+    await supabase.from('hotel_competitor_data').update({
+      status: 'error',
+      analysis_status: 'error',
+      error_message: errorMsg,
+    }).eq('hotel_id', hotelId).eq('competitor_number', competitorNumber);
+    
+    return { taskId: '', success: false, error: errorMsg };
   }
 }
 

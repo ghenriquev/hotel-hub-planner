@@ -8,6 +8,7 @@ import { useHotel } from "@/hooks/useHotels";
 import { useAgentResult } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { useAgentReadiness } from "@/hooks/useAgentReadiness";
+import { useApiKeys } from "@/hooks/useApiKeys";
 import { getAgentById } from "@/lib/agents-data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,7 +29,8 @@ import {
   FileText,
   FileCheck,
   Bot,
-  Search
+  Search,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -42,6 +44,18 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Helper to get friendly model name
 function getModelDisplayName(model: string | null): string {
@@ -64,6 +78,31 @@ function getModelDisplayName(model: string | null): string {
   return modelNames[model] || model.split('/').pop() || model;
 }
 
+// Lovable AI models (no API key required)
+const LOVABLE_MODELS = [
+  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮" },
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮" },
+  { value: "openai/gpt-5", label: "GPT-5", icon: "🤖" },
+  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖" },
+  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖" },
+];
+
+// Models that require API keys
+const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: string }[]> = {
+  openai: [
+    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖" },
+  ],
+  anthropic: [
+    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠" },
+  ],
+  manus: [
+    { value: "manus/agent-1.5", label: "Manus Agent 1.5", icon: "🔧" },
+    { value: "manus/agent-1.5-lite", label: "Manus Agent Lite", icon: "🔧" },
+  ],
+};
+
 export default function AgentModule() {
   const navigate = useNavigate();
   const { id: hotelId, moduleId } = useParams<{ id: string; moduleId: string }>();
@@ -78,13 +117,44 @@ export default function AgentModule() {
   const agent = getAgentById(moduleIdNum);
   
   const { result, loading, refetch } = useAgentResult(hotelId || "", moduleIdNum);
-  const { configs } = useAgentConfigs();
+  const { configs, updateConfig } = useAgentConfigs();
   const { isReady, isLoading: readinessLoading, materials, missingMaterials } = useAgentReadiness(hotelId || "", moduleIdNum);
+  const { apiKeys } = useApiKeys();
   const [materialsExpanded, setMaterialsExpanded] = useState(false);
+  const [isChangingModel, setIsChangingModel] = useState(false);
   
   // Get the output type for this module
   const agentConfig = configs.find(c => c.module_id === moduleIdNum);
   const outputType = agentConfig?.output_type || 'text';
+
+  // Get active API key types for external models
+  const getActiveApiKeyTypes = (): string[] => {
+    return apiKeys.filter(k => k.is_active).map(k => k.key_type);
+  };
+
+  // Get available external models based on active API keys
+  const getAvailableExternalModels = () => {
+    const activeTypes = getActiveApiKeyTypes();
+    const models: { value: string; label: string; icon: string }[] = [];
+    
+    for (const keyType of activeTypes) {
+      const keyModels = EXTERNAL_MODELS[keyType];
+      if (keyModels) {
+        keyModels.forEach(m => models.push(m));
+      }
+    }
+    
+    return models;
+  };
+
+  const handleChangeModel = async (newModel: string) => {
+    setIsChangingModel(true);
+    const success = await updateConfig(moduleIdNum, { llm_model: newModel });
+    setIsChangingModel(false);
+    if (success) {
+      // Toast is already shown by updateConfig
+    }
+  };
 
   // Sync editedText with result
   useEffect(() => {
@@ -355,6 +425,73 @@ export default function AgentModule() {
                       </CollapsibleContent>
                     </Collapsible>
                   )
+                )}
+                
+                {/* LLM Model Badge with Dropdown */}
+                {agentConfig && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer gap-1 hover:bg-muted"
+                      >
+                        <Cpu className="h-3 w-3" />
+                        {getModelDisplayName(agentConfig.llm_model)}
+                        <ChevronDown className="h-3 w-3" />
+                      </Badge>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-3" align="start">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Trocar modelo LLM:
+                      </p>
+                      <Select 
+                        value={agentConfig.llm_model} 
+                        onValueChange={handleChangeModel}
+                        disabled={isChangingModel}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione o modelo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Lovable AI Models */}
+                          <div className="text-xs text-muted-foreground px-2 py-1 font-medium">
+                            Lovable AI (sem API key)
+                          </div>
+                          {LOVABLE_MODELS.map(m => (
+                            <SelectItem key={m.value} value={m.value}>
+                              <span className="flex items-center gap-2">
+                                <span>{m.icon}</span>
+                                <span>{m.label}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                          
+                          {/* External Models */}
+                          {getAvailableExternalModels().length > 0 && (
+                            <>
+                              <div className="text-xs text-muted-foreground px-2 py-1 mt-2 font-medium border-t">
+                                Externos (via API Key)
+                              </div>
+                              {getAvailableExternalModels().map(m => (
+                                <SelectItem key={m.value} value={m.value}>
+                                  <span className="flex items-center gap-2">
+                                    <span>{m.icon}</span>
+                                    <span>{m.label}</span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {isChangingModel && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Salvando...
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
             </div>

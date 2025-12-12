@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Logo } from "@/components/Logo";
+// Logo import removed - using AppLayout
 import { useAgentConfigs, AgentConfig } from "@/hooks/useAgentConfigs";
 import { useApiKeys, ApiKeyInput, ApiKey } from "@/hooks/useApiKeys";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -59,7 +59,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { 
-  ArrowLeft, 
   Settings as SettingsIcon,
   Save,
   Loader2,
@@ -762,36 +761,15 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <Logo />
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-8 animate-fade-in">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center">
-              <SettingsIcon className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl lg:text-3xl text-foreground">
-                Configurações
-              </h1>
-              <p className="text-muted-foreground">Gerencie agentes, API keys e Gamma</p>
-            </div>
-          </div>
-          
-          <Button onClick={() => navigate("/users")} variant="outline">
-            <Users className="h-4 w-4 mr-2" />
-            Gerenciar Usuários
-          </Button>
-        </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-muted-foreground">Gerencie agentes, API keys e Gamma</p>
+        
+        <Button onClick={() => navigate("/users")} variant="outline">
+          <Users className="h-4 w-4 mr-2" />
+          Gerenciar Usuários
+        </Button>
+      </div>
 
         <Tabs defaultValue="agents" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
@@ -1546,7 +1524,6 @@ export default function Settings() {
             )}
           </TabsContent>
         </Tabs>
-      </main>
 
       {/* API Key Dialog */}
       <Dialog open={isApiKeyDialogOpen} onOpenChange={setIsApiKeyDialogOpen}>

@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/Logo";
+// Logo import removed - using AppLayout
 import { ProgressRing } from "@/components/ProgressRing";
 import { SaveIndicator } from "@/components/SaveIndicator";
 import { GanttChart } from "@/components/GanttChart";
@@ -22,7 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot } from "lucide-react";
+import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -186,24 +186,13 @@ export default function HotelDetail() {
   }
   const completedAgents = results.filter(r => r.status === 'completed').length;
   const hotelProgress = Math.round(completedAgents / 11 * 100);
-  return <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <Logo />
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        {/* Hotel header */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-8 animate-fade-in">
+  return <div className="p-6">
+      {/* Hotel header */}
+      <div className="bg-card border border-border/60 p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 gradient-primary rounded-xl flex items-center justify-center shrink-0">
-                <Building2 className="h-8 w-8 text-primary-foreground" />
+              <div className="w-12 h-12 gradient-primary flex items-center justify-center shrink-0">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
                 <h1 className="font-display text-2xl lg:text-3xl text-foreground mb-2">
@@ -799,7 +788,6 @@ export default function HotelDetail() {
               </div>;
         })}
         </div>
-      </main>
 
       {/* Floating HotelGPT Button */}
       <Button onClick={() => setIsChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg gradient-primary hover:scale-105 transition-transform z-40" size="icon">

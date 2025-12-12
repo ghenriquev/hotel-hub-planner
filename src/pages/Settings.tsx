@@ -28,6 +28,24 @@ import {
 } from "@/hooks/useGammaSettings";
 import { useResearchSettings, ResearchSettings, ResearchSettingsUpdate } from "@/hooks/useResearchSettings";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { 
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   ArrowLeft, 
   Settings as SettingsIcon,
@@ -51,7 +69,8 @@ import {
   Search,
   Globe,
   Star,
-  Building2
+  Building2,
+  GripVertical
 } from "lucide-react";
 
 const CRAWLER_TYPES = [
@@ -107,14 +126,307 @@ const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: stri
   ],
 };
 
+// Sortable Agent Item Component
+interface SortableAgentItemProps {
+  config: AgentConfig;
+  index: number;
+  editingId: number | null;
+  editForm: { prompt: string; output_type: string; llm_model: string; materials_config: string[]; secondary_materials_config: number[] };
+  saving: boolean;
+  deletingAgent: number | null;
+  configs: AgentConfig[];
+  getModelInfo: (model: string) => { value: string; label: string; icon: string; description: string };
+  PRIMARY_MATERIALS: { value: string; label: string }[];
+  RESEARCH_MATERIALS: { value: string; label: string }[];
+  LOVABLE_MODELS: { value: string; label: string; icon: string; description: string }[];
+  getAvailableExternalModels: () => { value: string; label: string; icon: string; description: string; keyType: string }[];
+  getPrimaryMaterialsLabel: (config: string[]) => string;
+  getResearchMaterialsLabel: (config: string[]) => string;
+  getSecondaryMaterialsLabel: (config: number[]) => string;
+  handleEdit: (config: AgentConfig) => void;
+  handleSave: (moduleId: number) => Promise<void>;
+  handleCancel: () => void;
+  handleDeleteAgent: (moduleId: number) => Promise<void>;
+  setEditForm: React.Dispatch<React.SetStateAction<{ prompt: string; output_type: string; llm_model: string; materials_config: string[]; secondary_materials_config: number[] }>>;
+  toggleMaterial: (materialValue: string) => void;
+  toggleSecondaryMaterial: (moduleId: number) => void;
+}
+
+function SortableAgentItem({
+  config,
+  index,
+  editingId,
+  editForm,
+  saving,
+  deletingAgent,
+  configs,
+  getModelInfo,
+  PRIMARY_MATERIALS,
+  RESEARCH_MATERIALS,
+  LOVABLE_MODELS,
+  getAvailableExternalModels,
+  getPrimaryMaterialsLabel,
+  getResearchMaterialsLabel,
+  getSecondaryMaterialsLabel,
+  handleEdit,
+  handleSave,
+  handleCancel,
+  handleDeleteAgent,
+  setEditForm,
+  toggleMaterial,
+  toggleSecondaryMaterial,
+}: SortableAgentItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: config.module_id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    animationDelay: `${index * 0.03}s`,
+  };
+
+  const isEditing = editingId === config.module_id;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-card border border-border rounded-xl p-6 animate-slide-up ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}`}
+    >
+      <div className="flex items-start gap-4 mb-4">
+        {/* Drag handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="mt-1 cursor-grab active:cursor-grabbing p-1 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
+
+        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+          <Bot className="h-5 w-5 text-primary" />
+        </div>
+        
+        <div className="flex-1">
+          <h3 className="font-semibold text-foreground">
+            {config.module_title}
+          </h3>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            <span>Output: {config.output_type}</span>
+            <span className="flex items-center gap-1">
+              <span>{getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').icon}</span>
+              {getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').label}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!isEditing && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => handleEdit(config)}>
+                Editar
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-destructive hover:text-destructive"
+                onClick={() => handleDeleteAgent(config.module_id)}
+                disabled={deletingAgent === config.module_id}
+              >
+                {deletingAgent === config.module_id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-4">
+          {/* 1. Prompt do Agente */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Prompt do Agente
+            </label>
+            <Textarea
+              value={editForm.prompt}
+              onChange={(e) => setEditForm(prev => ({ ...prev, prompt: e.target.value }))}
+              rows={6}
+              className="resize-none"
+            />
+          </div>
+
+          {/* 2. Materiais Primários */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Materiais Primários
+            </label>
+            <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
+              {PRIMARY_MATERIALS.map((material) => (
+                <label key={material.value} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.materials_config.includes(material.value)}
+                    onCheckedChange={() => toggleMaterial(material.value)}
+                  />
+                  <span className="text-sm">{material.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Resultado de Pesquisa */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Resultado de Pesquisa
+            </label>
+            <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
+              {RESEARCH_MATERIALS.map((material) => (
+                <label key={material.value} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editForm.materials_config.includes(material.value)}
+                    onCheckedChange={() => toggleMaterial(material.value)}
+                  />
+                  <span className="text-sm">{material.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Resultados do Agente */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Resultados do Agente
+            </label>
+            <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
+              {configs
+                .filter(c => c.module_id !== config.module_id)
+                .map((otherConfig) => (
+                  <label key={otherConfig.module_id} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={editForm.secondary_materials_config.includes(otherConfig.module_id)}
+                      onCheckedChange={() => toggleSecondaryMaterial(otherConfig.module_id)}
+                    />
+                    <span className="text-sm">{otherConfig.module_title}</span>
+                  </label>
+                ))}
+            </div>
+          </div>
+
+          {/* Modelo LLM */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Modelo LLM
+            </label>
+            <Select 
+              value={editForm.llm_model} 
+              onValueChange={(value) => setEditForm(prev => ({ ...prev, llm_model: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  <span className="flex items-center gap-2">
+                    <span>{getModelInfo(editForm.llm_model).icon}</span>
+                    {getModelInfo(editForm.llm_model).label}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                  Lovable AI (sem API Key)
+                </div>
+                {LOVABLE_MODELS.map((model) => (
+                  <SelectItem key={model.value} value={model.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{model.icon}</span>
+                      <span>{model.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+                
+                {getAvailableExternalModels().length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
+                      Via API Key Configurada
+                    </div>
+                    {getAvailableExternalModels().map((model) => (
+                      <SelectItem key={model.value} value={model.value}>
+                        <div className="flex items-center gap-2">
+                          <span>{model.icon}</span>
+                          <span>{model.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Tipo de Output */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block">
+              Tipo de Output
+            </label>
+            <Select 
+              value={editForm.output_type} 
+              onValueChange={(value) => setEditForm(prev => ({ ...prev, output_type: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Texto</SelectItem>
+                <SelectItem value="presentation">Apresentação (Gamma)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={() => handleSave(config.module_id)} disabled={saving || editForm.materials_config.length === 0}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+            <Button variant="outline" onClick={handleCancel}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Settings() {
   const navigate = useNavigate();
-  const { configs, loading, updateConfig } = useAgentConfigs();
+  const { configs, loading, updateConfig, createConfig, deleteConfig, reorderConfigs } = useAgentConfigs();
   const { apiKeys, loading: apiKeysLoading, addApiKey, updateApiKey, deleteApiKey, toggleApiKey } = useApiKeys();
   const { isAdmin, loading: roleLoading } = useUserRole();
   const { settings: gammaSettings, loading: gammaLoading, saving: gammaSaving, updateSettings: updateGammaSettings } = useGammaSettings();
   const { settings: researchSettings, loading: researchLoading, saving: researchSaving, updateSettings: updateResearchSettings } = useResearchSettings();
   
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Research settings local state
   const [researchForm, setResearchForm] = useState<ResearchSettingsUpdate>({});
   const [researchFormDirty, setResearchFormDirty] = useState(false);
@@ -162,6 +474,17 @@ export default function Settings() {
     secondary_materials_config: []
   });
   const [saving, setSaving] = useState(false);
+  const [deletingAgent, setDeletingAgent] = useState<number | null>(null);
+  
+  // New agent dialog state
+  const [isNewAgentDialogOpen, setIsNewAgentDialogOpen] = useState(false);
+  const [newAgentForm, setNewAgentForm] = useState({ 
+    module_title: '', 
+    prompt: '', 
+    output_type: 'text', 
+    llm_model: 'google/gemini-3-pro-preview' 
+  });
+  const [savingNewAgent, setSavingNewAgent] = useState(false);
 
   // API Key dialog state
   const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
@@ -316,7 +639,37 @@ export default function Settings() {
     return config.map(id => configs.find(c => c.module_id === id)?.module_title || `Agente ${id}`).join(', ');
   };
 
-  // API Key handlers
+  // Agent CRUD handlers
+  const handleDeleteAgent = async (moduleId: number) => {
+    setDeletingAgent(moduleId);
+    await deleteConfig(moduleId);
+    setDeletingAgent(null);
+  };
+
+  const handleCreateAgent = async () => {
+    if (!newAgentForm.module_title.trim() || !newAgentForm.prompt.trim()) {
+      return;
+    }
+    setSavingNewAgent(true);
+    const success = await createConfig(newAgentForm);
+    if (success) {
+      setIsNewAgentDialogOpen(false);
+      setNewAgentForm({ module_title: '', prompt: '', output_type: 'text', llm_model: 'google/gemini-3-pro-preview' });
+    }
+    setSavingNewAgent(false);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = configs.findIndex(c => c.module_id === active.id);
+      const newIndex = configs.findIndex(c => c.module_id === over.id);
+      
+      const newOrder = arrayMove(configs, oldIndex, newIndex);
+      await reorderConfigs(newOrder.map(c => c.module_id));
+    }
+  };
   const openAddApiKeyDialog = () => {
     setEditingApiKey(null);
     setApiKeyForm({ name: '', key_type: 'openai', api_key: '' });
@@ -434,231 +787,54 @@ export default function Settings() {
 
           {/* Agents Tab */}
           <TabsContent value="agents" className="space-y-4">
-            {configs.map((config, index) => (
-              <div
-                key={config.id}
-                className="bg-card border border-border rounded-xl p-6 animate-slide-up"
-                style={{ animationDelay: `${index * 0.03}s` }}
+            <div className="flex justify-between items-center">
+              <p className="text-muted-foreground">
+                Arraste os agentes para reordenar. A ordem será refletida em todo o sistema.
+              </p>
+              <Button onClick={() => setIsNewAgentDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Agente
+              </Button>
+            </div>
+
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext 
+                items={configs.map(c => c.module_id)}
+                strategy={verticalListSortingStrategy}
               >
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
-                      #{config.module_id} - {config.module_title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                      <span>Output: {config.output_type}</span>
-                      <span className="flex items-center gap-1">
-                        <span>{getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').icon}</span>
-                        {getModelInfo(config.llm_model || 'google/gemini-3-pro-preview').label}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        Primários: {getPrimaryMaterialsLabel(config.materials_config)}
-                      </span>
-                      {getResearchMaterialsLabel(config.materials_config) !== 'Nenhum' && (
-                        <span className="flex items-center gap-1">
-                          <Search className="h-3 w-3" />
-                          Pesquisas: {getResearchMaterialsLabel(config.materials_config)}
-                        </span>
-                      )}
-                      {config.secondary_materials_config && config.secondary_materials_config.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Bot className="h-3 w-3" />
-                          Agentes: {getSecondaryMaterialsLabel(config.secondary_materials_config)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {editingId !== config.module_id && (
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(config)}>
-                      Editar
-                    </Button>
-                  )}
-                </div>
-
-                {editingId === config.module_id ? (
-                  <div className="space-y-4">
-                    {/* 1. Prompt do Agente */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Prompt do Agente
-                      </label>
-                      <Textarea
-                        value={editForm.prompt}
-                        onChange={(e) => setEditForm({ ...editForm, prompt: e.target.value })}
-                        rows={6}
-                        className="resize-none"
-                      />
-                    </div>
-
-                    {/* 2. Materiais Primários */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Materiais Primários
-                      </label>
-                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
-                        {PRIMARY_MATERIALS.map((material) => (
-                          <label key={material.value} className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={editForm.materials_config.includes(material.value)}
-                              onCheckedChange={() => toggleMaterial(material.value)}
-                            />
-                            <span className="text-sm">{material.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Documentos enviados pelo consultor
-                      </p>
-                    </div>
-
-                    {/* 3. Resultado de Pesquisa */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                        <Search className="h-4 w-4" />
-                        Resultado de Pesquisa
-                      </label>
-                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg">
-                        {RESEARCH_MATERIALS.map((material) => (
-                          <label key={material.value} className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={editForm.materials_config.includes(material.value)}
-                              onCheckedChange={() => toggleMaterial(material.value)}
-                            />
-                            <span className="text-sm">{material.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Dados coletados automaticamente via pesquisa
-                      </p>
-                    </div>
-
-                    {/* 4. Resultados do Agente */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                        <Bot className="h-4 w-4" />
-                        Resultados do Agente
-                      </label>
-                      <div className="flex flex-wrap gap-4 p-3 bg-muted/50 rounded-lg max-h-40 overflow-y-auto">
-                        {configs
-                          .filter(c => c.module_id !== config.module_id)
-                          .map((otherConfig) => (
-                            <label key={otherConfig.module_id} className="flex items-center gap-2 cursor-pointer">
-                              <Checkbox
-                                checked={editForm.secondary_materials_config.includes(otherConfig.module_id)}
-                                onCheckedChange={() => toggleSecondaryMaterial(otherConfig.module_id)}
-                              />
-                              <span className="text-sm">#{otherConfig.module_id} - {otherConfig.module_title}</span>
-                            </label>
-                          ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Resultados de outros agentes que serão usados como input
-                      </p>
-                    </div>
-
-                    {/* 3. Modelo LLM */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Modelo LLM
-                      </label>
-                      <Select 
-                        value={editForm.llm_model} 
-                        onValueChange={(value) => setEditForm({ ...editForm, llm_model: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue>
-                            <span className="flex items-center gap-2">
-                              <span>{getModelInfo(editForm.llm_model).icon}</span>
-                              {getModelInfo(editForm.llm_model).label}
-                            </span>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                            Lovable AI (sem API Key)
-                          </div>
-                          {LOVABLE_MODELS.map((model) => (
-                            <SelectItem key={model.value} value={model.value}>
-                              <div className="flex items-center gap-2">
-                                <span>{model.icon}</span>
-                                <span>{model.label}</span>
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  {model.description}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                          
-                          {getAvailableExternalModels().length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
-                                Via API Key Configurada
-                              </div>
-                              {getAvailableExternalModels().map((model) => (
-                                <SelectItem key={model.value} value={model.value}>
-                                  <div className="flex items-center gap-2">
-                                    <span>{model.icon}</span>
-                                    <span>{model.label}</span>
-                                    <span className="text-xs text-muted-foreground ml-1">
-                                      {model.description}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* 4. Tipo do Output */}
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-2 block">
-                        Tipo de Output
-                      </label>
-                      <Select 
-                        value={editForm.output_type} 
-                        onValueChange={(value) => setEditForm({ ...editForm, output_type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Texto</SelectItem>
-                          <SelectItem value="presentation">Apresentação (Gamma)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button onClick={() => handleSave(config.module_id)} disabled={saving || editForm.materials_config.length === 0}>
-                        {saving ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
-                        Salvar
-                      </Button>
-                      <Button variant="outline" onClick={handleCancel}>
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <p className="text-sm text-foreground whitespace-pre-wrap line-clamp-3">
-                      {config.prompt}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+                {configs.map((config, index) => (
+                  <SortableAgentItem
+                    key={config.id}
+                    config={config}
+                    index={index}
+                    editingId={editingId}
+                    editForm={editForm}
+                    saving={saving}
+                    deletingAgent={deletingAgent}
+                    configs={configs}
+                    getModelInfo={getModelInfo}
+                    PRIMARY_MATERIALS={PRIMARY_MATERIALS}
+                    RESEARCH_MATERIALS={RESEARCH_MATERIALS}
+                    LOVABLE_MODELS={LOVABLE_MODELS}
+                    getAvailableExternalModels={getAvailableExternalModels}
+                    getPrimaryMaterialsLabel={getPrimaryMaterialsLabel}
+                    getResearchMaterialsLabel={getResearchMaterialsLabel}
+                    getSecondaryMaterialsLabel={getSecondaryMaterialsLabel}
+                    handleEdit={handleEdit}
+                    handleSave={handleSave}
+                    handleCancel={handleCancel}
+                    handleDeleteAgent={handleDeleteAgent}
+                    setEditForm={setEditForm}
+                    toggleMaterial={toggleMaterial}
+                    toggleSecondaryMaterial={toggleSecondaryMaterial}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </TabsContent>
 
           {/* API Keys Tab */}
@@ -1409,6 +1585,96 @@ export default function Settings() {
                 <Save className="h-4 w-4 mr-2" />
               )}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Agent Dialog */}
+      <Dialog open={isNewAgentDialogOpen} onOpenChange={setIsNewAgentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Agente</DialogTitle>
+            <DialogDescription>
+              Crie um novo agente de análise para o sistema.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="agent-title">Título do Agente</Label>
+              <Input
+                id="agent-title"
+                placeholder="Ex: Análise de Mercado"
+                value={newAgentForm.module_title}
+                onChange={(e) => setNewAgentForm(prev => ({ ...prev, module_title: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="agent-prompt">Prompt</Label>
+              <Textarea
+                id="agent-prompt"
+                placeholder="Descreva as instruções para o agente..."
+                value={newAgentForm.prompt}
+                onChange={(e) => setNewAgentForm(prev => ({ ...prev, prompt: e.target.value }))}
+                rows={4}
+              />
+            </div>
+            
+            <div>
+              <Label>Modelo LLM</Label>
+              <Select 
+                value={newAgentForm.llm_model} 
+                onValueChange={(value) => setNewAgentForm(prev => ({ ...prev, llm_model: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOVABLE_MODELS.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      <div className="flex items-center gap-2">
+                        <span>{model.icon}</span>
+                        <span>{model.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Tipo de Output</Label>
+              <Select 
+                value={newAgentForm.output_type} 
+                onValueChange={(value) => setNewAgentForm(prev => ({ ...prev, output_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="presentation">Apresentação (Gamma)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewAgentDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateAgent} 
+              disabled={savingNewAgent || !newAgentForm.module_title.trim() || !newAgentForm.prompt.trim()}
+            >
+              {savingNewAgent ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Criar Agente
             </Button>
           </DialogFooter>
         </DialogContent>

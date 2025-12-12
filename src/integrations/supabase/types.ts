@@ -17,6 +17,7 @@ export type Database = {
       agent_configs: {
         Row: {
           created_at: string | null
+          display_order: number
           id: string
           llm_model: string
           materials_config: string[]
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          display_order?: number
           id?: string
           llm_model?: string
           materials_config?: string[]
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          display_order?: number
           id?: string
           llm_model?: string
           materials_config?: string[]

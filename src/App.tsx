@@ -13,7 +13,10 @@ import NewHotel from "./pages/NewHotel";
 import HotelDetail from "./pages/HotelDetail";
 import AgentModule from "./pages/AgentModule";
 import Evidences from "./pages/Evidences";
-import Settings from "./pages/Settings";
+import SettingsAgents from "./pages/SettingsAgents";
+import SettingsApiKeys from "./pages/SettingsApiKeys";
+import SettingsGamma from "./pages/SettingsGamma";
+import SettingsResearch from "./pages/SettingsResearch";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
@@ -143,11 +146,41 @@ const App = () => (
             } 
           />
           <Route 
-            path="/settings" 
+            path="/settings/agents" 
             element={
               <ProtectedRoute>
                 <AppLayout>
-                  <Settings />
+                  <SettingsAgents />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings/api-keys" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SettingsApiKeys />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings/gamma" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SettingsGamma />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings/research" 
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SettingsResearch />
                 </AppLayout>
               </ProtectedRoute>
             } 

@@ -9,9 +9,12 @@ interface AppLayoutProps {
 }
 
 const routeTitles: Record<string, string> = {
-  "/dashboard": "Meus Hotéis",
-  "/settings": "Configurações",
-  "/users": "Gerenciamento de Usuários",
+  "/dashboard": "Hotéis",
+  "/settings/agents": "Agentes",
+  "/settings/api-keys": "API Keys",
+  "/settings/gamma": "Gamma",
+  "/settings/research": "Pesquisa",
+  "/users": "Usuários",
   "/hotel/new": "Novo Hotel",
 };
 

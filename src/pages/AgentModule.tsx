@@ -30,7 +30,8 @@ import {
   FileCheck,
   Bot,
   Search,
-  ChevronDown
+  ChevronDown,
+  Copy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -789,51 +790,68 @@ export default function AgentModule() {
                 </div>
                 
                 {hasPresentationUrl ? (
-                  <>
-                    <div className="aspect-video w-full">
-                      <iframe 
-                        src={result.presentation_url!} 
-                        className="w-full h-full"
-                        allowFullScreen
-                        title="Apresentação Gamma"
-                      />
+                  <div className="p-6 space-y-4">
+                    {/* Visual Preview Card */}
+                    <div className="bg-muted/50 border border-dashed border-border p-8 flex flex-col items-center justify-center text-center">
+                      <Presentation className="h-12 w-12 text-primary/50 mb-3" />
+                      <p className="text-sm text-foreground mb-2">
+                        Apresentação criada com sucesso!
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        O Gamma não permite visualização incorporada.<br />
+                        Clique abaixo para abrir em nova aba.
+                      </p>
+                      <Button 
+                        onClick={() => window.open(result.presentation_url!, '_blank')}
+                        className="gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir Apresentação no Gamma
+                      </Button>
                     </div>
                     
-                    <div className="p-4 border-t border-border flex flex-wrap items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Apresentação gerada via Gamma</span>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCreatePresentation}
-                          disabled={isCreatingPresentation}
-                          className="gap-2"
-                        >
-                          {isCreatingPresentation ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Regenerando...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="h-4 w-4" />
-                              Regenerar Apresentação
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(result.presentation_url!, '_blank')}
-                          className="gap-2"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Abrir no Gamma
-                        </Button>
-                      </div>
+                    {/* Presentation URL info */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>URL:</span>
+                      <code className="bg-muted px-2 py-1 text-xs font-mono flex-1 truncate">
+                        {result.presentation_url}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(result.presentation_url!);
+                          toast.success('URL copiada!');
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </>
+
+                    {/* Regenerate button */}
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreatePresentation}
+                        disabled={isCreatingPresentation}
+                        className="gap-2"
+                      >
+                        {isCreatingPresentation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Regenerando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-4 w-4" />
+                            Regenerar Apresentação
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 ) : isPresentationGenerating ? (
                   <div className="p-8 text-center">
                     <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />

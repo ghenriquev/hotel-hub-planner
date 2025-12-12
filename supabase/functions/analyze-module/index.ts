@@ -446,6 +446,29 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
   } catch (error) {
     console.error("[analyze-module] Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Try to update status to 'error' in database so user can retry
+    try {
+      const { hotelId, moduleId } = await req.clone().json();
+      if (hotelId && moduleId) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (supabaseUrl && supabaseKey) {
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          await supabase.from('agent_results').upsert({
+            hotel_id: hotelId,
+            module_id: moduleId,
+            status: 'error',
+            result: `Erro: ${errorMessage}`,
+          }, { onConflict: 'hotel_id,module_id' });
+          console.log("[analyze-module] Updated status to 'error' in database");
+        }
+      }
+    } catch (dbError) {
+      console.error("[analyze-module] Failed to update error status:", dbError);
+    }
+    
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

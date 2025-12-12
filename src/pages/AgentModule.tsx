@@ -170,14 +170,49 @@ export default function AgentModule() {
     const shouldPollPresentation = result?.presentation_status === 'generating';
     const shouldPollManus = result?.status === 'processing_manus';
     
-    if (shouldPollAnalysis || shouldPollPresentation || shouldPollManus) {
-      const interval = setInterval(() => {
+    if (shouldPollManus && result?.result) {
+      // For Manus, we need to call manus-check-status to update the result
+      const checkManusStatus = async () => {
+        try {
+          const resultData = JSON.parse(result.result);
+          const taskId = resultData.manus_task_id;
+          
+          if (taskId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manus-check-status`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                hotelId,
+                moduleId: moduleIdNum,
+                taskId,
+                type: 'agent'
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Error checking Manus status:", e);
+        }
         refetch();
-      }, shouldPollManus ? 10000 : 2000); // Poll every 10s for Manus (slower)
+      };
       
+      checkManusStatus(); // Check immediately
+      const interval = setInterval(checkManusStatus, 10000);
       return () => clearInterval(interval);
     }
-  }, [result?.status, result?.presentation_status, isGenerating, refetch]);
+    
+    if (shouldPollAnalysis || shouldPollPresentation) {
+      const interval = setInterval(() => {
+        refetch();
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [result?.status, result?.result, result?.presentation_status, isGenerating, refetch, hotelId, moduleIdNum]);
 
   // Sync isCreatingPresentation with database status
   useEffect(() => {

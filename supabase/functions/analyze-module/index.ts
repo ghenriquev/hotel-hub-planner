@@ -282,6 +282,16 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
       if (!manusResponse.ok) {
         const errorText = await manusResponse.text();
         console.error("[analyze-module] Manus agent error:", manusResponse.status, errorText);
+        
+        // Update status to error before throwing to prevent stuck 'generating' status
+        await supabase.from('agent_results').upsert({
+          hotel_id: hotelId,
+          module_id: moduleId,
+          status: 'error',
+          result: `Erro ao chamar Manus Agent: ${errorText.substring(0, 500)}`,
+          generated_at: new Date().toISOString(),
+        }, { onConflict: 'hotel_id,module_id' });
+        
         throw new Error(`Manus agent error: ${errorText}`);
       }
 

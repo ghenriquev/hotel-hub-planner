@@ -6,6 +6,7 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { MigrationBanner } from "@/components/MigrationBanner";
 import { useHotels } from "@/hooks/useHotels";
 import { useAgentResults } from "@/hooks/useAgentResults";
+import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -21,10 +22,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function HotelProgress({ hotelId }: { hotelId: string }) {
+function HotelProgress({ hotelId, totalAgents }: { hotelId: string; totalAgents: number }) {
   const { results } = useAgentResults(hotelId);
   const completedAgents = results.filter(r => r.status === 'completed').length;
-  const progress = Math.round((completedAgents / 11) * 100);
+  const progress = totalAgents > 0 ? Math.round((completedAgents / totalAgents) * 100) : 0;
   
   return (
     <div className="flex items-center gap-3">
@@ -32,7 +33,7 @@ function HotelProgress({ hotelId }: { hotelId: string }) {
       <div className="text-sm">
         <div className="text-foreground font-medium">{progress}%</div>
         <div className="text-muted-foreground text-xs">
-          {completedAgents}/11 agentes
+          {completedAgents}/{totalAgents} agentes
         </div>
       </div>
     </div>
@@ -42,8 +43,11 @@ function HotelProgress({ hotelId }: { hotelId: string }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { hotels, loading } = useHotels();
+  const { configs: agentConfigs } = useAgentConfigs();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  const totalAgents = agentConfigs.length;
 
   const filteredHotels = hotels.filter(
     (hotel) =>
@@ -189,7 +193,7 @@ export default function Dashboard() {
                 "flex items-center justify-between",
                 viewMode === "grid" && "mt-4 pt-4 border-t border-border/60"
               )}>
-                <HotelProgress hotelId={hotel.id} />
+                <HotelProgress hotelId={hotel.id} totalAgents={totalAgents} />
                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
             </div>

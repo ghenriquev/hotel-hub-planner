@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import ReactMarkdown from 'react-markdown';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -790,10 +791,10 @@ export default function AgentModule() {
                 </div>
               ) : (
                 <div className="relative group">
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <div className="whitespace-pre-wrap text-foreground leading-relaxed">
-                      {editedText || result?.result}
-                    </div>
+                  <div className="prose prose-sm max-w-none dark:prose-invert text-foreground">
+                    <ReactMarkdown>
+                      {editedText || result?.result || ''}
+                    </ReactMarkdown>
                   </div>
                   
                   {/* Edit button overlay */}

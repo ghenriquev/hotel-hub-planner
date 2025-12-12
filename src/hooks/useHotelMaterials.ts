@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export type MaterialType = 'manual' | 'dados' | 'transcricao' | 'reviews';
+export type MaterialType = 'manual' | 'dados' | 'transcricao' | 'reviews' | 'cliente_oculto';
 
 export interface HotelMaterial {
   id: string;
@@ -20,6 +20,7 @@ export interface MaterialsState {
   dados?: { url: string; name: string };
   transcricao?: { url: string; name: string };
   reviews?: { url: string; name: string; textContent?: string };
+  cliente_oculto?: { url: string; name: string };
 }
 
 export function useHotelMaterials(hotelId: string | undefined) {
@@ -129,6 +130,7 @@ export function useHotelMaterials(hotelId: string | undefined) {
       name: getMaterial('reviews')!.file_name,
       textContent: getMaterial('reviews')!.text_content || undefined
     } : undefined,
+    cliente_oculto: getMaterial('cliente_oculto') ? { url: getMaterial('cliente_oculto')!.file_url, name: getMaterial('cliente_oculto')!.file_name } : undefined,
   };
 
   return {

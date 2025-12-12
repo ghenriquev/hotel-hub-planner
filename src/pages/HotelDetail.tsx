@@ -492,7 +492,7 @@ export default function HotelDetail() {
             <SaveIndicator saving={isSaving} saved={lastSaved !== null} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Manual de Funcionamento */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -518,6 +518,15 @@ export default function HotelDetail() {
                 Transcrição de Kickoff
               </label>
               <FileUpload hotelId={hotel.id} field="transcricao" currentUrl={materialsState.transcricao?.url} currentName={materialsState.transcricao?.name} onUploadComplete={(url, name) => handleMaterialUpload('transcricao', url, name)} onRemove={() => handleMaterialRemove('transcricao')} />
+            </div>
+
+            {/* Cliente Oculto */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Cliente Oculto
+              </label>
+              <FileUpload hotelId={hotel.id} field="cliente_oculto" currentUrl={materialsState.cliente_oculto?.url} currentName={materialsState.cliente_oculto?.name} onUploadComplete={(url, name) => handleMaterialUpload('cliente_oculto', url, name)} onRemove={() => handleMaterialRemove('cliente_oculto')} />
             </div>
           </div>
         </div>

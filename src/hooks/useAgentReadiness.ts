@@ -25,6 +25,7 @@ const PRIMARY_MATERIALS_LABELS: Record<string, string> = {
   manual: 'Manual de Funcionamento',
   dados: 'Briefing de Criação',
   transcricao: 'Transcrição de Kickoff',
+  cliente_oculto: 'Cliente Oculto',
 };
 
 const RESEARCH_MATERIALS_LABELS: Record<string, string> = {
@@ -69,6 +70,11 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
           break;
         case 'transcricao':
           ready = !!getMaterial('transcricao');
+          label = PRIMARY_MATERIALS_LABELS[materialId];
+          type = 'primary';
+          break;
+        case 'cliente_oculto':
+          ready = !!getMaterial('cliente_oculto');
           label = PRIMARY_MATERIALS_LABELS[materialId];
           type = 'primary';
           break;

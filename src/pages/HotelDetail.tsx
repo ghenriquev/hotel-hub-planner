@@ -17,12 +17,12 @@ import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
 import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
-import { AGENTS } from "@/lib/agents-data";
+import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users } from "lucide-react";
+import { ArrowLeft, Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -74,6 +74,7 @@ export default function HotelDetail() {
   const {
     getReadiness
   } = useAgentsReadiness(id || "");
+  const { configs } = useAgentConfigs();
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -731,29 +732,26 @@ export default function HotelDetail() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {AGENTS.map((agent, index) => {
-          const result = getResultForModule(agent.id);
+          {configs.map((agent, index) => {
+          const result = getResultForModule(agent.module_id);
           const status = result?.status || 'pending';
           const isCompleted = status === 'completed';
           const isGenerating = status === 'generating';
           const hasError = status === 'error';
           const isPending = status === 'pending';
-          const readiness = getReadiness(agent.id);
-          return <div key={agent.id} onClick={() => navigate(`/hotel/${hotel.id}/module/${agent.id}`)} className={cn("bg-card border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-lg group animate-slide-up", isCompleted ? "border-gold/50 bg-gold-muted/20" : hasError ? "border-destructive/50" : "border-border hover:border-primary/30")} style={{
+          const readiness = getReadiness(agent.module_id);
+          return <div key={agent.module_id} onClick={() => navigate(`/hotel/${hotel.id}/module/${agent.module_id}`)} className={cn("bg-card border rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-lg group animate-slide-up", isCompleted ? "border-gold/50 bg-gold-muted/20" : hasError ? "border-destructive/50" : "border-border hover:border-primary/30")} style={{
             animationDelay: `${0.2 + index * 0.03}s`
           }}>
                 <div className="flex items-start gap-4">
                   <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-colors", isCompleted ? "bg-gold text-foreground" : isGenerating ? "gradient-primary text-primary-foreground" : hasError ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground")}>
-                    {isCompleted ? <Check className="h-5 w-5" /> : isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : hasError ? <AlertCircle className="h-5 w-5" /> : `#${agent.id}`}
+                    {isCompleted ? <Check className="h-5 w-5" /> : isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : hasError ? <AlertCircle className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                      {agent.title}
+                      {agent.module_title}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {agent.description}
-                    </p>
                   </div>
                   
                   <div className="flex items-center gap-2 flex-wrap justify-end">

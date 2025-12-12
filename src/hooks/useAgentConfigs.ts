@@ -11,6 +11,7 @@ export interface AgentConfig {
   llm_model: string;
   materials_config: string[];
   secondary_materials_config: number[];
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -23,7 +24,7 @@ export function useAgentConfigs() {
     const { data, error } = await supabase
       .from('agent_configs')
       .select('*')
-      .order('module_id');
+      .order('display_order');
 
     if (error) {
       console.error('Error fetching agent configs:', error);
@@ -56,9 +57,90 @@ export function useAgentConfigs() {
     return true;
   }, [fetchConfigs]);
 
+  const createConfig = useCallback(async (config: { module_title: string; prompt: string; output_type: string; llm_model: string }) => {
+    // Get next module_id
+    const maxModuleId = configs.length > 0 ? Math.max(...configs.map(c => c.module_id)) : -1;
+    const nextModuleId = maxModuleId + 1;
+    
+    // Get next display_order
+    const maxDisplayOrder = configs.length > 0 ? Math.max(...configs.map(c => c.display_order)) : -1;
+    const nextDisplayOrder = maxDisplayOrder + 1;
+
+    const { error } = await supabase
+      .from('agent_configs')
+      .insert({
+        module_id: nextModuleId,
+        module_title: config.module_title,
+        prompt: config.prompt,
+        output_type: config.output_type,
+        llm_model: config.llm_model,
+        materials_config: ['manual', 'dados', 'transcricao'],
+        secondary_materials_config: [],
+        display_order: nextDisplayOrder,
+      });
+
+    if (error) {
+      console.error('Error creating agent config:', error);
+      toast.error('Erro ao criar agente');
+      return false;
+    }
+
+    toast.success('Agente criado!');
+    fetchConfigs();
+    return true;
+  }, [configs, fetchConfigs]);
+
+  const deleteConfig = useCallback(async (moduleId: number) => {
+    const { error } = await supabase
+      .from('agent_configs')
+      .delete()
+      .eq('module_id', moduleId);
+
+    if (error) {
+      console.error('Error deleting agent config:', error);
+      toast.error('Erro ao excluir agente');
+      return false;
+    }
+
+    toast.success('Agente excluído!');
+    fetchConfigs();
+    return true;
+  }, [fetchConfigs]);
+
+  const reorderConfigs = useCallback(async (orderedModuleIds: number[]) => {
+    // Update display_order for each config
+    const updates = orderedModuleIds.map((moduleId, index) => 
+      supabase
+        .from('agent_configs')
+        .update({ display_order: index })
+        .eq('module_id', moduleId)
+    );
+
+    const results = await Promise.all(updates);
+    const hasError = results.some(r => r.error);
+
+    if (hasError) {
+      console.error('Error reordering agent configs');
+      toast.error('Erro ao reordenar agentes');
+      return false;
+    }
+
+    fetchConfigs();
+    return true;
+  }, [fetchConfigs]);
+
   const getConfigForModule = useCallback((moduleId: number): AgentConfig | undefined => {
     return configs.find(c => c.module_id === moduleId);
   }, [configs]);
 
-  return { configs, loading, updateConfig, getConfigForModule, refetch: fetchConfigs };
+  return { 
+    configs, 
+    loading, 
+    updateConfig, 
+    createConfig,
+    deleteConfig,
+    reorderConfigs,
+    getConfigForModule, 
+    refetch: fetchConfigs 
+  };
 }

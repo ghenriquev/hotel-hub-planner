@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewHotel from "./pages/NewHotel";
@@ -95,7 +96,9 @@ const App = () => (
             path="/dashboard" 
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <AppLayout>
+                  <Dashboard />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -103,7 +106,9 @@ const App = () => (
             path="/hotel/new" 
             element={
               <ProtectedRoute>
-                <NewHotel />
+                <AppLayout>
+                  <NewHotel />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -111,7 +116,9 @@ const App = () => (
             path="/hotel/:id" 
             element={
               <ProtectedRoute>
-                <HotelDetail />
+                <AppLayout>
+                  <HotelDetail />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -119,7 +126,9 @@ const App = () => (
             path="/hotel/:id/module/:moduleId" 
             element={
               <ProtectedRoute>
-                <AgentModule />
+                <AppLayout>
+                  <AgentModule />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -127,7 +136,9 @@ const App = () => (
             path="/hotel/:id/evidences" 
             element={
               <ProtectedRoute>
-                <Evidences />
+                <AppLayout>
+                  <Evidences />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -135,7 +146,9 @@ const App = () => (
             path="/settings" 
             element={
               <ProtectedRoute>
-                <Settings />
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -143,7 +156,9 @@ const App = () => (
             path="/users" 
             element={
               <ProtectedRoute>
-                <UserManagement />
+                <AppLayout>
+                  <UserManagement />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />

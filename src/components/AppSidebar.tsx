@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building2, Settings, Users, LogOut } from "lucide-react";
+import { Building2, Users, LogOut, Bot, Key, Presentation, Search } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,9 +26,27 @@ const navigationItems = [
     adminOnly: false 
   },
   { 
-    title: "Configurações", 
-    url: "/settings", 
-    icon: Settings,
+    title: "Agentes", 
+    url: "/settings/agents", 
+    icon: Bot,
+    adminOnly: true 
+  },
+  { 
+    title: "API Keys", 
+    url: "/settings/api-keys", 
+    icon: Key,
+    adminOnly: true 
+  },
+  { 
+    title: "Gamma", 
+    url: "/settings/gamma", 
+    icon: Presentation,
+    adminOnly: true 
+  },
+  { 
+    title: "Pesquisa", 
+    url: "/settings/research", 
+    icon: Search,
     adminOnly: true 
   },
   { 
@@ -55,9 +73,16 @@ export function AppSidebar() {
     item => !item.adminOnly || isAdmin
   );
 
+  const isActive = (url: string) => {
+    if (url === "/dashboard") {
+      return location.pathname === "/dashboard" || location.pathname.startsWith("/hotel");
+    }
+    return location.pathname === url;
+  };
+
   return (
     <Sidebar 
-      className="border-r-0"
+      className="border-r border-sidebar-border"
       collapsible="icon"
     >
       <SidebarHeader className="p-4">
@@ -82,18 +107,17 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredItems.map((item) => {
-                const isActive = location.pathname === item.url || 
-                  (item.url === "/dashboard" && location.pathname.startsWith("/hotel"));
+                const active = isActive(item.url);
                 
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       onClick={() => navigate(item.url)}
-                      isActive={isActive}
+                      isActive={active}
                       tooltip={item.title}
                       className={cn(
                         "h-10 transition-colors",
-                        isActive 
+                        active 
                           ? "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" 
                           : "hover:bg-sidebar-accent"
                       )}

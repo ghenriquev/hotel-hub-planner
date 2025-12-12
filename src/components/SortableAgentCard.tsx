@@ -43,8 +43,8 @@ export function SortableAgentCard({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    animationDelay: `${index * 0.03}s`,
+    transition: isDragging ? undefined : transition,
+    ...(isDragging ? {} : { animationDelay: `${index * 0.03}s` }),
   };
 
   return (
@@ -52,8 +52,9 @@ export function SortableAgentCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-card border border-border rounded-xl p-6 animate-slide-up",
-        isDragging && "opacity-50 shadow-lg z-50"
+        "bg-card border border-border rounded-xl p-6",
+        !isDragging && "animate-slide-up",
+        isDragging && "opacity-90 shadow-2xl z-50 scale-[1.02] ring-2 ring-primary cursor-grabbing"
       )}
     >
       <div className="flex items-start gap-4 mb-4">
@@ -61,7 +62,7 @@ export function SortableAgentCard({
         <button
           {...attributes}
           {...listeners}
-          className="mt-1 cursor-grab active:cursor-grabbing p-1 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-1 cursor-grab active:cursor-grabbing p-1 -ml-2 text-muted-foreground hover:text-foreground transition-colors touch-none"
         >
           <GripVertical className="h-5 w-5" />
         </button>

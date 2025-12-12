@@ -31,11 +31,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { 
   DndContext, 
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  DragStartEvent,
   DragEndEvent
 } from '@dnd-kit/core';
 import {
@@ -187,8 +189,8 @@ function SortableAgentItem({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    animationDelay: `${index * 0.03}s`,
+    transition: isDragging ? undefined : transition,
+    ...(isDragging ? {} : { animationDelay: `${index * 0.03}s` }),
   };
 
   const isEditing = editingId === config.module_id;
@@ -197,14 +199,14 @@ function SortableAgentItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-card border border-border rounded-xl p-6 animate-slide-up ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}`}
+      className={`bg-card border border-border rounded-xl p-6 ${!isDragging ? 'animate-slide-up' : 'opacity-30'}`}
     >
       <div className="flex items-start gap-4 mb-4">
         {/* Drag handle */}
         <button
           {...attributes}
           {...listeners}
-          className="mt-1 cursor-grab active:cursor-grabbing p-1 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-1 cursor-grab active:cursor-grabbing p-1 -ml-2 text-muted-foreground hover:text-foreground transition-colors touch-none"
         >
           <GripVertical className="h-5 w-5" />
         </button>
@@ -419,13 +421,20 @@ export default function Settings() {
   const { settings: gammaSettings, loading: gammaLoading, saving: gammaSaving, updateSettings: updateGammaSettings } = useGammaSettings();
   const { settings: researchSettings, loading: researchLoading, saving: researchSaving, updateSettings: updateResearchSettings } = useResearchSettings();
   
-  // DnD sensors
+  // DnD sensors and state
+  const [activeId, setActiveId] = useState<number | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+  
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as number);
+  };
+  
+  const activeConfig = activeId ? configs.find(c => c.module_id === activeId) : null;
 
   // Research settings local state
   const [researchForm, setResearchForm] = useState<ResearchSettingsUpdate>({});
@@ -661,6 +670,7 @@ export default function Settings() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
     
     if (over && active.id !== over.id) {
       const oldIndex = configs.findIndex(c => c.module_id === active.id);
@@ -800,6 +810,7 @@ export default function Settings() {
             <DndContext 
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
               <SortableContext 
@@ -834,6 +845,30 @@ export default function Settings() {
                   />
                 ))}
               </SortableContext>
+              
+              <DragOverlay>
+                {activeConfig ? (
+                  <div className="bg-card border-2 border-primary rounded-xl p-6 shadow-2xl scale-[1.02] cursor-grabbing">
+                    <div className="flex items-start gap-4">
+                      <div className="p-1 -ml-2 text-primary">
+                        <GripVertical className="h-5 w-5" />
+                      </div>
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                        <Bot className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground">
+                          {activeConfig.module_title}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>Output: {activeConfig.output_type}</span>
+                          <span>{getModelInfo(activeConfig.llm_model || 'google/gemini-3-pro-preview').label}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </DragOverlay>
             </DndContext>
           </TabsContent>
 

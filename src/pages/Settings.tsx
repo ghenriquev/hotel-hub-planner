@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Logo } from "@/components/Logo";
@@ -148,7 +158,7 @@ interface SortableAgentItemProps {
   handleEdit: (config: AgentConfig) => void;
   handleSave: (moduleId: number) => Promise<void>;
   handleCancel: () => void;
-  handleDeleteAgent: (moduleId: number) => Promise<void>;
+  handleDeleteAgent: (moduleId: number, moduleTitle: string) => void;
   setEditForm: React.Dispatch<React.SetStateAction<{ prompt: string; output_type: string; llm_model: string; materials_config: string[]; secondary_materials_config: number[] }>>;
   toggleMaterial: (materialValue: string) => void;
   toggleSecondaryMaterial: (moduleId: number) => void;
@@ -238,7 +248,7 @@ function SortableAgentItem({
                 variant="ghost" 
                 size="icon"
                 className="text-destructive hover:text-destructive"
-                onClick={() => handleDeleteAgent(config.module_id)}
+                onClick={() => handleDeleteAgent(config.module_id, config.module_title)}
                 disabled={deletingAgent === config.module_id}
               >
                 {deletingAgent === config.module_id ? (
@@ -423,6 +433,7 @@ export default function Settings() {
   
   // DnD sensors and state
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [agentToDelete, setAgentToDelete] = useState<{ id: number; title: string } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -649,10 +660,16 @@ export default function Settings() {
   };
 
   // Agent CRUD handlers
-  const handleDeleteAgent = async (moduleId: number) => {
-    setDeletingAgent(moduleId);
-    await deleteConfig(moduleId);
+  const handleDeleteAgent = (moduleId: number, moduleTitle: string) => {
+    setAgentToDelete({ id: moduleId, title: moduleTitle });
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return;
+    setDeletingAgent(agentToDelete.id);
+    await deleteConfig(agentToDelete.id);
     setDeletingAgent(null);
+    setAgentToDelete(null);
   };
 
   const handleCreateAgent = async () => {
@@ -1714,6 +1731,28 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Agent Confirmation Dialog */}
+      <AlertDialog open={!!agentToDelete} onOpenChange={() => setAgentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Agente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o agente "{agentToDelete?.title}"? 
+              Esta ação não pode ser desfeita e todos os resultados gerados por este agente serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteAgent}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

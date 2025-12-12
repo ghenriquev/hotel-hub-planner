@@ -52,22 +52,48 @@ serve(async (req) => {
 
     // Call Manus API to create task
     console.log("[manus-agent] Calling Manus API...");
-    const response = await fetch("https://api.manus.ai/v1/tasks", {
+    
+    const requestBody = JSON.stringify({
+      prompt: fullPrompt,
+      agentProfile: "manus-1.5",
+      taskMode: "agent"
+    });
+
+    // Try with API_KEY header first
+    console.log("[manus-agent] Trying with API_KEY header...");
+    let response = await fetch("https://api.manus.ai/v1/tasks", {
       method: "POST",
       headers: {
         "API_KEY": MANUS_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        prompt: fullPrompt,
-        agentProfile: "manus-1.5", // Can be configured per agent later
-        taskMode: "agent"
-      }),
+      body: requestBody,
     });
+
+    // If 401, retry with Authorization Bearer format
+    if (response.status === 401) {
+      console.log("[manus-agent] API_KEY failed with 401, trying Authorization Bearer...");
+      response = await fetch("https://api.manus.ai/v1/tasks", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${MANUS_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: requestBody,
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[manus-agent] Manus API error:", response.status, errorText);
+      
+      // Update status to error so user can retry
+      await supabase.from('agent_results').upsert({
+        hotel_id: hotelId,
+        module_id: moduleId,
+        status: 'error',
+        result: `Erro Manus: ${response.status} - ${errorText.substring(0, 200)}`,
+      }, { onConflict: 'hotel_id,module_id' });
       
       if (response.status === 401) {
         throw new Error("Manus API key inválida. Verifique a chave em Settings > API Keys.");
@@ -80,11 +106,19 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("[manus-agent] Manus task created:", data);
+    console.log("[manus-agent] Manus response:", JSON.stringify(data).substring(0, 200));
 
     const taskId = data.task_id || data.id;
     if (!taskId) {
       console.error("[manus-agent] No task_id in response:", data);
+      
+      await supabase.from('agent_results').upsert({
+        hotel_id: hotelId,
+        module_id: moduleId,
+        status: 'error',
+        result: 'Manus não retornou task_id',
+      }, { onConflict: 'hotel_id,module_id' });
+      
       throw new Error("Manus API did not return a task ID");
     }
 

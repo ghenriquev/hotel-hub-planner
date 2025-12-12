@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 40 100% 98%;          /* #FFFAF3 - off-white creme */
+    --background: 30 20% 99%;           /* #FEFDFB - branco suave */
     --foreground: 228 9% 11%;           /* #191A1E - preto */
 
     --card: 0 0% 100%;

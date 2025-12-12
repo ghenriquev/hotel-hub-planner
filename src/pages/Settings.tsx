@@ -474,6 +474,7 @@ export default function Settings() {
     { value: 'manual', label: 'Manual de Funcionamento' },
     { value: 'dados', label: 'Briefing de Criação' },
     { value: 'transcricao', label: 'Transcrição de Kickoff' },
+    { value: 'cliente_oculto', label: 'Cliente Oculto' },
   ];
 
   const RESEARCH_MATERIALS = [

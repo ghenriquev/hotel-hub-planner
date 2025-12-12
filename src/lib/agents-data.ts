@@ -50,16 +50,6 @@ export const AGENTS: Agent[] = [
     title: "Google Meu Negócio",
     description: "Otimização do perfil no Google",
   },
-  {
-    id: 9,
-    title: "Recomendações de Ferramentas",
-    description: "Recomendação de tecnologias hoteleiras",
-  },
-  {
-    id: 10,
-    title: "Cliente Oculto",
-    description: "Avaliação da experiência de contato",
-  },
 ];
 
 export const getAgentById = (id: number): Agent | undefined => {

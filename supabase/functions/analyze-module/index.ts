@@ -59,12 +59,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // req.json() can only be consumed once; keep it for the error handler
+  let requestBody: any = null;
+  let reqHotelId: string | null = null;
+  let reqModuleId: number | null = null;
+
   try {
-    const { hotelId, moduleId, materials } = await req.json();
+    requestBody = await req.json();
+    const { hotelId, moduleId, materials } = requestBody ?? {};
+    reqHotelId = hotelId ?? null;
+    reqModuleId = (moduleId ?? null) as number | null;
     
     console.log(`[analyze-module] v${FUNCTION_VERSION} - Starting analysis for hotel: ${hotelId}, module: ${moduleId}`);
     
-    if (!hotelId || moduleId === undefined) {
+    if (!hotelId || moduleId === undefined || moduleId === null) {
       throw new Error("hotelId and moduleId are required");
     }
 
@@ -265,10 +273,15 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
       console.log("[analyze-module] Routing to Manus Agent...");
       
       // Call manus-agent function with full context
+      // IMPORTANT: manus-agent expects a valid user JWT (verify_jwt=true), so we forward the caller's headers.
+      const forwardAuth = req.headers.get("authorization") || "";
+      const forwardApikey = req.headers.get("apikey") || "";
+
       const manusResponse = await fetch(`${SUPABASE_URL}/functions/v1/manus-agent`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          ...(forwardAuth ? { Authorization: forwardAuth } : {}),
+          ...(forwardApikey ? { apikey: forwardApikey } : {}),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -459,16 +472,14 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
     
     // Try to update status to 'error' in database so user can retry
     try {
-      const { hotelId, moduleId } = await req.clone().json();
-      if (hotelId && moduleId) {
+      if (reqHotelId && reqModuleId !== null) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
         if (supabaseUrl && supabaseKey) {
-          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
           const supabase = createClient(supabaseUrl, supabaseKey);
           await supabase.from('agent_results').upsert({
-            hotel_id: hotelId,
-            module_id: moduleId,
+            hotel_id: reqHotelId,
+            module_id: reqModuleId,
             status: 'error',
             result: `Erro: ${errorMessage}`,
           }, { onConflict: 'hotel_id,module_id' });

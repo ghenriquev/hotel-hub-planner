@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building2, Users, LogOut, Bot, Key, Presentation, Search, Eye, EyeOff } from "lucide-react";
+import { Building2, Users, LogOut, Bot, Key, Presentation, Search, Eye, EyeOff, ClipboardList } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -54,6 +54,12 @@ const navigationItems = [
     title: "Usuários", 
     url: "/users", 
     icon: Users,
+    adminOnly: true 
+  },
+  { 
+    title: "Manual", 
+    url: "/settings/manual-template", 
+    icon: ClipboardList,
     adminOnly: true 
   },
 ];

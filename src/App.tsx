@@ -22,6 +22,7 @@ import SettingsGamma from "./pages/SettingsGamma";
 import SettingsResearch from "./pages/SettingsResearch";
 import UserManagement from "./pages/UserManagement";
 import ManualForm from "./pages/ManualForm";
+import SettingsManualTemplate from "./pages/SettingsManualTemplate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -239,6 +240,18 @@ const App = () => (
                   <AdminRoute>
                     <AppLayout>
                       <UserManagement />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/manual-template" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <SettingsManualTemplate />
                     </AppLayout>
                   </AdminRoute>
                 </ProtectedRoute>

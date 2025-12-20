@@ -1,43 +1,31 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePublicManualForm, HotelManualData } from "@/hooks/useHotelManualData";
+import { useManualFormTemplate } from "@/hooks/useManualFormTemplate";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Logo } from "@/components/Logo";
 import { SaveIndicator } from "@/components/SaveIndicator";
+import { DynamicFormStep } from "@/components/DynamicFormStep";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Send } from "lucide-react";
-
-// Step components
-import { Step1CadastralData } from "@/components/ManualFormSteps/Step1CadastralData";
-import { Step2Contacts } from "@/components/ManualFormSteps/Step2Contacts";
-import { Step3Differentials } from "@/components/ManualFormSteps/Step3Differentials";
-import { Step4Accommodations } from "@/components/ManualFormSteps/Step4Accommodations";
-import { Step5LeisureSite } from "@/components/ManualFormSteps/Step5LeisureSite";
-import { Step6Marketing } from "@/components/ManualFormSteps/Step6Marketing";
-import { Step7Access } from "@/components/ManualFormSteps/Step7Access";
-
-const STEPS = [
-  { id: 1, title: "Dados Cadastrais", subtitle: "Informações básicas e legais" },
-  { id: 2, title: "Contatos", subtitle: "Departamentos e responsáveis" },
-  { id: 3, title: "Diferenciais", subtitle: "Políticas e diferenciais do hotel" },
-  { id: 4, title: "Acomodações", subtitle: "Tipos de quartos e gastronomia" },
-  { id: 5, title: "Lazer e Site", subtitle: "Estrutura e presença online" },
-  { id: 6, title: "Marketing", subtitle: "ADS e campanhas" },
-  { id: 7, title: "Acessos", subtitle: "Credenciais de sistemas" },
-];
 
 export default function ManualForm() {
   const { hotelId, token } = useParams<{ hotelId: string; token: string }>();
   const navigate = useNavigate();
   const { hotelInfo, manualData, loading, saving, error, isValid, updateManualData, submitManual } = usePublicManualForm(hotelId, token);
+  const { template, loading: templateLoading } = useManualFormTemplate();
   
   const [currentStep, setCurrentStep] = useState(manualData?.current_step || 1);
   const [formData, setFormData] = useState<Partial<HotelManualData>>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isFirstRender = useRef(true);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Use steps from template or fallback
+  const steps = template?.steps || [];
+  const totalSteps = steps.length;
 
   // Debounce the formData changes
   const debouncedFormData = useDebounce(formData, 1500);
@@ -101,7 +89,7 @@ export default function ManualForm() {
       current_step: currentStep + 1
     });
     
-    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps));
   };
 
   const handlePrevious = () => {
@@ -118,7 +106,7 @@ export default function ManualForm() {
     }
   };
 
-  if (loading) {
+  if (loading || templateLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -144,6 +132,18 @@ export default function ManualForm() {
     );
   }
 
+  if (!template || steps.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-display text-foreground mb-2">Template Não Encontrado</h1>
+          <p className="text-muted-foreground mb-6">O template do formulário não foi configurado.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (manualData?.is_complete) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -161,28 +161,8 @@ export default function ManualForm() {
     );
   }
 
-  const progress = (currentStep / STEPS.length) * 100;
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <Step1CadastralData data={mergedData} onChange={updateFormData} />;
-      case 2:
-        return <Step2Contacts data={mergedData} onChange={updateFormData} />;
-      case 3:
-        return <Step3Differentials data={mergedData} onChange={updateFormData} />;
-      case 4:
-        return <Step4Accommodations data={mergedData} onChange={updateFormData} />;
-      case 5:
-        return <Step5LeisureSite data={mergedData} onChange={updateFormData} />;
-      case 6:
-        return <Step6Marketing data={mergedData} onChange={updateFormData} />;
-      case 7:
-        return <Step7Access data={mergedData} onChange={updateFormData} />;
-      default:
-        return null;
-    }
-  };
+  const currentStepData = steps[currentStep - 1];
+  const progress = (currentStep / totalSteps) * 100;
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,10 +188,10 @@ export default function ManualForm() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4 mb-2">
             <span className="text-sm font-medium text-foreground">
-              Etapa {currentStep} de {STEPS.length}
+              Etapa {currentStep} de {totalSteps}
             </span>
             <span className="text-sm text-muted-foreground">
-              {STEPS[currentStep - 1].title}
+              {currentStepData?.title}
             </span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -222,7 +202,7 @@ export default function ManualForm() {
       <div className="bg-muted/30 border-b border-border overflow-x-auto">
         <div className="container mx-auto px-4 py-3">
           <div className="flex gap-2 min-w-max">
-            {STEPS.map((step) => (
+            {steps.map((step) => (
               <button
                 key={step.id}
                 onClick={() => setCurrentStep(step.id)}
@@ -250,11 +230,17 @@ export default function ManualForm() {
         <div className="max-w-4xl mx-auto">
           <div className="bg-card border border-border rounded-xl p-6 md:p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-display text-foreground">{STEPS[currentStep - 1].title}</h2>
-              <p className="text-muted-foreground">{STEPS[currentStep - 1].subtitle}</p>
+              <h2 className="text-2xl font-display text-foreground">{currentStepData?.title}</h2>
+              <p className="text-muted-foreground">{currentStepData?.subtitle}</p>
             </div>
 
-            {renderStep()}
+            {currentStepData && (
+              <DynamicFormStep 
+                step={currentStepData} 
+                data={mergedData} 
+                onChange={updateFormData} 
+              />
+            )}
           </div>
         </div>
       </main>
@@ -273,7 +259,7 @@ export default function ManualForm() {
             </Button>
 
             <div className="flex items-center gap-2">
-              {currentStep === STEPS.length ? (
+              {currentStep === totalSteps ? (
                 <Button onClick={handleSubmit} disabled={saving} className="bg-green-600 hover:bg-green-700">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                   Enviar Formulário

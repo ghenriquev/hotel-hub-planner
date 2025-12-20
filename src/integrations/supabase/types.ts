@@ -360,6 +360,54 @@ export type Database = {
           },
         ]
       }
+      hotel_manual_data_history: {
+        Row: {
+          changes: Json
+          edit_type: string
+          edited_at: string
+          edited_by: string | null
+          hotel_id: string
+          hotel_manual_data_id: string
+          id: string
+          previous_values: Json | null
+        }
+        Insert: {
+          changes?: Json
+          edit_type?: string
+          edited_at?: string
+          edited_by?: string | null
+          hotel_id: string
+          hotel_manual_data_id: string
+          id?: string
+          previous_values?: Json | null
+        }
+        Update: {
+          changes?: Json
+          edit_type?: string
+          edited_at?: string
+          edited_by?: string | null
+          hotel_id?: string
+          hotel_manual_data_id?: string
+          id?: string
+          previous_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_manual_data_history_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_manual_data_history_hotel_manual_data_id_fkey"
+            columns: ["hotel_manual_data_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_manual_data"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_materials: {
         Row: {
           created_at: string | null

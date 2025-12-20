@@ -534,10 +534,7 @@ export default function HotelDetail() {
                     <p className="text-xs text-muted-foreground mb-2">
                       Enviado em {manualFormData.submitted_at ? new Date(manualFormData.submitted_at).toLocaleDateString('pt-BR') : '-'}
                     </p>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      const link = getFormLink();
-                      if (link) window.open(link, '_blank');
-                    }}>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/hotel/${id}/manual-responses`)}>
                       <Eye className="h-3 w-3 mr-1" />
                       Ver Respostas
                     </Button>

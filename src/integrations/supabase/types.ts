@@ -244,6 +244,122 @@ export type Database = {
           },
         ]
       }
+      hotel_manual_data: {
+        Row: {
+          access_credentials: Json | null
+          accommodations: Json | null
+          address: string | null
+          ads_marketing: Json | null
+          cnpj: string | null
+          contractor_email: string | null
+          contractor_name: string | null
+          created_at: string | null
+          current_step: number | null
+          department_contacts: Json | null
+          differentials: Json | null
+          foundation_year: string | null
+          gastronomy: Json | null
+          hotel_id: string
+          id: string
+          internet_info: Json | null
+          is_complete: boolean | null
+          legal_name: string | null
+          leisure: Json | null
+          mailing_submitted: boolean | null
+          main_structure: string | null
+          neighborhood: string | null
+          other_social_media: string | null
+          parking: Json | null
+          policies: Json | null
+          room_count: string | null
+          site_info: Json | null
+          state: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          witness_email: string | null
+          witness_name: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          access_credentials?: Json | null
+          accommodations?: Json | null
+          address?: string | null
+          ads_marketing?: Json | null
+          cnpj?: string | null
+          contractor_email?: string | null
+          contractor_name?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          department_contacts?: Json | null
+          differentials?: Json | null
+          foundation_year?: string | null
+          gastronomy?: Json | null
+          hotel_id: string
+          id?: string
+          internet_info?: Json | null
+          is_complete?: boolean | null
+          legal_name?: string | null
+          leisure?: Json | null
+          mailing_submitted?: boolean | null
+          main_structure?: string | null
+          neighborhood?: string | null
+          other_social_media?: string | null
+          parking?: Json | null
+          policies?: Json | null
+          room_count?: string | null
+          site_info?: Json | null
+          state?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          witness_email?: string | null
+          witness_name?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          access_credentials?: Json | null
+          accommodations?: Json | null
+          address?: string | null
+          ads_marketing?: Json | null
+          cnpj?: string | null
+          contractor_email?: string | null
+          contractor_name?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          department_contacts?: Json | null
+          differentials?: Json | null
+          foundation_year?: string | null
+          gastronomy?: Json | null
+          hotel_id?: string
+          id?: string
+          internet_info?: Json | null
+          is_complete?: boolean | null
+          legal_name?: string | null
+          leisure?: Json | null
+          mailing_submitted?: boolean | null
+          main_structure?: string | null
+          neighborhood?: string | null
+          other_social_media?: string | null
+          parking?: Json | null
+          policies?: Json | null
+          room_count?: string | null
+          site_info?: Json | null
+          state?: string | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          witness_email?: string | null
+          witness_name?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_manual_data_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: true
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_materials: {
         Row: {
           created_at: string | null
@@ -439,6 +555,7 @@ export type Database = {
           has_no_website: boolean | null
           id: string
           instagram_url: string | null
+          manual_form_token: string | null
           name: string
           project_start_date: string | null
           tripadvisor_url: string | null
@@ -459,6 +576,7 @@ export type Database = {
           has_no_website?: boolean | null
           id?: string
           instagram_url?: string | null
+          manual_form_token?: string | null
           name: string
           project_start_date?: string | null
           tripadvisor_url?: string | null
@@ -479,6 +597,7 @@ export type Database = {
           has_no_website?: boolean | null
           id?: string
           instagram_url?: string | null
+          manual_form_token?: string | null
           name?: string
           project_start_date?: string | null
           tripadvisor_url?: string | null

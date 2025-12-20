@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProgressRing } from "@/components/ProgressRing";
 import { MigrationBanner } from "@/components/MigrationBanner";
+import { HotelPendingBadge } from "@/components/HotelPendingInfo";
 import { useHotels } from "@/hooks/useHotels";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
@@ -184,7 +185,7 @@ export default function Dashboard() {
                     <span className="truncate">{hotel.city}</span>
                   </div>
                   
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     {hotel.project_start_date && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <CalendarIcon className="h-3 w-3" />
@@ -196,6 +197,7 @@ export default function Dashboard() {
                         {hotel.category}
                       </span>
                     )}
+                    <HotelPendingBadge hotel={hotel} />
                   </div>
                 </div>
               </div>

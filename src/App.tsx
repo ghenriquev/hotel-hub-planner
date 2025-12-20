@@ -21,6 +21,7 @@ import SettingsApiKeys from "./pages/SettingsApiKeys";
 import SettingsGamma from "./pages/SettingsGamma";
 import SettingsResearch from "./pages/SettingsResearch";
 import UserManagement from "./pages/UserManagement";
+import ManualForm from "./pages/ManualForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -243,6 +244,8 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            {/* Public Manual Form Route */}
+            <Route path="/manual/:hotelId/:token" element={<ManualForm />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

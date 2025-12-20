@@ -22,6 +22,7 @@ import SettingsGamma from "./pages/SettingsGamma";
 import SettingsResearch from "./pages/SettingsResearch";
 import UserManagement from "./pages/UserManagement";
 import ManualForm from "./pages/ManualForm";
+import ManualResponses from "./pages/ManualResponses";
 import SettingsManualTemplate from "./pages/SettingsManualTemplate";
 import NotFound from "./pages/NotFound";
 
@@ -252,6 +253,18 @@ const App = () => (
                   <AdminRoute>
                     <AppLayout>
                       <SettingsManualTemplate />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hotel/:hotelId/manual-responses" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <ManualResponses />
                     </AppLayout>
                   </AdminRoute>
                 </ProtectedRoute>

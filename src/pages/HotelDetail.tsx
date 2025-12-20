@@ -10,6 +10,7 @@ import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { CompetitorAnalysisModal } from "@/components/CompetitorAnalysisModal";
 import { HotelChat } from "@/components/HotelChat";
 import { ReviewsCard } from "@/components/ReviewsCard";
+import { HotelPendingAlert } from "@/components/HotelPendingInfo";
 import { useHotel } from "@/hooks/useHotels";
 import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
 import { useHotelMilestones } from "@/hooks/useHotelMilestones";
@@ -188,6 +189,9 @@ export default function HotelDetail() {
   const totalAgents = configs.length;
   const hotelProgress = totalAgents > 0 ? Math.round((completedAgents / totalAgents) * 100) : 0;
   return <div className="p-6">
+      {/* Pending Info Alert */}
+      <HotelPendingAlert hotel={hotel} materialsState={materialsState} />
+
       {/* Hotel header */}
       <div className="bg-card border border-border/60 p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

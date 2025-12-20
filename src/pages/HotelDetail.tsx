@@ -254,10 +254,6 @@ export default function HotelDetail() {
               </div>
               <ProgressRing progress={hotelProgress} size={64} strokeWidth={5} />
               
-              <Button variant="default" size="sm" onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}>
-                <Eye className="h-4 w-4 mr-2" />
-                Visualização do Cliente
-              </Button>
               
               <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -822,5 +818,15 @@ export default function HotelDetail() {
         onOpenChange={setIsCompetitorAnalysisOpen}
         competitors={competitorData}
       />
+
+      {/* Floating Client View Button */}
+      <Button 
+        onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}
+        className="fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl transition-all"
+        size="lg"
+      >
+        <Eye className="h-5 w-5 mr-2" />
+        Visualização do Cliente
+      </Button>
     </div>;
 }

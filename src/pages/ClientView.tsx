@@ -10,8 +10,8 @@ export default function ClientView() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { hotel, loading: hotelLoading } = useHotel(id);
-  const { results } = useAgentResults(id || "");
-  const { configs } = useAgentConfigs();
+  const { results, loading: resultsLoading } = useAgentResults(id || "");
+  const { configs, loading: configsLoading } = useAgentConfigs();
 
   const completedResults = results
     .filter(r => r.status === 'completed')
@@ -28,7 +28,7 @@ export default function ClientView() {
     })
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
-  if (hotelLoading) {
+  if (hotelLoading || configsLoading || resultsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

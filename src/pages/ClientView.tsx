@@ -23,7 +23,7 @@ export default function ClientView() {
         outputType: config?.output_type || 'text',
         presentationUrl: r.presentation_url,
         hasTextResult: !!r.result,
-        displayOrder: config?.display_order || 999
+        displayOrder: config?.display_order ?? 999
       };
     })
     .sort((a, b) => a.displayOrder - b.displayOrder);

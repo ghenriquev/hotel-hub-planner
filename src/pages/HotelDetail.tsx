@@ -9,7 +9,6 @@ import { FileUpload } from "@/components/FileUpload";
 import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { CompetitorAnalysisModal } from "@/components/CompetitorAnalysisModal";
 import { HotelChat } from "@/components/HotelChat";
-import { ClientViewSection } from "@/components/ClientViewSection";
 import { ReviewsCard } from "@/components/ReviewsCard";
 import { useHotel } from "@/hooks/useHotels";
 import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
@@ -254,6 +253,11 @@ export default function HotelDetail() {
                 <div className="text-2xl font-display text-foreground">{hotelProgress}%</div>
               </div>
               <ProgressRing progress={hotelProgress} size={64} strokeWidth={5} />
+              
+              <Button variant="default" size="sm" onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Visualização do Cliente
+              </Button>
               
               <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -790,14 +794,6 @@ export default function HotelDetail() {
               </div>;
         })}
         </div>
-
-        {/* Client View Section */}
-        <ClientViewSection 
-          hotelId={hotel.id}
-          hotelName={hotel.name}
-          results={results}
-          configs={configs}
-        />
 
       {/* Floating HotelGPT Button */}
       <Button onClick={() => setIsChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg gradient-primary hover:scale-105 transition-transform z-40" size="icon">

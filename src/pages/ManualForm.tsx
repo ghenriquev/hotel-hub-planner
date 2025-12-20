@@ -1,11 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePublicManualForm, HotelManualData } from "@/hooks/useHotelManualData";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Logo } from "@/components/Logo";
+import { SaveIndicator } from "@/components/SaveIndicator";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Send } from "lucide-react";
 
 // Step components
 import { Step1CadastralData } from "@/components/ManualFormSteps/Step1CadastralData";
@@ -33,26 +35,64 @@ export default function ManualForm() {
   
   const [currentStep, setCurrentStep] = useState(manualData?.current_step || 1);
   const [formData, setFormData] = useState<Partial<HotelManualData>>({});
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const isFirstRender = useRef(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce the formData changes
+  const debouncedFormData = useDebounce(formData, 1500);
 
   // Merge existing data with form data
   const mergedData = { ...manualData, ...formData };
 
   const updateFormData = (updates: Partial<HotelManualData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
-  };
-
-  const handleSave = async () => {
-    const success = await updateManualData({
-      ...formData,
-      current_step: currentStep
-    });
-    
-    if (success) {
-      toast.success("Progresso salvo com sucesso!");
-    } else {
-      toast.error("Erro ao salvar. Tente novamente.");
+    // Reset to idle when user starts typing again
+    if (saveStatus === 'saved' || saveStatus === 'error') {
+      setSaveStatus('idle');
     }
   };
+
+  // Auto-save effect
+  useEffect(() => {
+    // Skip first render and empty formData
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (Object.keys(debouncedFormData).length === 0) return;
+
+    const autoSave = async () => {
+      setSaveStatus('saving');
+      
+      const success = await updateManualData({
+        ...debouncedFormData,
+        current_step: currentStep
+      });
+      
+      if (success) {
+        setSaveStatus('saved');
+        // Auto-hide "Salvo" after 3 seconds
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          setSaveStatus('idle');
+        }, 3000);
+      } else {
+        setSaveStatus('error');
+      }
+    };
+
+    autoSave();
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [debouncedFormData]);
 
   const handleNext = async () => {
     // Save current step data
@@ -158,10 +198,7 @@ export default function ManualForm() {
               </div>
             </div>
             
-            <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              Salvar Progresso
-            </Button>
+            <SaveIndicator status={saveStatus} />
           </div>
         </div>
       </header>

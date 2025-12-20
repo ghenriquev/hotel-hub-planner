@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useViewMode } from '@/contexts/ViewModeContext';
 
 export type AppRole = 'admin' | 'user';
 
@@ -7,6 +8,7 @@ export function useUserRole() {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const { isViewingAsUser } = useViewMode();
 
   const fetchRole = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,7 +50,8 @@ export function useUserRole() {
     return () => subscription.unsubscribe();
   }, [fetchRole]);
 
-  const isAdmin = role === 'admin';
+  const isRealAdmin = role === 'admin';
+  const isAdmin = isRealAdmin && !isViewingAsUser;
 
-  return { role, isAdmin, loading, userId, refetch: fetchRole };
+  return { role, isAdmin, isRealAdmin, loading, userId, refetch: fetchRole };
 }

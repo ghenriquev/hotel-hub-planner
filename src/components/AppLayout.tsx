@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { useViewMode } from "@/contexts/ViewModeContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -21,6 +23,8 @@ const routeTitles: Record<string, string> = {
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [userName, setUserName] = useState("");
+  const { isViewingAsUser } = useViewMode();
+  const { isRealAdmin } = useUserRole();
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -67,6 +71,13 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
+          {/* View Mode Banner */}
+          {isRealAdmin && isViewingAsUser && (
+            <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 text-center text-sm text-yellow-600">
+              👁️ Visualizando como Usuário
+            </div>
+          )}
+
           {/* Top Header */}
           <header className="sticky top-0 z-40 h-14 border-b border-border bg-card flex items-center px-4 gap-4">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />

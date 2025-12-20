@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { AppLayout } from "@/components/AppLayout";
 import { useUserRole } from "@/hooks/useUserRole";
+import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewHotel from "./pages/NewHotel";
@@ -99,153 +100,155 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hotel/new" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
+  <ViewModeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
                   <AppLayout>
-                    <NewHotel />
+                    <Dashboard />
                   </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hotel/:id" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hotel/new" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <NewHotel />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hotel/:id" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <HotelDetail />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hotel/:id/module/:moduleId" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <AgentModule />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/hotel/:id/client-view" 
+              element={
+                <ProtectedRoute>
                   <AppLayout>
-                    <HotelDetail />
+                    <ClientView />
                   </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hotel/:id/module/:moduleId" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <AgentModule />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/hotel/:id/client-view" 
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <ClientView />
-                </AppLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route
-            path="/hotel/:id/evidences" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <Evidences />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings/agents" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <SettingsAgents />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings/api-keys" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <SettingsApiKeys />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings/gamma" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <SettingsGamma />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings/research" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <SettingsResearch />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/users" 
-            element={
-              <ProtectedRoute>
-                <AdminRoute>
-                  <AppLayout>
-                    <UserManagement />
-                  </AppLayout>
-                </AdminRoute>
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                </ProtectedRoute>
+              } 
+            />
+            <Route
+              path="/hotel/:id/evidences" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <Evidences />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/agents" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <SettingsAgents />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/api-keys" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <SettingsApiKeys />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/gamma" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <SettingsGamma />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/research" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <SettingsResearch />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AppLayout>
+                      <UserManagement />
+                    </AppLayout>
+                  </AdminRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ViewModeProvider>
 );
 
 export default App;

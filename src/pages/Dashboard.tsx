@@ -7,6 +7,7 @@ import { MigrationBanner } from "@/components/MigrationBanner";
 import { useHotels } from "@/hooks/useHotels";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useUserRole } from "@/hooks/useUserRole";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -21,7 +22,6 @@ import {
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 function HotelProgress({ hotelId, totalAgents }: { hotelId: string; totalAgents: number }) {
   const { results } = useAgentResults(hotelId);
   const completedAgents = results.filter(r => r.status === 'completed').length;
@@ -44,10 +44,19 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { hotels, loading } = useHotels();
   const { configs: agentConfigs } = useAgentConfigs();
+  const { isAdmin } = useUserRole();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const totalAgents = agentConfigs.length;
+  
+  const handleHotelClick = (hotelId: string) => {
+    if (isAdmin) {
+      navigate(`/hotel/${hotelId}`);
+    } else {
+      navigate(`/hotel/${hotelId}/client-view`);
+    }
+  };
 
   const filteredHotels = hotels.filter(
     (hotel) =>
@@ -71,10 +80,12 @@ export default function Dashboard() {
           Gerencie o plano estratégico de vendas diretas
         </p>
         
-        <Button onClick={() => navigate("/hotel/new")} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Hotel
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => navigate("/hotel/new")} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Hotel
+          </Button>
+        )}
       </div>
 
       {/* Migration Banner */}
@@ -150,7 +161,7 @@ export default function Dashboard() {
           {filteredHotels.map((hotel) => (
             <div
               key={hotel.id}
-              onClick={() => navigate(`/hotel/${hotel.id}`)}
+              onClick={() => handleHotelClick(hotel.id)}
               className={cn(
                 "bg-card border border-border/60 p-5 cursor-pointer transition-all duration-200 hover:border-primary/40 hover:shadow-sm group",
                 viewMode === "list" && "flex items-center gap-6"

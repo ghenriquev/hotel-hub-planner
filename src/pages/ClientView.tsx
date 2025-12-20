@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useHotel } from "@/hooks/useHotels";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 
 export default function ClientView() {
@@ -12,6 +13,7 @@ export default function ClientView() {
   const { hotel, loading: hotelLoading } = useHotel(id);
   const { results, loading: resultsLoading } = useAgentResults(id || "");
   const { configs, loading: configsLoading } = useAgentConfigs();
+  const { isAdmin } = useUserRole();
 
   const completedResults = results
     .filter(r => r.status === 'completed')
@@ -48,36 +50,32 @@ export default function ClientView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate(`/hotel/${id}`)}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
+    <div className="p-6">
+      {/* Header with back button - only for admins */}
+      {isAdmin && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(`/hotel/${id}`)}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
+      )}
+
+      {/* Hotel Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-16 h-16 gradient-primary rounded-xl flex items-center justify-center">
+          <Building2 className="h-8 w-8 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="font-display text-3xl text-foreground">{hotel.name}</h1>
+          <p className="text-muted-foreground">
+            {completedResults.length} resultado(s) disponível(is)
+          </p>
         </div>
       </div>
-
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Hotel Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 gradient-primary rounded-xl flex items-center justify-center">
-            <Building2 className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="font-display text-3xl text-foreground">{hotel.name}</h1>
-            <p className="text-muted-foreground">
-              {completedResults.length} resultado(s) disponível(is)
-            </p>
-          </div>
-        </div>
 
         {/* Results List */}
         <div className="space-y-3">
@@ -106,7 +104,7 @@ export default function ClientView() {
                     <ExternalLink className="h-4 w-4" />
                     Abrir Apresentação
                   </a>
-                ) : item.hasTextResult ? (
+                ) : item.hasTextResult && isAdmin ? (
                   <Button 
                     onClick={() => navigate(`/hotel/${id}/module/${item.moduleId}`)}
                     className="flex items-center gap-2"
@@ -114,6 +112,10 @@ export default function ClientView() {
                     <FileText className="h-4 w-4" />
                     Ver Relatório
                   </Button>
+                ) : item.hasTextResult ? (
+                  <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded">
+                    Relatório disponível
+                  </span>
                 ) : (
                   <span className="text-sm text-muted-foreground">Sem resultado</span>
                 )}
@@ -122,6 +124,5 @@ export default function ClientView() {
           )}
         </div>
       </div>
-    </div>
   );
 }

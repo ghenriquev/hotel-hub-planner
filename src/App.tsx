@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { AppLayout } from "@/components/AppLayout";
+import { useUserRole } from "@/hooks/useUserRole";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewHotel from "./pages/NewHotel";
@@ -47,6 +48,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   if (!session) {
     return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, loading } = useUserRole();
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>;
+  }
+  
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -110,9 +127,11 @@ const App = () => (
             path="/hotel/new" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <NewHotel />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <NewHotel />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -120,9 +139,11 @@ const App = () => (
             path="/hotel/:id" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <HotelDetail />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <HotelDetail />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -130,9 +151,11 @@ const App = () => (
             path="/hotel/:id/module/:moduleId" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <AgentModule />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <AgentModule />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -140,7 +163,9 @@ const App = () => (
             path="/hotel/:id/client-view" 
             element={
               <ProtectedRoute>
-                <ClientView />
+                <AppLayout>
+                  <ClientView />
+                </AppLayout>
               </ProtectedRoute>
             } 
           />
@@ -148,9 +173,11 @@ const App = () => (
             path="/hotel/:id/evidences" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <Evidences />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <Evidences />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -158,9 +185,11 @@ const App = () => (
             path="/settings/agents" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <SettingsAgents />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <SettingsAgents />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -168,9 +197,11 @@ const App = () => (
             path="/settings/api-keys" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <SettingsApiKeys />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <SettingsApiKeys />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -178,9 +209,11 @@ const App = () => (
             path="/settings/gamma" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <SettingsGamma />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <SettingsGamma />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -188,9 +221,11 @@ const App = () => (
             path="/settings/research" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <SettingsResearch />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <SettingsResearch />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />
@@ -198,9 +233,11 @@ const App = () => (
             path="/users" 
             element={
               <ProtectedRoute>
-                <AppLayout>
-                  <UserManagement />
-                </AppLayout>
+                <AdminRoute>
+                  <AppLayout>
+                    <UserManagement />
+                  </AppLayout>
+                </AdminRoute>
               </ProtectedRoute>
             } 
           />

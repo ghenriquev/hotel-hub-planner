@@ -32,6 +32,8 @@ export default function ClientView() {
     })
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
+  const totalResults = completedResults.length + (materialsState.cliente_oculto ? 1 : 0);
+
   if (hotelLoading || configsLoading || resultsLoading || materialsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -74,7 +76,7 @@ export default function ClientView() {
         <div>
           <h1 className="font-display text-3xl text-foreground">{hotel.name}</h1>
           <p className="text-muted-foreground">
-            {completedResults.length} resultado(s) disponível(is)
+            {totalResults} resultado(s) disponível(is)
           </p>
         </div>
       </div>

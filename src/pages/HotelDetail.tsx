@@ -9,6 +9,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { WebsiteContentModal } from "@/components/WebsiteContentModal";
 import { CompetitorAnalysisModal } from "@/components/CompetitorAnalysisModal";
 import { HotelChat } from "@/components/HotelChat";
+import { ClientViewSection } from "@/components/ClientViewSection";
 import { ReviewsCard } from "@/components/ReviewsCard";
 import { useHotel } from "@/hooks/useHotels";
 import { useHotelMaterials, MaterialType } from "@/hooks/useHotelMaterials";
@@ -185,7 +186,8 @@ export default function HotelDetail() {
       </div>;
   }
   const completedAgents = results.filter(r => r.status === 'completed').length;
-  const hotelProgress = Math.round(completedAgents / 11 * 100);
+  const totalAgents = configs.length;
+  const hotelProgress = totalAgents > 0 ? Math.round((completedAgents / totalAgents) * 100) : 0;
   return <div className="p-6">
       {/* Hotel header */}
       <div className="bg-card border border-border/60 p-6 mb-6">
@@ -788,6 +790,14 @@ export default function HotelDetail() {
               </div>;
         })}
         </div>
+
+        {/* Client View Section */}
+        <ClientViewSection 
+          hotelId={hotel.id}
+          hotelName={hotel.name}
+          results={results}
+          configs={configs}
+        />
 
       {/* Floating HotelGPT Button */}
       <Button onClick={() => setIsChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg gradient-primary hover:scale-105 transition-transform z-40" size="icon">

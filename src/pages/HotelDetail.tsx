@@ -791,6 +791,18 @@ export default function HotelDetail() {
         })}
         </div>
 
+        {/* Client View Button */}
+        <div className="mt-8 flex justify-end">
+          <Button 
+            onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}
+            size="lg"
+            className="shadow-md"
+          >
+            <Eye className="h-5 w-5 mr-2" />
+            Visualização do Cliente
+          </Button>
+        </div>
+
       {/* Floating HotelGPT Button */}
       <Button onClick={() => setIsChatOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg gradient-primary hover:scale-105 transition-transform z-40" size="icon">
         <MessageSquare className="h-6 w-6" />
@@ -819,14 +831,5 @@ export default function HotelDetail() {
         competitors={competitorData}
       />
 
-      {/* Floating Client View Button */}
-      <Button 
-        onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}
-        className="fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl transition-all"
-        size="lg"
-      >
-        <Eye className="h-5 w-5 mr-2" />
-        Visualização do Cliente
-      </Button>
     </div>;
 }

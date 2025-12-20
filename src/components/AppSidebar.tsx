@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Building2, Users, LogOut, Bot, Key, Presentation, Search } from "lucide-react";
+import { Building2, Users, LogOut, Bot, Key, Presentation, Search, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
@@ -60,7 +61,8 @@ const navigationItems = [
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isRealAdmin } = useUserRole();
+  const { isViewingAsUser, toggleViewMode } = useViewMode();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -136,6 +138,23 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarSeparator className="mb-2" />
         <SidebarMenu>
+          {isRealAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={toggleViewMode}
+                tooltip={isViewingAsUser ? "Ver como Admin" : "Ver como Usuário"}
+                className={cn(
+                  "h-10 transition-colors",
+                  isViewingAsUser 
+                    ? "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+                )}
+              >
+                {isViewingAsUser ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <span>{isViewingAsUser ? "Ver como Admin" : "Ver como Usuário"}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}

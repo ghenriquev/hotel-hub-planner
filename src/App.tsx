@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import NewHotel from "./pages/NewHotel";
 import HotelDetail from "./pages/HotelDetail";
 import AgentModule from "./pages/AgentModule";
+import ClientView from "./pages/ClientView";
 import Evidences from "./pages/Evidences";
 import SettingsAgents from "./pages/SettingsAgents";
 import SettingsApiKeys from "./pages/SettingsApiKeys";
@@ -136,6 +137,14 @@ const App = () => (
             } 
           />
           <Route 
+            path="/hotel/:id/client-view" 
+            element={
+              <ProtectedRoute>
+                <ClientView />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
             path="/hotel/:id/evidences" 
             element={
               <ProtectedRoute>

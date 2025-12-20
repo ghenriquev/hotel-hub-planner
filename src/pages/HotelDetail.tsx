@@ -19,11 +19,12 @@ import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
 import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot } from "lucide-react";
+import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot, Link2, Copy, ExternalLink, ClipboardCheck } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -76,6 +77,8 @@ export default function HotelDetail() {
     getReadiness
   } = useAgentsReadiness(id || "");
   const { configs } = useAgentConfigs();
+  const { getFormLink } = useManualFormLink(id);
+  const { manualData: manualFormData, loading: manualLoading } = useHotelManualData(id);
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -505,13 +508,86 @@ export default function HotelDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Manual de Funcionamento */}
+            {/* Manual de Funcionamento - Nova Seção */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
                 Manual de Funcionamento
+                {manualFormData?.is_complete && (
+                  <span className="ml-auto text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Preenchido
+                  </span>
+                )}
               </label>
-              <FileUpload hotelId={hotel.id} field="manual" currentUrl={materialsState.manual?.url} currentName={materialsState.manual?.name} onUploadComplete={(url, name) => handleMaterialUpload('manual', url, name)} onRemove={() => handleMaterialRemove('manual')} />
+              
+              <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
+                {manualLoading ? (
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Carregando...</p>
+                  </div>
+                ) : manualFormData?.is_complete ? (
+                  <div className="text-center">
+                    <ClipboardCheck className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p className="text-sm text-foreground font-medium mb-1">Formulário preenchido</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Enviado em {manualFormData.submitted_at ? new Date(manualFormData.submitted_at).toLocaleDateString('pt-BR') : '-'}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const link = getFormLink();
+                      if (link) window.open(link, '_blank');
+                    }}>
+                      <Eye className="h-3 w-3 mr-1" />
+                      Ver Respostas
+                    </Button>
+                  </div>
+                ) : manualFormData && manualFormData.current_step && manualFormData.current_step > 1 ? (
+                  <div className="text-center">
+                    <BookOpen className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+                    <p className="text-sm text-foreground font-medium mb-1">Em preenchimento</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Etapa {manualFormData.current_step} de 7
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const link = getFormLink();
+                        if (link) {
+                          navigator.clipboard.writeText(link);
+                          toast.success("Link copiado!");
+                        }
+                      }}>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copiar Link
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Link2 className="h-8 w-8 mx-auto mb-2 opacity-50 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-3">Não preenchido</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <Button variant="default" size="sm" onClick={() => {
+                        const link = getFormLink();
+                        if (link) {
+                          navigator.clipboard.writeText(link);
+                          toast.success("Link copiado para a área de transferência!");
+                        }
+                      }}>
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copiar Link
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        const link = getFormLink();
+                        if (link) window.open(link, '_blank');
+                      }}>
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Abrir Formulário
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Dados do Hotel */}

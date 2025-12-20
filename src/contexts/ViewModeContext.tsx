@@ -21,8 +21,9 @@ export function ViewModeProvider({ children }: { children: ReactNode }) {
 
 export function useViewMode() {
   const context = useContext(ViewModeContext);
+  // Return safe defaults if used outside provider
   if (!context) {
-    throw new Error('useViewMode must be used within a ViewModeProvider');
+    return { isViewingAsUser: false, toggleViewMode: () => {} };
   }
   return context;
 }

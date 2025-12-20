@@ -83,6 +83,7 @@ export default function HotelDetail() {
   const [isWebsiteContentOpen, setIsWebsiteContentOpen] = useState(false);
   const [isCompetitorAnalysisOpen, setIsCompetitorAnalysisOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [editForm, setEditForm] = useState({
     name: "",
     city: "",
@@ -279,9 +280,25 @@ export default function HotelDetail() {
                       progresso dos módulos de "{hotel.name}" serão permanentemente excluídos.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Para confirmar, digite <strong className="text-foreground">"excluir"</strong> abaixo:
+                    </p>
+                    <Input
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="Digite excluir para confirmar"
+                    />
+                  </div>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteHotel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogCancel onClick={() => setDeleteConfirmText("")}>
+                      Cancelar
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteHotel} 
+                      disabled={deleteConfirmText.toLowerCase() !== "excluir"}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       Excluir
                     </AlertDialogAction>
                   </AlertDialogFooter>

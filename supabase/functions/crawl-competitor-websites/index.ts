@@ -259,22 +259,22 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch hotel data to get competitor URLs
-    const { data: hotel, error: hotelError } = await supabase
-      .from('hotels')
-      .select('competitor_site_1, competitor_site_2, competitor_site_3')
-      .eq('id', hotelId)
-      .maybeSingle();
+    // Fetch competitors from hotel_competitor_data table (supports dynamic competitors)
+    const { data: competitorRecords, error: competitorError } = await supabase
+      .from('hotel_competitor_data')
+      .select('competitor_url, competitor_number')
+      .eq('hotel_id', hotelId)
+      .order('competitor_number', { ascending: true });
 
-    if (hotelError || !hotel) {
-      throw new Error("Hotel not found");
+    if (competitorError) {
+      console.error("[crawl-competitor-websites] Error fetching competitors:", competitorError);
+      throw new Error("Error fetching competitors");
     }
 
-    // Build list of competitors to analyze
-    const competitors: { url: string; number: number }[] = [];
-    if (hotel.competitor_site_1) competitors.push({ url: hotel.competitor_site_1, number: 1 });
-    if (hotel.competitor_site_2) competitors.push({ url: hotel.competitor_site_2, number: 2 });
-    if (hotel.competitor_site_3) competitors.push({ url: hotel.competitor_site_3, number: 3 });
+    // Build list of competitors to analyze (filter out empty URLs)
+    const competitors: { url: string; number: number }[] = (competitorRecords || [])
+      .filter(c => c.competitor_url && c.competitor_url.trim() !== '')
+      .map(c => ({ url: c.competitor_url, number: c.competitor_number }));
 
     if (competitors.length === 0) {
       throw new Error("Nenhum site de concorrente configurado nos Dados Básicos do hotel.");

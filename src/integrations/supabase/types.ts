@@ -261,6 +261,7 @@ export type Database = {
           gastronomy: Json | null
           hotel_id: string
           id: string
+          input_method: string | null
           internet_info: Json | null
           is_complete: boolean | null
           legal_name: string | null
@@ -276,6 +277,8 @@ export type Database = {
           state: string | null
           submitted_at: string | null
           updated_at: string | null
+          uploaded_file_name: string | null
+          uploaded_file_url: string | null
           witness_email: string | null
           witness_name: string | null
           zip_code: string | null
@@ -296,6 +299,7 @@ export type Database = {
           gastronomy?: Json | null
           hotel_id: string
           id?: string
+          input_method?: string | null
           internet_info?: Json | null
           is_complete?: boolean | null
           legal_name?: string | null
@@ -311,6 +315,8 @@ export type Database = {
           state?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          uploaded_file_name?: string | null
+          uploaded_file_url?: string | null
           witness_email?: string | null
           witness_name?: string | null
           zip_code?: string | null
@@ -331,6 +337,7 @@ export type Database = {
           gastronomy?: Json | null
           hotel_id?: string
           id?: string
+          input_method?: string | null
           internet_info?: Json | null
           is_complete?: boolean | null
           legal_name?: string | null
@@ -346,6 +353,8 @@ export type Database = {
           state?: string | null
           submitted_at?: string | null
           updated_at?: string | null
+          uploaded_file_name?: string | null
+          uploaded_file_url?: string | null
           witness_email?: string | null
           witness_name?: string | null
           zip_code?: string | null

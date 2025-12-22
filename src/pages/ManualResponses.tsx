@@ -17,8 +17,10 @@ import {
   Calendar, 
   CheckCircle2, 
   Clock, 
+  Download,
   Edit, 
   Eye, 
+  FileUp,
   History, 
   Loader2, 
   MapPin,
@@ -71,7 +73,10 @@ export default function ManualResponses() {
     );
   }
 
-  if (!manualData || !manualData.is_complete) {
+  // Handle file uploads - show file viewer instead of form responses
+  const isFileUpload = manualData?.input_method === 'upload';
+
+  if (!manualData || (!manualData.is_complete && !isFileUpload)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -149,12 +154,12 @@ export default function ManualResponses() {
           </div>
         </div>
         
-        {!isEditing ? (
+        {!isFileUpload && !isEditing ? (
           <Button onClick={() => setIsEditing(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Editar Respostas
           </Button>
-        ) : (
+        ) : !isFileUpload && isEditing ? (
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={handleCancelEdit}>
               <X className="h-4 w-4 mr-2" />
@@ -169,7 +174,7 @@ export default function ManualResponses() {
               Salvar Alterações
             </Button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Status Cards */}
@@ -181,7 +186,9 @@ export default function ManualResponses() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <p className="font-medium text-foreground">Formulário Enviado</p>
+              <p className="font-medium text-foreground">
+                {isFileUpload ? 'Arquivo Enviado' : 'Formulário Enviado'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -229,7 +236,47 @@ export default function ManualResponses() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Responses */}
         <div className="lg:col-span-3">
-          {isEditing ? (
+          {isFileUpload ? (
+            // File upload view
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileUp className="h-5 w-5" />
+                  Arquivo Enviado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                  <FileUp className="h-16 w-16 mx-auto mb-4 text-primary/60" />
+                  <p className="text-lg font-medium text-foreground mb-2">
+                    {manualData.uploaded_file_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Enviado em {manualData.submitted_at ? new Date(manualData.submitted_at).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    }) : '-'}
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <Button onClick={() => window.open(manualData.uploaded_file_url, '_blank')}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Visualizar
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = manualData.uploaded_file_url!;
+                      link.download = manualData.uploaded_file_name || 'manual';
+                      link.click();
+                    }}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : isEditing ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

@@ -20,11 +20,12 @@ import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
+import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot, Link2, Copy, ExternalLink, ClipboardCheck } from "lucide-react";
+import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot, Link2, Copy, ExternalLink, ClipboardCheck, Upload, Download, FileUp } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -78,7 +79,8 @@ export default function HotelDetail() {
   } = useAgentsReadiness(id || "");
   const { configs } = useAgentConfigs();
   const { getFormLink } = useManualFormLink(id);
-  const { manualData: manualFormData, loading: manualLoading } = useHotelManualData(id);
+  const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
+  const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -175,6 +177,53 @@ export default function HotelDetail() {
     await deleteMaterial(materialType);
     setIsSaving(false);
     setLastSaved(new Date());
+  };
+
+  const handleManualFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setIsUploadingManual(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${id}/manual_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('strategic-materials')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('strategic-materials')
+        .getPublicUrl(fileName);
+
+      await uploadManualFile(publicUrl, file.name);
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Erro ao enviar arquivo');
+    } finally {
+      setIsUploadingManual(false);
+    }
+  };
+
+  const handleRemoveManualFile = async () => {
+    if (!manualFormData?.uploaded_file_url) return;
+
+    try {
+      // Extract path from URL
+      const url = new URL(manualFormData.uploaded_file_url);
+      const pathParts = url.pathname.split('/strategic-materials/');
+      if (pathParts[1]) {
+        await supabase.storage.from('strategic-materials').remove([pathParts[1]]);
+      }
+      await removeManualFile();
+      toast.success('Arquivo removido');
+    } catch (err) {
+      console.error('Remove error:', err);
+      toast.error('Erro ao remover arquivo');
+    }
   };
   if (hotelLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -516,23 +565,47 @@ export default function HotelDetail() {
                 {manualFormData?.is_complete && (
                   <span className="ml-auto text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    Preenchido
+                    {manualFormData.input_method === 'upload' ? 'Arquivo enviado' : 'Preenchido'}
                   </span>
                 )}
               </label>
               
               <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
-                {manualLoading ? (
+                {manualLoading || isUploadingManual ? (
                   <div className="text-center">
                     <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Carregando...</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isUploadingManual ? 'Enviando arquivo...' : 'Carregando...'}
+                    </p>
+                  </div>
+                ) : manualFormData?.is_complete && manualFormData.input_method === 'upload' ? (
+                  // Enviado via UPLOAD
+                  <div className="text-center">
+                    <FileUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p className="text-sm text-foreground font-medium mb-1 truncate max-w-[200px] mx-auto" title={manualFormData.uploaded_file_name}>
+                      {manualFormData.uploaded_file_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Enviado via upload em {manualFormData.submitted_at ? new Date(manualFormData.submitted_at).toLocaleDateString('pt-BR') : '-'}
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => window.open(manualFormData.uploaded_file_url, '_blank')}>
+                        <Eye className="h-3 w-3 mr-1" />
+                        Visualizar
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={handleRemoveManualFile}>
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Remover
+                      </Button>
+                    </div>
                   </div>
                 ) : manualFormData?.is_complete ? (
+                  // Enviado via FORMULÁRIO
                   <div className="text-center">
                     <ClipboardCheck className="h-8 w-8 mx-auto mb-2 text-green-500" />
                     <p className="text-sm text-foreground font-medium mb-1">Formulário preenchido</p>
                     <p className="text-xs text-muted-foreground mb-2">
-                      Enviado em {manualFormData.submitted_at ? new Date(manualFormData.submitted_at).toLocaleDateString('pt-BR') : '-'}
+                      Enviado via formulário em {manualFormData.submitted_at ? new Date(manualFormData.submitted_at).toLocaleDateString('pt-BR') : '-'}
                     </p>
                     <Button variant="outline" size="sm" onClick={() => navigate(`/hotel/${id}/manual-responses`)}>
                       <Eye className="h-3 w-3 mr-1" />
@@ -540,6 +613,7 @@ export default function HotelDetail() {
                     </Button>
                   </div>
                 ) : manualFormData && manualFormData.current_step && manualFormData.current_step > 1 ? (
+                  // Em preenchimento (formulário)
                   <div className="text-center">
                     <BookOpen className="h-8 w-8 mx-auto mb-2 text-amber-500" />
                     <p className="text-sm text-foreground font-medium mb-1">Em preenchimento</p>
@@ -560,26 +634,43 @@ export default function HotelDetail() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center">
-                    <Link2 className="h-8 w-8 mx-auto mb-2 opacity-50 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-3">Não preenchido</p>
-                    <div className="flex flex-col items-center gap-2">
-                      <Button variant="default" size="sm" onClick={() => {
+                  // NÃO PREENCHIDO - Mostrar duas opções
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Opção Upload */}
+                    <div className="text-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-xs text-foreground font-medium mb-1">Upload de Arquivo</p>
+                      <p className="text-[10px] text-muted-foreground mb-2">Já tem um documento?</p>
+                      <label>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx"
+                          className="hidden"
+                          onChange={handleManualFileUpload}
+                        />
+                        <Button variant="default" size="sm" className="w-full" asChild>
+                          <span className="cursor-pointer">
+                            <FileUp className="h-3 w-3 mr-1" />
+                            Anexar
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    
+                    {/* Opção Formulário */}
+                    <div className="text-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <ClipboardCheck className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-xs text-foreground font-medium mb-1">Formulário Online</p>
+                      <p className="text-[10px] text-muted-foreground mb-2">Preencha passo a passo</p>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => {
                         const link = getFormLink();
                         if (link) {
                           navigator.clipboard.writeText(link);
-                          toast.success("Link copiado para a área de transferência!");
+                          toast.success("Link copiado!");
                         }
                       }}>
                         <Copy className="h-3 w-3 mr-1" />
                         Copiar Link
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => {
-                        const link = getFormLink();
-                        if (link) window.open(link, '_blank');
-                      }}>
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Abrir Formulário
                       </Button>
                     </div>
                   </div>

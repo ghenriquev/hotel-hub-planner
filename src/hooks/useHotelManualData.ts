@@ -38,6 +38,11 @@ export interface HotelManualData {
   ads_marketing?: Record<string, any>;
   access_credentials?: Record<string, any>;
   
+  // File upload fields
+  uploaded_file_url?: string;
+  uploaded_file_name?: string;
+  input_method?: 'form' | 'upload';
+  
   // Status
   mailing_submitted?: boolean;
   current_step?: number;
@@ -132,7 +137,28 @@ export function useHotelManualData(hotelId: string | undefined) {
   const submitManual = async () => {
     return updateManualData({
       is_complete: true,
+      submitted_at: new Date().toISOString(),
+      input_method: 'form'
+    });
+  };
+
+  const uploadManualFile = async (fileUrl: string, fileName: string) => {
+    return updateManualData({
+      uploaded_file_url: fileUrl,
+      uploaded_file_name: fileName,
+      input_method: 'upload',
+      is_complete: true,
       submitted_at: new Date().toISOString()
+    });
+  };
+
+  const removeManualFile = async () => {
+    return updateManualData({
+      uploaded_file_url: undefined,
+      uploaded_file_name: undefined,
+      input_method: undefined,
+      is_complete: false,
+      submitted_at: undefined
     });
   };
 
@@ -142,6 +168,8 @@ export function useHotelManualData(hotelId: string | undefined) {
     saving,
     updateManualData,
     submitManual,
+    uploadManualFile,
+    removeManualFile,
     refetch: fetchManualData
   };
 }

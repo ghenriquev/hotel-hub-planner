@@ -17,6 +17,7 @@ import { useHotelMilestones } from "@/hooks/useHotelMilestones";
 import { useAgentResults } from "@/hooks/useAgentResults";
 import { useHotelWebsiteData } from "@/hooks/useHotelWebsiteData";
 import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
+import { useHotelCompetitors } from "@/hooks/useHotelCompetitors";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
@@ -25,7 +26,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot, Link2, Copy, ExternalLink, ClipboardCheck, Upload, Download, FileUp } from "lucide-react";
+import { Building2, ChevronRight, MapPin, Phone, Tag, Check, FileSpreadsheet, FileText, BookOpen, Database, CalendarIcon, Trash2, Loader2, Sparkles, AlertCircle, Pencil, Globe, Search, CheckCircle2, XCircle, Eye, RefreshCw, MessageSquare, Star, Users, Bot, Link2, Copy, ExternalLink, ClipboardCheck, Upload, Download, FileUp, Plus, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -72,7 +73,8 @@ export default function HotelDetail() {
     crawlCompetitors,
     getCompletedCount: getCompletedCompetitorsCount,
     getAnalysisCompletedCount,
-    hasAnyAnalysis
+    hasAnyAnalysis,
+    refetch: refetchCompetitorData
   } = useHotelCompetitorData(id);
   const {
     getReadiness
@@ -80,6 +82,15 @@ export default function HotelDetail() {
   const { configs } = useAgentConfigs();
   const { getFormLink } = useManualFormLink(id);
   const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
+  const { 
+    competitors: editableCompetitors, 
+    updateCompetitor, 
+    addCompetitor, 
+    removeCompetitor, 
+    saveCompetitors,
+    isSaving: isSavingCompetitors,
+    refetch: refetchCompetitors
+  } = useHotelCompetitors(id);
   const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,9 +111,6 @@ export default function HotelDetail() {
     tripadvisorUrl: "",
     bookingUrl: "",
     googleBusinessUrl: "",
-    competitorSite1: "",
-    competitorSite2: "",
-    competitorSite3: ""
   });
   useEffect(() => {
     if (hotel) {
@@ -117,9 +125,6 @@ export default function HotelDetail() {
         tripadvisorUrl: hotel.tripadvisor_url || "",
         bookingUrl: hotel.booking_url || "",
         googleBusinessUrl: hotel.google_business_url || "",
-        competitorSite1: (hotel as any).competitor_site_1 || "",
-        competitorSite2: (hotel as any).competitor_site_2 || "",
-        competitorSite3: (hotel as any).competitor_site_3 || ""
       });
       if (hotel.project_start_date) {
         setProjectStartDate(parseISO(hotel.project_start_date));
@@ -138,6 +143,7 @@ export default function HotelDetail() {
   const handleSaveEdit = async () => {
     if (!hotel) return;
     setIsSaving(true);
+    // Save hotel basic info
     const success = await updateHotel({
       name: editForm.name,
       city: editForm.city,
@@ -149,10 +155,14 @@ export default function HotelDetail() {
       tripadvisor_url: editForm.tripadvisorUrl || null,
       booking_url: editForm.bookingUrl || null,
       google_business_url: editForm.googleBusinessUrl || null,
-      competitor_site_1: editForm.competitorSite1 || null,
-      competitor_site_2: editForm.competitorSite2 || null,
-      competitor_site_3: editForm.competitorSite3 || null
-    } as any);
+    });
+    
+    // Save competitors separately
+    await saveCompetitors();
+    
+    // Refetch competitor data to update the UI
+    await refetchCompetitorData();
+    
     if (success) {
       setIsEditDialogOpen(false);
       toast.success("Informações atualizadas com sucesso!");
@@ -492,34 +502,48 @@ export default function HotelDetail() {
                       <AccordionTrigger className="text-sm font-medium">
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
-                          Concorrentes
+                          Concorrentes ({editableCompetitors.filter(c => c.competitor_url?.trim()).length})
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-competitor-1">Site Concorrente 1</Label>
-                            <Input id="edit-competitor-1" value={editForm.competitorSite1} onChange={e => setEditForm({
-                              ...editForm,
-                              competitorSite1: e.target.value
-                            })} placeholder="https://www.concorrente1.com.br" />
-                          </div>
+                        <div className="space-y-3 pt-2">
+                          {editableCompetitors.map((competitor, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="flex-1 space-y-1">
+                                <Label htmlFor={`edit-competitor-${index}`} className="text-xs text-muted-foreground">
+                                  Concorrente {index + 1}
+                                </Label>
+                                <Input 
+                                  id={`edit-competitor-${index}`} 
+                                  value={competitor.competitor_url} 
+                                  onChange={e => updateCompetitor(index, e.target.value)} 
+                                  placeholder={`https://www.concorrente${index + 1}.com.br`} 
+                                />
+                              </div>
+                              {editableCompetitors.length > 3 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="mt-5 h-9 w-9 text-muted-foreground hover:text-destructive"
+                                  onClick={() => removeCompetitor(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
                           
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-competitor-2">Site Concorrente 2</Label>
-                            <Input id="edit-competitor-2" value={editForm.competitorSite2} onChange={e => setEditForm({
-                              ...editForm,
-                              competitorSite2: e.target.value
-                            })} placeholder="https://www.concorrente2.com.br" />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-competitor-3">Site Concorrente 3</Label>
-                            <Input id="edit-competitor-3" value={editForm.competitorSite3} onChange={e => setEditForm({
-                              ...editForm,
-                              competitorSite3: e.target.value
-                            })} placeholder="https://www.concorrente3.com.br" />
-                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={addCompetitor}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Adicionar Concorrente
+                          </Button>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -800,12 +824,7 @@ export default function HotelDetail() {
                 <Users className="h-4 w-4 text-muted-foreground" />
                 Conteúdo dos Concorrentes
                 {(() => {
-                  const competitorCount = [
-                    (hotel as any).competitor_site_1,
-                    (hotel as any).competitor_site_2,
-                    (hotel as any).competitor_site_3
-                  ].filter(Boolean).length;
-                  
+                  const competitorCount = competitorData.length;
                   const completedCount = getCompletedCompetitorsCount();
                   
                   if (completedCount > 0) {
@@ -830,15 +849,10 @@ export default function HotelDetail() {
               
               <div className="border-2 border-dashed border-border rounded-lg p-4 bg-muted/30 min-h-[120px] flex flex-col justify-center">
                 {(() => {
-                  const competitorUrls = [
-                    (hotel as any).competitor_site_1,
-                    (hotel as any).competitor_site_2,
-                    (hotel as any).competitor_site_3
-                  ].filter(Boolean);
-                  
+                  const competitorCount = competitorData.length;
                   const completedCount = getCompletedCompetitorsCount();
                   
-                  if (competitorUrls.length === 0) {
+                  if (competitorCount === 0) {
                     return (
                       <div className="text-center text-muted-foreground text-sm">
                         <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -865,7 +879,7 @@ export default function HotelDetail() {
                       <div className="text-center">
                         <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
                         <p className="text-sm text-foreground font-medium mb-1">
-                          {completedCount} de {competitorUrls.length} analisado(s)
+                          {completedCount} de {competitorCount} analisado(s)
                           {analysisCount > 0 && ` (${analysisCount} com análise LLM)`}
                         </p>
                         <div className="flex items-center justify-center gap-2 mt-2">
@@ -887,7 +901,7 @@ export default function HotelDetail() {
                   return (
                     <div className="text-center">
                       <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm text-muted-foreground mb-2">{competitorUrls.length} concorrente(s) configurado(s)</p>
+                      <p className="text-sm text-muted-foreground mb-2">{competitorCount} concorrente(s) configurado(s)</p>
                       <Button variant="outline" size="sm" onClick={() => crawlCompetitors()}>
                         <Search className="h-3 w-3 mr-1" />
                         Analisar Concorrentes

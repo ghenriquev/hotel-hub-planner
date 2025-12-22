@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +17,14 @@ export function useHotelCompetitors(hotelId: string | undefined) {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // useRef para manter referência atualizada dos concorrentes (evita problema de closure)
+  const competitorsRef = useRef<Competitor[]>([]);
+  
+  // Manter ref sempre sincronizada com o state
+  useEffect(() => {
+    competitorsRef.current = competitors;
+  }, [competitors]);
 
   // Initialize with 3 empty competitors
   const initializeEmptyCompetitors = useCallback((hId: string): Competitor[] => {
@@ -150,6 +158,9 @@ export function useHotelCompetitors(hotelId: string | undefined) {
     
     setIsSaving(true);
     
+    // Usar a ref para garantir dados atualizados (evita problema de closure)
+    const currentCompetitors = competitorsRef.current;
+    
     try {
       // Get current data from DB
       const { data: existingData, error: fetchError } = await supabase
@@ -162,7 +173,7 @@ export function useHotelCompetitors(hotelId: string | undefined) {
       const existingMap = new Map((existingData || []).map(d => [d.competitor_number, d.id]));
       
       // Process each competitor
-      for (const comp of competitors) {
+      for (const comp of currentCompetitors) {
         const existingId = existingMap.get(comp.competitor_number);
         const hasUrl = comp.competitor_url && comp.competitor_url.trim() !== "";
 
@@ -204,7 +215,7 @@ export function useHotelCompetitors(hotelId: string | undefined) {
       }
 
       // Delete any extras that were removed
-      const currentNumbers = new Set(competitors.map(c => c.competitor_number));
+      const currentNumbers = new Set(currentCompetitors.map(c => c.competitor_number));
       for (const [num, id] of existingMap) {
         if (!currentNumbers.has(num)) {
           await supabase.from("hotel_competitor_data").delete().eq("id", id);
@@ -220,7 +231,7 @@ export function useHotelCompetitors(hotelId: string | undefined) {
     } finally {
       setIsSaving(false);
     }
-  }, [hotelId, competitors, fetchCompetitors]);
+  }, [hotelId, fetchCompetitors]);
 
   const getFilledCount = useCallback(() => {
     return competitors.filter(c => c.competitor_url && c.competitor_url.trim() !== "").length;

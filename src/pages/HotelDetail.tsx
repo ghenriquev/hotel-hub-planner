@@ -991,7 +991,27 @@ export default function HotelDetail() {
         </div>
 
         {/* Client View Button */}
-        <div className="mt-8 flex justify-end">
+        <div className="mt-8 flex justify-end gap-3">
+          <Button 
+            variant="outline"
+            size="lg"
+            onClick={() => {
+              const publicUrl = `${window.location.origin}/v/${hotel.slug}`;
+              navigator.clipboard.writeText(publicUrl);
+              toast.success("Link copiado para a área de transferência!");
+            }}
+          >
+            <Copy className="h-5 w-5 mr-2" />
+            Copiar Link Público
+          </Button>
+          <Button 
+            variant="outline"
+            size="lg"
+            onClick={() => window.open(`/v/${hotel.slug}`, '_blank')}
+          >
+            <ExternalLink className="h-5 w-5 mr-2" />
+            Abrir Visualização Pública
+          </Button>
           <Button 
             onClick={() => navigate(`/hotel/${hotel.id}/client-view`)}
             size="lg"

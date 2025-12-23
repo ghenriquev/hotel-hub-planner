@@ -615,6 +615,7 @@ export type Database = {
           manual_form_token: string | null
           name: string
           project_start_date: string | null
+          slug: string | null
           tripadvisor_url: string | null
           updated_at: string | null
           website: string | null
@@ -636,6 +637,7 @@ export type Database = {
           manual_form_token?: string | null
           name: string
           project_start_date?: string | null
+          slug?: string | null
           tripadvisor_url?: string | null
           updated_at?: string | null
           website?: string | null
@@ -657,6 +659,7 @@ export type Database = {
           manual_form_token?: string | null
           name?: string
           project_start_date?: string | null
+          slug?: string | null
           tripadvisor_url?: string | null
           updated_at?: string | null
           website?: string | null
@@ -782,6 +785,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_hotel_slug: { Args: { hotel_name: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -789,6 +793,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"

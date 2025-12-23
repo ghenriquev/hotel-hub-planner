@@ -24,6 +24,7 @@ import UserManagement from "./pages/UserManagement";
 import ManualForm from "./pages/ManualForm";
 import ManualResponses from "./pages/ManualResponses";
 import SettingsManualTemplate from "./pages/SettingsManualTemplate";
+import PublicClientView from "./pages/PublicClientView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -272,6 +273,8 @@ const App = () => (
             />
             {/* Public Manual Form Route */}
             <Route path="/manual/:hotelId/:token" element={<ManualForm />} />
+            {/* Public Client View Route */}
+            <Route path="/v/:slug" element={<PublicClientView />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

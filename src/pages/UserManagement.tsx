@@ -16,7 +16,7 @@ import {
   AlertCircle,
   Shield,
   User,
-  Trash2
+  KeyRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -58,6 +58,11 @@ export default function UserManagement() {
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("user");
+
+  // Reset password state
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const fetchUsers = async () => {
     const { data: profiles, error: profilesError } = await supabase
@@ -160,6 +165,44 @@ export default function UserManagement() {
 
     toast.success('Role alterada com sucesso!');
     fetchUsers();
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUserId || !resetPasswordValue) return;
+    
+    if (resetPasswordValue.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    setResettingPassword(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { 
+          userId: resetPasswordUserId, 
+          newPassword: resetPasswordValue 
+        }
+      });
+
+      if (error) {
+        toast.error(error.message || 'Erro ao resetar senha');
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success('Senha resetada com sucesso!');
+      setResetPasswordUserId(null);
+      setResetPasswordValue("");
+    } catch (err) {
+      toast.error('Erro ao resetar senha');
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   if (roleLoading || loading) {
@@ -311,7 +354,7 @@ export default function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                   <Select 
                     value={user.role} 
                     onValueChange={(v) => handleChangeRole(user.id, v as AppRole)}
@@ -325,6 +368,57 @@ export default function UserManagement() {
                       <SelectItem value="admin">Administrador</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {user.id !== userId && (
+                    <AlertDialog open={resetPasswordUserId === user.id} onOpenChange={(open) => {
+                      if (!open) {
+                        setResetPasswordUserId(null);
+                        setResetPasswordValue("");
+                      }
+                    }}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setResetPasswordUserId(user.id)}
+                          title="Resetar senha"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Resetar Senha</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Digite uma nova senha para <strong>{user.email}</strong>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4">
+                          <Label htmlFor="resetPassword">Nova Senha</Label>
+                          <Input
+                            id="resetPassword"
+                            type="password"
+                            value={resetPasswordValue}
+                            onChange={(e) => setResetPasswordValue(e.target.value)}
+                            placeholder="Mínimo 6 caracteres"
+                            minLength={6}
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleResetPassword}
+                            disabled={resettingPassword || resetPasswordValue.length < 6}
+                          >
+                            {resettingPassword ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Resetar Senha
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
 
                   {user.id !== userId && (
                     <span className="text-xs text-muted-foreground">

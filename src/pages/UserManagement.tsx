@@ -16,7 +16,9 @@ import {
   AlertCircle,
   Shield,
   User,
-  KeyRound
+  KeyRound,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -59,10 +61,10 @@ export default function UserManagement() {
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("user");
 
-  // Reset password state
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const fetchUsers = async () => {
     const { data: profiles, error: profilesError } = await supabase
@@ -374,6 +376,7 @@ export default function UserManagement() {
                       if (!open) {
                         setResetPasswordUserId(null);
                         setResetPasswordValue("");
+                        setShowResetPassword(false);
                       }
                     }}>
                       <AlertDialogTrigger asChild>
@@ -395,14 +398,30 @@ export default function UserManagement() {
                         </AlertDialogHeader>
                         <div className="py-4">
                           <Label htmlFor="resetPassword">Nova Senha</Label>
-                          <Input
-                            id="resetPassword"
-                            type="password"
-                            value={resetPasswordValue}
-                            onChange={(e) => setResetPasswordValue(e.target.value)}
-                            placeholder="Mínimo 6 caracteres"
-                            minLength={6}
-                          />
+                          <div className="relative">
+                            <Input
+                              id="resetPassword"
+                              type={showResetPassword ? "text" : "password"}
+                              value={resetPasswordValue}
+                              onChange={(e) => setResetPasswordValue(e.target.value)}
+                              placeholder="Mínimo 6 caracteres"
+                              minLength={6}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowResetPassword(!showResetPassword)}
+                            >
+                              {showResetPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>

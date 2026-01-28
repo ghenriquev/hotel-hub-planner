@@ -4,6 +4,7 @@ import { useHotelWebsiteData } from './useHotelWebsiteData';
 import { useHotelReviews } from './useHotelReviews';
 import { useAgentResults } from './useAgentResults';
 import { useAgentConfigs } from './useAgentConfigs';
+import { useHotelManualData } from './useHotelManualData';
 
 interface AgentReadinessInfo {
   moduleId: number;
@@ -30,8 +31,9 @@ export function useAgentsReadiness(hotelId: string) {
   const { hasAnyCompleted: hasReviewsCompleted, loading: reviewsLoading } = useHotelReviews(hotelId);
   const { results: agentResults, loading: resultsLoading } = useAgentResults(hotelId);
   const { configs, loading: configsLoading } = useAgentConfigs();
+  const { manualData, loading: manualDataLoading } = useHotelManualData(hotelId);
 
-  const isLoading = materialsLoading || websiteLoading || reviewsLoading || resultsLoading || configsLoading;
+  const isLoading = materialsLoading || websiteLoading || reviewsLoading || resultsLoading || configsLoading || manualDataLoading;
 
   const agentsReadiness = useMemo(() => {
     const readinessMap: Record<number, AgentReadinessInfo> = {};
@@ -47,7 +49,10 @@ export function useAgentsReadiness(hotelId: string) {
         
         switch (materialId) {
           case 'manual':
-            ready = !!getMaterial('manual');
+            // Manual pode estar em hotel_materials OU em hotel_manual_data
+            ready = !!getMaterial('manual') || 
+                    (manualData?.is_complete === true && 
+                     (manualData?.input_method === 'upload' || manualData?.input_method === 'form'));
             label = PRIMARY_MATERIALS_LABELS[materialId];
             break;
           case 'dados':
@@ -105,7 +110,7 @@ export function useAgentsReadiness(hotelId: string) {
     });
 
     return readinessMap;
-  }, [configs, getMaterial, websiteData, hasReviewsCompleted, agentResults]);
+  }, [configs, getMaterial, websiteData, hasReviewsCompleted, agentResults, manualData]);
 
   const getReadiness = (moduleId: number): AgentReadinessInfo | undefined => {
     return agentsReadiness[moduleId];

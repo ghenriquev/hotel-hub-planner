@@ -25,7 +25,7 @@ const RESEARCH_MATERIALS_LABELS: Record<string, string> = {
   reviews: 'Avaliações Consolidadas',
 };
 
-export function useAgentsReadiness(hotelId: string) {
+export function useAgentsReadiness(hotelId: string | undefined) {
   const { getMaterial, loading: materialsLoading } = useHotelMaterials(hotelId);
   const { websiteData, loading: websiteLoading } = useHotelWebsiteData(hotelId);
   const { hasAnyCompleted: hasReviewsCompleted, loading: reviewsLoading } = useHotelReviews(hotelId);

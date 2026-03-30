@@ -220,11 +220,12 @@ export default function SettingsApiKeys() {
       <div className="bg-muted/50 p-4 mt-6">
         <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-primary" />
-          Nota sobre Lovable AI
+          API Keys Necessárias
         </h4>
         <p className="text-sm text-muted-foreground">
-          O Lovable AI (Google Gemini e GPT-5) já está configurado automaticamente e não requer API key adicional.
-          Use esta seção para adicionar chaves de provedores externos como Claude (Anthropic), Gamma ou Manus.
+          Para usar os agentes de análise, configure pelo menos uma API key de provedor LLM (Google AI, OpenAI ou Anthropic).
+          Para pesquisa web e crawling, adicione também uma chave Apify.
+          Opcionais: Manus (agente assíncrono), Gamma (apresentações).
         </p>
       </div>
 

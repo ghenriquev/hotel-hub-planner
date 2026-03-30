@@ -62,42 +62,46 @@ import {
 // Helper to get friendly model name
 function getModelDisplayName(model: string | null): string {
   if (!model) return 'Modelo desconhecido';
-  
+
   const modelNames: Record<string, string> = {
+    'google/gemini-3-pro-preview': 'Gemini 3 Pro',
     'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
     'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
     'google/gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
-    'google/gemini-3-pro-preview': 'Gemini 3 Pro',
+    'google/gemini-2.0-flash': 'Gemini 2.0 Flash',
     'openai/gpt-5': 'GPT-5',
     'openai/gpt-5-mini': 'GPT-5 Mini',
     'openai/gpt-5-nano': 'GPT-5 Nano',
+    'openai/gpt-4o': 'GPT-4o',
+    'openai/gpt-4o-mini': 'GPT-4o Mini',
     'anthropic/claude-sonnet-4-5': 'Claude Sonnet 4.5',
-    'anthropic/claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+    'anthropic/claude-3-5-haiku': 'Claude 3.5 Haiku',
     'manus/agent-1.5': 'Manus Agent 1.5',
     'manus/agent-1.5-lite': 'Manus Agent Lite',
   };
-  
+
   return modelNames[model] || model.split('/').pop() || model;
 }
 
-// Lovable AI models (no API key required)
-const LOVABLE_MODELS = [
-  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮" },
-  { value: "openai/gpt-5", label: "GPT-5", icon: "🤖" },
-  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖" },
-  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖" },
-];
-
-// Models that require API keys
-const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: string }[]> = {
+// All models grouped by provider (require API key)
+const MODELS_BY_PROVIDER: Record<string, { value: string; label: string; icon: string }[]> = {
+  google: [
+    { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮" },
+    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮" },
+    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮" },
+    { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮" },
+    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮" },
+  ],
   openai: [
+    { value: "openai/gpt-5", label: "GPT-5", icon: "🤖" },
+    { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖" },
+    { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖" },
     { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖" },
   ],
   anthropic: [
     { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠" },
+    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠" },
   ],
   manus: [
     { value: "manus/agent-1.5", label: "Manus Agent 1.5", icon: "🔧" },
@@ -129,24 +133,23 @@ export default function AgentModule() {
   const agentConfig = configs.find(c => c.module_id === moduleIdNum);
   const outputType = agentConfig?.output_type || 'text';
 
-  // Get active API key types for external models
+  // Get active API key types
   const getActiveApiKeyTypes = (): string[] => {
     return apiKeys.filter(k => k.is_active).map(k => k.key_type);
   };
 
-  // Get available external models based on active API keys
-  const getAvailableExternalModels = () => {
+  // Get available models based on active API keys
+  const getAvailableModels = () => {
     const activeTypes = getActiveApiKeyTypes();
-    const models: { value: string; label: string; icon: string }[] = [];
-    
-    for (const keyType of activeTypes) {
-      const keyModels = EXTERNAL_MODELS[keyType];
-      if (keyModels) {
-        keyModels.forEach(m => models.push(m));
+    const result: { provider: string; models: { value: string; label: string; icon: string }[] }[] = [];
+
+    for (const [provider, models] of Object.entries(MODELS_BY_PROVIDER)) {
+      if (activeTypes.includes(provider)) {
+        result.push({ provider, models });
       }
     }
-    
-    return models;
+
+    return result;
   };
 
   const handleChangeModel = async (newModel: string) => {
@@ -490,26 +493,17 @@ export default function AgentModule() {
                           <SelectValue placeholder="Selecione o modelo" />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* Lovable AI Models */}
-                          <div className="text-xs text-muted-foreground px-2 py-1 font-medium">
-                            Lovable AI (sem API key)
-                          </div>
-                          {LOVABLE_MODELS.map(m => (
-                            <SelectItem key={m.value} value={m.value}>
-                              <span className="flex items-center gap-2">
-                                <span>{m.icon}</span>
-                                <span>{m.label}</span>
-                              </span>
-                            </SelectItem>
-                          ))}
-                          
-                          {/* External Models */}
-                          {getAvailableExternalModels().length > 0 && (
-                            <>
-                              <div className="text-xs text-muted-foreground px-2 py-1 mt-2 font-medium border-t">
-                                Externos (via API Key)
+                          {getAvailableModels().length === 0 && (
+                            <div className="text-xs text-muted-foreground px-2 py-2">
+                              Nenhuma API key ativa. Configure em Configurações &gt; API Keys.
+                            </div>
+                          )}
+                          {getAvailableModels().map(({ provider, models }) => (
+                            <div key={provider}>
+                              <div className="text-xs text-muted-foreground px-2 py-1 font-medium capitalize">
+                                {provider === 'google' ? 'Google AI' : provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : provider === 'manus' ? 'Manus' : provider}
                               </div>
-                              {getAvailableExternalModels().map(m => (
+                              {models.map(m => (
                                 <SelectItem key={m.value} value={m.value}>
                                   <span className="flex items-center gap-2">
                                     <span>{m.icon}</span>
@@ -517,8 +511,8 @@ export default function AgentModule() {
                                   </span>
                                 </SelectItem>
                               ))}
-                            </>
-                          )}
+                            </div>
+                          ))}
                         </SelectContent>
                       </Select>
                       {isChangingModel && (

@@ -54,14 +54,18 @@ import {
 // All models require API keys (mapped by key_type)
 const MODELS_BY_PROVIDER: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
   google: [
+    { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮", description: "Modelo mais recente do Google" },
     { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
     { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
     { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
     { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Versão anterior estável" },
   ],
   openai: [
+    { value: "openai/gpt-5", label: "GPT-5", icon: "🤖", description: "OpenAI GPT-5 - modelo mais avançado" },
+    { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "OpenAI GPT-5 Mini - equilíbrio custo/performance" },
+    { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "OpenAI GPT-5 Nano - mais rápido e econômico" },
     { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o - alta precisão" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini - equilíbrio custo/performance" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini - econômico" },
   ],
   anthropic: [
     { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente" },

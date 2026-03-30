@@ -51,29 +51,21 @@ import {
   GripVertical
 } from "lucide-react";
 
-// Lovable AI models (no API key required)
-const LOVABLE_MODELS = [
-  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮", description: "Próxima geração - raciocínio avançado" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
-  { value: "openai/gpt-5", label: "GPT-5", icon: "🤖", description: "Alta precisão, custo maior" },
-  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "Equilíbrio entre custo e performance" },
-  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "Rápido e econômico" },
-];
-
-// Models that require API keys (mapped by key_type)
-const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
+// All models require API keys (mapped by key_type)
+const MODELS_BY_PROVIDER: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
+  google: [
+    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
+    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
+    { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
+    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Versão anterior estável" },
+  ],
   openai: [
-    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o (via API Key)" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini (via API Key)" },
+    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o - alta precisão" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini - equilíbrio custo/performance" },
   ],
   anthropic: [
-    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente (via API Key)" },
-    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠", description: "Claude rápido (via API Key)" },
-  ],
-  google: [
-    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Google Gemini (via API Key)" },
+    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente" },
+    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠", description: "Claude rápido" },
   ],
   manus: [
     { value: "manus/agent-1.5", label: "Manus Agent 1.5", icon: "🔧", description: "Modo agente assíncrono - pesquisa web em tempo real" },

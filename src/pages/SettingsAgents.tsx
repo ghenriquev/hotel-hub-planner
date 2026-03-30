@@ -51,29 +51,21 @@ import {
   GripVertical
 } from "lucide-react";
 
-// Lovable AI models (no API key required)
-const LOVABLE_MODELS = [
-  { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", icon: "🔮", description: "Próxima geração - raciocínio avançado" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
-  { value: "openai/gpt-5", label: "GPT-5", icon: "🤖", description: "Alta precisão, custo maior" },
-  { value: "openai/gpt-5-mini", label: "GPT-5 Mini", icon: "🤖", description: "Equilíbrio entre custo e performance" },
-  { value: "openai/gpt-5-nano", label: "GPT-5 Nano", icon: "🤖", description: "Rápido e econômico" },
-];
-
-// Models that require API keys (mapped by key_type)
-const EXTERNAL_MODELS: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
+// All models require API keys (mapped by key_type)
+const MODELS_BY_PROVIDER: Record<string, { value: string; label: string; icon: string; description: string }[]> = {
+  google: [
+    { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", icon: "🔮", description: "Rápido e eficiente (padrão)" },
+    { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", icon: "🔮", description: "Mais poderoso, melhor raciocínio" },
+    { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", icon: "🔮", description: "Mais rápido e econômico" },
+    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Versão anterior estável" },
+  ],
   openai: [
-    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o (via API Key)" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini (via API Key)" },
+    { value: "openai/gpt-4o", label: "GPT-4o", icon: "🤖", description: "OpenAI GPT-4o - alta precisão" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", icon: "🤖", description: "OpenAI GPT-4o Mini - equilíbrio custo/performance" },
   ],
   anthropic: [
-    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente (via API Key)" },
-    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠", description: "Claude rápido (via API Key)" },
-  ],
-  google: [
-    { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", icon: "🔮", description: "Google Gemini (via API Key)" },
+    { value: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5", icon: "🧠", description: "Claude mais inteligente" },
+    { value: "anthropic/claude-3-5-haiku", label: "Claude 3.5 Haiku", icon: "🧠", description: "Claude rápido" },
   ],
   manus: [
     { value: "manus/agent-1.5", label: "Manus Agent 1.5", icon: "🔧", description: "Modo agente assíncrono - pesquisa web em tempo real" },
@@ -283,32 +275,34 @@ function SortableAgentItem({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  Lovable AI (sem API Key)
-                </div>
-                {LOVABLE_MODELS.map((model) => (
-                  <SelectItem key={model.value} value={model.value}>
-                    <div className="flex items-center gap-2">
-                      <span>{model.icon}</span>
-                      <span>{model.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-                
-                {getAvailableExternalModels().length > 0 && (
+                {getAvailableExternalModels().length > 0 ? (
                   <>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
-                      Via API Key Configurada
-                    </div>
-                    {getAvailableExternalModels().map((model) => (
-                      <SelectItem key={model.value} value={model.value}>
-                        <div className="flex items-center gap-2">
-                          <span>{model.icon}</span>
-                          <span>{model.label}</span>
+                    {Object.entries(
+                      getAvailableExternalModels().reduce<Record<string, { value: string; label: string; icon: string; description: string; keyType: string }[]>>((acc, m) => {
+                        if (!acc[m.keyType]) acc[m.keyType] = [];
+                        acc[m.keyType].push(m);
+                        return acc;
+                      }, {})
+                    ).map(([keyType, providerModels]) => (
+                      <div key={keyType}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                          {keyType.charAt(0).toUpperCase() + keyType.slice(1)}
                         </div>
-                      </SelectItem>
+                        {providerModels.map((model) => (
+                          <SelectItem key={model.value} value={model.value}>
+                            <div className="flex items-center gap-2">
+                              <span>{model.icon}</span>
+                              <span>{model.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
                     ))}
                   </>
+                ) : (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                    Nenhuma API Key ativa. Adicione em API Keys.
+                  </div>
                 )}
               </SelectContent>
             </Select>
@@ -432,12 +426,12 @@ export default function SettingsAgents() {
     return apiKeys.filter(k => k.is_active).map(k => k.key_type);
   };
 
-  const getAvailableExternalModels = () => {
+  const getAvailableModels = () => {
     const activeTypes = getActiveApiKeyTypes();
     const models: { value: string; label: string; icon: string; description: string; keyType: string }[] = [];
     
     for (const keyType of activeTypes) {
-      const keyModels = EXTERNAL_MODELS[keyType];
+      const keyModels = MODELS_BY_PROVIDER[keyType];
       if (keyModels) {
         keyModels.forEach(m => models.push({ ...m, keyType }));
       }
@@ -447,10 +441,7 @@ export default function SettingsAgents() {
   };
 
   const getModelInfo = (modelValue: string) => {
-    const lovableModel = LOVABLE_MODELS.find(m => m.value === modelValue);
-    if (lovableModel) return lovableModel;
-    
-    for (const models of Object.values(EXTERNAL_MODELS)) {
+    for (const models of Object.values(MODELS_BY_PROVIDER)) {
       const model = models.find(m => m.value === modelValue);
       if (model) return model;
     }
@@ -579,7 +570,7 @@ export default function SettingsAgents() {
                 getModelInfo={getModelInfo}
                 PRIMARY_MATERIALS={PRIMARY_MATERIALS}
                 RESEARCH_MATERIALS={RESEARCH_MATERIALS}
-                getAvailableExternalModels={getAvailableExternalModels}
+                getAvailableExternalModels={getAvailableModels}
                 handleEdit={handleEdit}
                 handleSave={handleSave}
                 handleCancel={handleCancel}
@@ -659,7 +650,7 @@ export default function SettingsAgents() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOVABLE_MODELS.map((model) => (
+                  {getAvailableModels().map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       <div className="flex items-center gap-2">
                         <span>{model.icon}</span>

@@ -571,7 +571,7 @@ export default function SettingsAgents() {
                 getModelInfo={getModelInfo}
                 PRIMARY_MATERIALS={PRIMARY_MATERIALS}
                 RESEARCH_MATERIALS={RESEARCH_MATERIALS}
-                getAvailableExternalModels={getAvailableExternalModels}
+                getAvailableExternalModels={getAvailableModels}
                 handleEdit={handleEdit}
                 handleSave={handleSave}
                 handleCancel={handleCancel}

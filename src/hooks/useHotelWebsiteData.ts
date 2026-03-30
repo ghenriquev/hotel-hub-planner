@@ -131,6 +131,32 @@ export function useHotelWebsiteData(hotelId: string | undefined) {
     };
   }, [fetchWebsiteData]);
 
+  const cancelCrawl = useCallback(async () => {
+    // Stop polling
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    setIsCrawling(false);
+
+    // Update DB status to cancelled
+    if (hotelId) {
+      try {
+        await supabase
+          .from("hotel_website_data")
+          .update({ status: 'error', error_message: 'Análise cancelada pelo usuário' })
+          .eq("hotel_id", hotelId)
+          .eq("status", "crawling");
+
+        await fetchWebsiteData();
+        toast.info("Análise do site cancelada.");
+      } catch (error) {
+        console.error("Error cancelling crawl:", error);
+      }
+    }
+  }, [hotelId, fetchWebsiteData]);
+
   const crawlWebsite = async (websiteUrl: string): Promise<boolean> => {
     if (!hotelId || !websiteUrl) {
       toast.error("URL do site é obrigatória");
@@ -186,6 +212,7 @@ export function useHotelWebsiteData(hotelId: string | undefined) {
     loading,
     isCrawling,
     crawlWebsite,
+    cancelCrawl,
     refetch: fetchWebsiteData,
   };
 }

@@ -65,7 +65,8 @@ export default function HotelDetail() {
   const {
     websiteData,
     isCrawling,
-    crawlWebsite
+    crawlWebsite,
+    cancelCrawl
   } = useHotelWebsiteData(id);
   const {
     competitors: competitorData,
@@ -776,7 +777,11 @@ export default function HotelDetail() {
                     </Button>
                   </div> : isCrawling ? <div className="text-center">
                     <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Analisando site...</p>
+                    <p className="text-sm text-muted-foreground mb-2">Analisando site...</p>
+                    <Button variant="ghost" size="sm" onClick={cancelCrawl} className="text-muted-foreground hover:text-destructive">
+                      <X className="h-3 w-3 mr-1" />
+                      Cancelar
+                    </Button>
                   </div> : websiteData?.status === 'error' ? <div className="text-center">
                     <XCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
                     <p className="text-sm text-destructive mb-2">Erro na análise</p>

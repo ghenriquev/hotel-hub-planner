@@ -651,7 +651,7 @@ export default function SettingsAgents() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOVABLE_MODELS.map((model) => (
+                  {getAvailableModels().map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       <div className="flex items-center gap-2">
                         <span>{model.icon}</span>

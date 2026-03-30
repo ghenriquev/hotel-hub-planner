@@ -424,12 +424,12 @@ export default function SettingsAgents() {
     return apiKeys.filter(k => k.is_active).map(k => k.key_type);
   };
 
-  const getAvailableExternalModels = () => {
+  const getAvailableModels = () => {
     const activeTypes = getActiveApiKeyTypes();
     const models: { value: string; label: string; icon: string; description: string; keyType: string }[] = [];
     
     for (const keyType of activeTypes) {
-      const keyModels = EXTERNAL_MODELS[keyType];
+      const keyModels = MODELS_BY_PROVIDER[keyType];
       if (keyModels) {
         keyModels.forEach(m => models.push({ ...m, keyType }));
       }
@@ -439,10 +439,7 @@ export default function SettingsAgents() {
   };
 
   const getModelInfo = (modelValue: string) => {
-    const lovableModel = LOVABLE_MODELS.find(m => m.value === modelValue);
-    if (lovableModel) return lovableModel;
-    
-    for (const models of Object.values(EXTERNAL_MODELS)) {
+    for (const models of Object.values(MODELS_BY_PROVIDER)) {
       const model = models.find(m => m.value === modelValue);
       if (model) return model;
     }

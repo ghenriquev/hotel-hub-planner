@@ -83,12 +83,12 @@ export default function SettingsResearch() {
     return apiKeys.filter(k => k.is_active).map(k => k.key_type);
   };
 
-  const getAvailableExternalModels = () => {
+  const getAvailableModels = () => {
     const activeTypes = getActiveApiKeyTypes();
     const models: { value: string; label: string; icon: string; description: string; keyType: string }[] = [];
     
     for (const keyType of activeTypes) {
-      const keyModels = EXTERNAL_MODELS[keyType];
+      const keyModels = MODELS_BY_PROVIDER[keyType];
       if (keyModels) {
         keyModels.forEach(m => models.push({ ...m, keyType }));
       }

@@ -275,21 +275,20 @@ function SortableAgentItem({
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {getAvailableModels().length > 0 ? (
+                {getAvailableExternalModels().length > 0 ? (
                   <>
-                    {/* Group by provider */}
                     {Object.entries(
-                      getAvailableModels().reduce((acc, m) => {
+                      getAvailableExternalModels().reduce<Record<string, { value: string; label: string; icon: string; description: string; keyType: string }[]>>((acc, m) => {
                         if (!acc[m.keyType]) acc[m.keyType] = [];
                         acc[m.keyType].push(m);
                         return acc;
-                      }, {} as Record<string, typeof models>)
-                    ).map(([keyType, models]) => (
+                      }, {})
+                    ).map(([keyType, providerModels]) => (
                       <div key={keyType}>
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                           {keyType.charAt(0).toUpperCase() + keyType.slice(1)}
                         </div>
-                        {models.map((model) => (
+                        {providerModels.map((model) => (
                           <SelectItem key={model.value} value={model.value}>
                             <div className="flex items-center gap-2">
                               <span>{model.icon}</span>

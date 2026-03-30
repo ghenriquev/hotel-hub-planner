@@ -157,31 +157,34 @@ export default function SettingsResearch() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  Lovable AI (sem API Key)
-                </div>
-                {LOVABLE_MODELS.map((model) => (
-                  <SelectItem key={model.value} value={model.value}>
-                    <div className="flex items-center gap-2">
-                      <span>{model.icon}</span>
-                      <span>{model.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-                {getAvailableExternalModels().length > 0 && (
+                {getAvailableModels().length > 0 ? (
                   <>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-2">
-                      Modelos Externos (via API Key)
-                    </div>
-                    {getAvailableExternalModels().map((model) => (
-                      <SelectItem key={model.value} value={model.value}>
-                        <div className="flex items-center gap-2">
-                          <span>{model.icon}</span>
-                          <span>{model.label}</span>
+                    {Object.entries(
+                      getAvailableModels().reduce<Record<string, { value: string; label: string; icon: string; description: string; keyType: string }[]>>((acc, m) => {
+                        if (!acc[m.keyType]) acc[m.keyType] = [];
+                        acc[m.keyType].push(m);
+                        return acc;
+                      }, {})
+                    ).map(([keyType, providerModels]) => (
+                      <div key={keyType}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                          {keyType.charAt(0).toUpperCase() + keyType.slice(1)}
                         </div>
-                      </SelectItem>
+                        {providerModels.map((model) => (
+                          <SelectItem key={model.value} value={model.value}>
+                            <div className="flex items-center gap-2">
+                              <span>{model.icon}</span>
+                              <span>{model.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </div>
                     ))}
                   </>
+                ) : (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                    Nenhuma API Key ativa. Adicione em API Keys.
+                  </div>
                 )}
               </SelectContent>
             </Select>

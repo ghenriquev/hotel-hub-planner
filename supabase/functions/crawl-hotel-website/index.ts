@@ -43,14 +43,7 @@ serve(async (req) => {
   }
 });
 
-async function handleStartCrawl(supabase: any, hotelId: string, websiteUrl: string) {
-  console.log(`[crawl-hotel-website] Starting async crawl for hotel ${hotelId}, URL: ${websiteUrl}`);
-
-  if (!hotelId || !websiteUrl) {
-    throw new Error("hotelId and websiteUrl are required");
-  }
-
-  // Fetch Apify API Key
+async function getApifyKey(supabase: any): Promise<string> {
   const { data: apifyKeyData, error: keyError } = await supabase
     .from('api_keys')
     .select('api_key')
@@ -59,6 +52,105 @@ async function handleStartCrawl(supabase: any, hotelId: string, websiteUrl: stri
     .maybeSingle();
 
   if (keyError || !apifyKeyData?.api_key) {
+    throw new Error("No active Apify API key found");
+  }
+  return apifyKeyData.api_key;
+}
+
+async function pollUntilComplete(supabase: any, hotelId: string, runId: string, apiKey: string) {
+  const maxAttempts = 60; // 10 minutes max (10s intervals)
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10s
+    
+    try {
+      // Check current DB status first - if cancelled, stop polling
+      const { data: currentData } = await supabase
+        .from('hotel_website_data')
+        .select('status')
+        .eq('hotel_id', hotelId)
+        .maybeSingle();
+      
+      if (currentData?.status !== 'crawling') {
+        console.log(`[crawl-hotel-website] Background poll stopped: status is ${currentData?.status}`);
+        return;
+      }
+
+      const statusResponse = await fetch(
+        `https://api.apify.com/v2/actor-runs/${runId}?token=${apiKey}`
+      );
+
+      if (!statusResponse.ok) {
+        const errorText = await statusResponse.text();
+        console.error("[crawl-hotel-website] Background poll error:", errorText);
+        continue;
+      }
+
+      const statusData = await statusResponse.json();
+      const runStatus = statusData?.data?.status;
+      console.log(`[crawl-hotel-website] Background poll attempt ${attempt + 1}: status=${runStatus}`);
+
+      if (runStatus === 'SUCCEEDED') {
+        const datasetId = statusData?.data?.defaultDatasetId;
+        const itemsResponse = await fetch(
+          `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiKey}`
+        );
+
+        if (!itemsResponse.ok) {
+          throw new Error("Failed to fetch dataset items");
+        }
+
+        const crawledData = await itemsResponse.json();
+        const processedContent = Array.isArray(crawledData) ? crawledData.map((page: any) => ({
+          url: page.url,
+          title: page.metadata?.title || page.title || '',
+          description: page.metadata?.description || '',
+          text: page.text?.substring(0, 5000) || '',
+        })) : [];
+
+        await supabase.from('hotel_website_data').update({
+          crawled_content: processedContent,
+          crawled_at: new Date().toISOString(),
+          status: 'completed',
+          error_message: null,
+        }).eq('hotel_id', hotelId);
+
+        console.log(`[crawl-hotel-website] Background poll: completed with ${processedContent.length} pages`);
+        return;
+
+      } else if (runStatus === 'FAILED' || runStatus === 'ABORTED' || runStatus === 'TIMED-OUT') {
+        await supabase.from('hotel_website_data').update({
+          status: 'error',
+          error_message: `Apify run ${runStatus.toLowerCase()}`,
+        }).eq('hotel_id', hotelId);
+        console.log(`[crawl-hotel-website] Background poll: run ${runStatus}`);
+        return;
+      }
+      // Still running, continue polling
+    } catch (error) {
+      console.error(`[crawl-hotel-website] Background poll error:`, error);
+    }
+  }
+
+  // Timeout after max attempts
+  await supabase.from('hotel_website_data').update({
+    status: 'error',
+    error_message: 'Timeout: análise demorou mais de 10 minutos',
+  }).eq('hotel_id', hotelId);
+  console.log("[crawl-hotel-website] Background poll: timed out");
+}
+
+async function handleStartCrawl(supabase: any, hotelId: string, websiteUrl: string) {
+  console.log(`[crawl-hotel-website] Starting async crawl for hotel ${hotelId}, URL: ${websiteUrl}`);
+
+  if (!hotelId || !websiteUrl) {
+    throw new Error("hotelId and websiteUrl are required");
+  }
+
+  let apiKey: string;
+  try {
+    apiKey = await getApifyKey(supabase);
+  } catch {
     await supabase.from('hotel_website_data').upsert({
       hotel_id: hotelId,
       website_url: websiteUrl,
@@ -93,11 +185,11 @@ async function handleStartCrawl(supabase: any, hotelId: string, websiteUrl: stri
     error_message: null,
   }, { onConflict: 'hotel_id' });
 
-  // Start ASYNC Apify run (not sync)
+  // Start ASYNC Apify run
   console.log(`[crawl-hotel-website] Starting async Apify run: maxPages=${maxPages}, maxDepth=${maxDepth}, crawlerType=${crawlerType}`);
   
   const apifyResponse = await fetch(
-    `https://api.apify.com/v2/acts/apify~website-content-crawler/runs?token=${apifyKeyData.api_key}`,
+    `https://api.apify.com/v2/acts/apify~website-content-crawler/runs?token=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -130,12 +222,24 @@ async function handleStartCrawl(supabase: any, hotelId: string, websiteUrl: stri
 
   console.log(`[crawl-hotel-website] Apify run started with ID: ${runId}`);
 
-  // Store the run ID in the error_message field temporarily (we'll use it for polling)
-  // We use a dedicated approach: store run ID so the frontend can poll
+  // Store the run ID for reference
   await supabase.from('hotel_website_data').update({
     status: 'crawling',
     error_message: runId ? `apify_run:${runId}` : null,
   }).eq('hotel_id', hotelId);
+
+  // Start background polling - this continues even after response is sent
+  if (runId) {
+    EdgeRuntime.waitUntil(
+      pollUntilComplete(supabase, hotelId, runId, apiKey).catch(async (error) => {
+        console.error(`[crawl-hotel-website] Background poll fatal error:`, error);
+        await supabase.from('hotel_website_data').update({
+          status: 'error',
+          error_message: `Erro interno: ${error instanceof Error ? error.message : 'unknown'}`,
+        }).eq('hotel_id', hotelId);
+      })
+    );
+  }
 
   return new Response(JSON.stringify({ 
     success: true, 
@@ -154,21 +258,11 @@ async function handleCheckStatus(supabase: any, hotelId: string, apifyRunId: str
     throw new Error("hotelId and apifyRunId are required");
   }
 
-  // Fetch Apify API Key
-  const { data: apifyKeyData } = await supabase
-    .from('api_keys')
-    .select('api_key')
-    .eq('is_active', true)
-    .or('name.ilike.%apify%,name.ilike.%apfy%,key_type.ilike.%apify%')
-    .maybeSingle();
-
-  if (!apifyKeyData?.api_key) {
-    throw new Error("No Apify API key found");
-  }
+  const apiKey = await getApifyKey(supabase);
 
   // Check run status
   const statusResponse = await fetch(
-    `https://api.apify.com/v2/actor-runs/${apifyRunId}?token=${apifyKeyData.api_key}`
+    `https://api.apify.com/v2/actor-runs/${apifyRunId}?token=${apiKey}`
   );
 
   if (!statusResponse.ok) {
@@ -183,10 +277,9 @@ async function handleCheckStatus(supabase: any, hotelId: string, apifyRunId: str
   console.log(`[crawl-hotel-website] Apify run status: ${runStatus}`);
 
   if (runStatus === 'SUCCEEDED') {
-    // Fetch dataset items
     const datasetId = statusData?.data?.defaultDatasetId;
     const itemsResponse = await fetch(
-      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyKeyData.api_key}`
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apiKey}`
     );
 
     if (!itemsResponse.ok) {
@@ -194,8 +287,6 @@ async function handleCheckStatus(supabase: any, hotelId: string, apifyRunId: str
     }
 
     const crawledData = await itemsResponse.json();
-    console.log(`[crawl-hotel-website] Got ${Array.isArray(crawledData) ? crawledData.length : 0} pages`);
-
     const processedContent = Array.isArray(crawledData) ? crawledData.map((page: any) => ({
       url: page.url,
       title: page.metadata?.title || page.title || '',
@@ -233,7 +324,6 @@ async function handleCheckStatus(supabase: any, hotelId: string, apifyRunId: str
     });
 
   } else {
-    // Still running (RUNNING, READY, etc.)
     return new Response(JSON.stringify({ 
       success: true, 
       status: 'crawling',

@@ -1,0 +1,1 @@
+UPDATE hotel_website_data SET status = 'error', error_message = 'Timeout - análise travada. Tente novamente.' WHERE status = 'crawling' AND updated_at < NOW() - INTERVAL '10 minutes';

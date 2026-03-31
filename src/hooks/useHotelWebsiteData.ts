@@ -18,7 +18,7 @@ export function useHotelWebsiteData(hotelId: string | undefined) {
   const [websiteData, setWebsiteData] = useState<HotelWebsiteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCrawling, setIsCrawling] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchWebsiteData = useCallback(async () => {
     if (!hotelId) {

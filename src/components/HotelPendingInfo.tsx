@@ -77,10 +77,14 @@ interface HotelPendingBadgeProps {
 
 export function HotelPendingBadge({ hotel }: HotelPendingBadgeProps) {
   const { materialsState, loading } = useHotelMaterials(hotel.id);
+  const { manualData, loading: manualLoading } = useHotelManualData(hotel.id);
 
-  if (loading) return null;
+  if (loading || manualLoading) return null;
 
-  const pendingItems = getPendingItems(hotel, materialsState);
+  const pendingItems = getPendingItems(hotel, materialsState, {
+    isComplete: manualData?.is_complete || false,
+    inputMethod: manualData?.input_method || undefined,
+  });
 
   if (pendingItems.length === 0) return null;
 

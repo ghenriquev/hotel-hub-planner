@@ -254,7 +254,7 @@ export default function HotelDetail() {
   const hotelProgress = totalAgents > 0 ? Math.round((completedAgents / totalAgents) * 100) : 0;
   return <div className="p-6">
       {/* Pending Info Alert */}
-      <HotelPendingAlert hotel={hotel} materialsState={materialsState} />
+      <HotelPendingAlert hotel={hotel} materialsState={materialsState} manualDataStatus={{ isComplete: manualFormData?.is_complete || false, inputMethod: manualFormData?.input_method || undefined }} />
 
       {/* Hotel header */}
       <div className="bg-card border border-border/60 p-6 mb-6">

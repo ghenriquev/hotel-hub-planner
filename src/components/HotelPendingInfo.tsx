@@ -1,5 +1,6 @@
 import { AlertCircle, AlertTriangle } from "lucide-react";
 import { useHotelMaterials, MaterialsState } from "@/hooks/useHotelMaterials";
+import { useHotelManualData } from "@/hooks/useHotelManualData";
 import {
   Tooltip,
   TooltipContent,
@@ -24,9 +25,15 @@ interface Hotel {
   project_start_date?: string | null;
 }
 
+export interface ManualDataStatus {
+  isComplete?: boolean;
+  inputMethod?: string;
+}
+
 export function getPendingItems(
   hotel: Hotel,
-  materialsState: MaterialsState
+  materialsState: MaterialsState,
+  manualDataStatus?: ManualDataStatus
 ): PendingItem[] {
   const pendingItems: PendingItem[] = [];
 
@@ -45,7 +52,10 @@ export function getPendingItems(
   }
 
   // Verificar materiais primários
-  if (!materialsState.manual) {
+  // Manual: check hotel_materials OR hotel_manual_data
+  const hasManualInMaterials = !!materialsState.manual;
+  const hasManualInFormData = manualDataStatus?.isComplete === true;
+  if (!hasManualInMaterials && !hasManualInFormData) {
     pendingItems.push({ field: "manual", label: "Manual de Funcionamento", category: "material" });
   }
   if (!materialsState.dados) {

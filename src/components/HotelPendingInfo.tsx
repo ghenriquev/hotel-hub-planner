@@ -132,10 +132,11 @@ export function HotelPendingBadge({ hotel }: HotelPendingBadgeProps) {
 interface HotelPendingAlertProps {
   hotel: Hotel;
   materialsState: MaterialsState;
+  manualDataStatus?: ManualDataStatus;
 }
 
-export function HotelPendingAlert({ hotel, materialsState }: HotelPendingAlertProps) {
-  const pendingItems = getPendingItems(hotel, materialsState);
+export function HotelPendingAlert({ hotel, materialsState, manualDataStatus }: HotelPendingAlertProps) {
+  const pendingItems = getPendingItems(hotel, materialsState, manualDataStatus);
 
   if (pendingItems.length === 0) return null;
 

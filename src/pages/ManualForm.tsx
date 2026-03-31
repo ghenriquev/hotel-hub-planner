@@ -21,7 +21,7 @@ export default function ManualForm() {
   const [formData, setFormData] = useState<Partial<HotelManualData>>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const isFirstRender = useRef(true);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Use steps from template or fallback
   const steps = template?.steps || [];

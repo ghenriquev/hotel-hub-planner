@@ -96,6 +96,7 @@ export default function HotelDetail() {
     isSaving: isSavingCompetitors,
     refetch: refetchCompetitors
   } = useHotelCompetitors(id);
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [projectStartDate, setProjectStartDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);

@@ -691,14 +691,14 @@ export default function AgentModule() {
             </div>
 
             <div className="flex gap-2">
-              {isStuck && !isProcessingManus && (
+              {canCancelProcessing && (
                 <Button
                   onClick={handleCancelGeneration}
                   variant="outline"
                   className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Cancelar e Reiniciar
+                  {isProcessingManus ? 'Cancelar processamento Manus' : 'Cancelar e Reiniciar'}
                 </Button>
               )}
               <TooltipProvider>

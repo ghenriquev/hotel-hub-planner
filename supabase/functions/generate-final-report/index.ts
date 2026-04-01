@@ -17,136 +17,267 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch hotel info
-    const { data: hotel } = await supabase.from("hotels").select("name, city").eq("id", hotelId).single();
-
-    // Fetch all completed agent results
-    const { data: results } = await supabase
-      .from("agent_results")
-      .select("module_id, result, status")
-      .eq("hotel_id", hotelId)
-      .eq("status", "completed");
-
-    // Fetch agent configs
-    const { data: configs } = await supabase.from("agent_configs").select("module_id, module_title").order("display_order");
-
-    // Fetch phase 3/4 deliverables
-    const { data: projectData } = await supabase
+    await supabase
       .from("hotel_project_data")
-      .select("phase34_deliverables")
-      .eq("hotel_id", hotelId)
-      .maybeSingle();
+      .update({ phase5_status: 'generating', updated_at: new Date().toISOString() })
+      .eq("hotel_id", hotelId);
 
-    const agentSummaries = (results || []).map(r => {
-      const config = configs?.find(c => c.module_id === r.module_id);
-      const title = config?.module_title || `Agente ${r.module_id}`;
-      return `## ${title}\n${(r.result || '').substring(0, 2000)}`;
-    }).join("\n\n---\n\n");
+    const backgroundTask = (async () => {
+      try {
+        const [hotelRes, resultsRes, configsRes, projectDataRes] = await Promise.all([
+          supabase.from("hotels").select("name, city").eq("id", hotelId).single(),
+          supabase.from("agent_results").select("module_id, result, status").eq("hotel_id", hotelId).eq("status", "completed"),
+          supabase.from("agent_configs").select("module_id, module_title").order("display_order"),
+          supabase.from("hotel_project_data").select("phase34_deliverables, phase2_summary").eq("hotel_id", hotelId).maybeSingle(),
+        ]);
 
-    const deliverables = projectData?.phase34_deliverables 
-      ? JSON.stringify(projectData.phase34_deliverables, null, 2) 
-      : "Nenhuma entrega registrada";
+        const hotel = hotelRes.data;
+        const results = resultsRes.data;
+        const configs = configsRes.data;
+        const projectData = projectDataRes.data;
 
-    const prompt = `Você é um consultor estratégico de marketing digital para hotéis.
-Gere um RELATÓRIO FINAL PROFISSIONAL para o hotel "${hotel?.name}" (${hotel?.city}).
+        const hotelName = hotel?.name || "Hotel";
+        const hotelCity = hotel?.city || "cidade";
 
-O relatório deve seguir esta estrutura:
+        const agentSummaries = (results || []).map(r => {
+          const config = configs?.find(c => c.module_id === r.module_id);
+          const title = config?.module_title || `Agente ${r.module_id}`;
+          return `## ${title}\n${(r.result || '').substring(0, 4000)}`;
+        }).join("\n\n---\n\n");
+
+        const deliverablesJson = projectData?.phase34_deliverables
+          ? JSON.stringify(projectData.phase34_deliverables)
+          : "Nenhuma entrega registrada.";
+
+        const phase2Summary = projectData?.phase2_summary || "Nenhum resumo estratégico disponível.";
+
+        const prompt = `Você é um consultor estratégico de marketing digital especializado em hotelaria da Reprotel.
+Gere um RELATÓRIO FINAL DE ENTREGAS profissional e completo para o hotel "${hotelName}" localizado em ${hotelCity}.
+
+Este relatório será enviado para o Gamma para gerar uma apresentação executiva de alta qualidade. O texto deve seguir EXATAMENTE a estrutura abaixo, com 8 seções (cards/slides). Cada seção deve ter conteúdo substancial, profissional e persuasivo.
+
+ESTRUTURA OBRIGATÓRIA (8 seções):
+
+---
 
 # Plano Estratégico de Vendas Diretas
 ## Relatório de Entregas – 60 Dias de Transformação Digital
 
-### 1. Visão Geral do Projeto (Resumo Executivo)
-Um parágrafo conciso resumindo o que foi construído, entregue e ativado durante o projeto.
+Tudo o que foi construído, entregue e ativado para o ${hotelName} durante o projeto intensivo. Uma base sólida para escalar as reservas diretas com inteligência, estratégia e resultado.
 
-### 2. O Que Foi o Projeto de 60 Dias
-Apresente os cinco pilares: Estratégia, Tráfego, Conversão, Relacionamento, Mensuração.
+---
 
-### 3. A Base Estratégica Construída
-Consolide os principais pontos dos agentes estratégicos e das entregas das fases 3 e 4.
+## VISÃO GERAL — O Que Foi o Projeto de 60 Dias
 
-### 4. Proposta de Continuidade: Próximos Passos
-**A Fundação Está Pronta. Agora é Hora de Escalar.**
-- O que acontece se continuarmos juntos?
-- O potencial é real
-- Chamada para ação: "Vamos escalar juntos?"
+O Plano Estratégico de Vendas Diretas é um projeto intensivo que une cinco pilares fundamentais para transformar a presença digital do ${hotelName} e aumentar suas reservas diretas de forma sustentável.
 
-DADOS DOS AGENTES ESTRATÉGICOS:
-${agentSummaries || "Sem dados de agentes"}
+Apresente os 5 pilares em formato de grid visual:
+- **Estratégia:** Análise do mercado, do cliente oculto e do posicionamento competitivo.
+- **Tráfego:** Campanhas no Google Ads e Meta Ads para atrair visitantes qualificados.
+- **Conversão:** Landing page, site novo e criativos otimizados para gerar reservas.
+- **Relacionamento:** CRM, roteiros de WhatsApp e scripts de pós-venda para fidelizar clientes.
+- **Mensuração:** Tag Manager, Analytics, Pixel e rastreamento de conversões configurados.
 
-ENTREGAS FASES 3 E 4:
-${deliverables}
+---
 
-Gere em português do Brasil, profissional, com Markdown bem estruturado.`;
+## ANÁLISE & ESTRATÉGIA — A Base Estratégica Construída
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+### Entregas da Fase de Análise
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Você é um consultor estratégico especializado em marketing digital hoteleiro. Crie relatórios profissionais e impactantes." },
-          { role: "user", content: prompt }
-        ],
-      }),
-    });
+Com base nos resultados reais dos agentes, liste as entregas estratégicas realizadas. Inclua itens como:
+- Análise de mercado e posicionamento competitivo
+- Cliente oculto para avaliação da experiência de atendimento
+- Mapeamento da jornada de compra do hóspede
+- Definição de personas e público-alvo ideal
+- Estratégia de conteúdo e comunicação alinhada à marca
+- Plano de ação tático para os 60 dias
 
-    if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit excedido." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI gateway error");
-    }
+Adapte e enriqueça com base nos dados reais dos agentes fornecidos abaixo.
 
-    const aiData = await aiResponse.json();
-    const report = aiData.choices?.[0]?.message?.content || "";
+---
 
-    // Try Gamma presentation
-    let presentationUrl = null;
-    try {
-      const { data: gammaKey } = await supabase
-        .from("api_keys")
-        .select("api_key")
-        .eq("key_type", "gamma")
-        .eq("is_active", true)
-        .maybeSingle();
+## TÁTICO — Artes, E-mail e Landing Page
 
-      if (gammaKey?.api_key) {
-        const { data: gammaSettings } = await supabase.from("gamma_settings").select("*").limit(1).single();
-        
-        const gammaResponse = await fetch("https://api.gamma.app/v1/generate", {
+Desenvolvemos todos os materiais de comunicação com identidade visual consistente e mensagens estratégicas para cada canal e etapa da jornada do cliente.
+
+1. **Artes & Copys dos Anúncios:** Criativos personalizados para Meta Ads e Google Ads, com copies otimizados para cada nível do funil.
+2. **E-mail Marketing:** Sequências de e-mail desenhadas para nutrir leads, recuperar abandono de reserva e fidelizar hóspedes anteriores.
+3. **Landing Page Ativa:** Página de captura e conversão já no ar, focada em transformar visitantes em reservas diretas de forma rápida e clara.
+
+Adapte com base nas entregas reais registradas.
+
+---
+
+## CRM & RELACIONAMENTO — Gestão de Relacionamento com o Hóspede
+
+Construímos toda a infraestrutura de CRM para que o ${hotelName} possa se comunicar de forma profissional, ágil e personalizada com seus clientes em cada etapa — antes, durante e após a reserva.
+
+- **Conta Reprotel CRM:** Plataforma centralizada para gestão de leads, histórico de contatos e acompanhamento.
+- **Cliente Oculto:** Avaliação detalhada da experiência de atendimento para identificar pontos de melhoria.
+- **Roteiro de WhatsApp:** Scripts estruturados para conduzir conversas no WhatsApp com naturalidade e eficiência.
+- **Script de Pós-Venda:** Protocolo de comunicação após a estadia para coletar avaliações e fidelizar o hóspede.
+
+---
+
+## TRÁFEGO PAGO — Meta Ads e Google Ads
+
+### Estratégia de Funil no Meta Ads
+- **Topo de Funil:** Públicos frios — interesses em viagens, turismo, destinos. Objetivo: alcance e reconhecimento de marca.
+- **Meio de Funil:** Visitantes do site, engajamento no Instagram, visualizações de vídeo. Objetivo: consideração e interação.
+- **Fundo de Funil:** Visitantes da landing page, iniciaram reserva, lista de hóspedes anteriores. Objetivo: conversão direta.
+
+### Públicos de Remarketing do Meta Ads
+Detalhe os públicos configurados: visitantes do site, engajamento social, lookalike de hóspedes.
+
+### Estrutura Estratégica no Google Ads
+- **Prioridade 1 — Rede de Pesquisa:** Palavras-chave de alta intenção (ex: "pousada em ${hotelCity}", "hotel em ${hotelCity} com piscina").
+- **Prioridade 2 — Concorrentes + Hotel Ads:** Aparecer quando buscam concorrentes e no Google Hotel Ads.
+- **Prioridade 3 — PMAX:** Campanhas de Performance Max para maximizar cobertura e conversões.
+
+### Públicos de Remarketing no Google Ads
+Detalhe os públicos: visitantes do site, lista de clientes, abandono de reserva.
+
+---
+
+## MENSURAÇÃO & RASTREAMENTO — Infraestrutura de Dados Configurada
+
+Para que toda a estratégia funcione com precisão e possamos medir resultados reais, implementamos quatro ferramentas essenciais de rastreamento e análise. Sem dados, não há otimização — com eles, cada decisão é baseada em evidências.
+
+- **Google Tag Manager:** Central de gerenciamento de tags e eventos do site.
+- **Google Analytics:** Monitora o comportamento dos visitantes no site.
+- **Conversão Google Ads:** Rastreia cada reserva gerada pelos anúncios do Google.
+- **Pixel do Facebook:** Registra ações vindas do Instagram e Facebook.
+
+---
+
+## PRÓXIMOS PASSOS — A Fundação Está Pronta. Agora é Hora de Escalar.
+
+Nos últimos 60 dias, construímos juntos toda a infraestrutura necessária para que o ${hotelName} cresça de forma sustentável e inteligente no digital.
+
+**O que acontece se continuarmos juntos?**
+Com o serviço mensal, damos continuidade a tudo que foi criado: otimizamos campanhas com base nos dados reais, escalamos o que funciona, corrigimos o que pode melhorar e avançamos para novas etapas da estratégia.
+
+**O potencial do ${hotelName} é real.**
+${hotelCity} é um dos destinos turísticos mais procurados. Com a estrutura que montamos, o ${hotelName} tem todas as condições de se tornar um caso de sucesso memorável em reservas diretas.
+
+**Vamos escalar juntos?**
+A base está sólida, os dados estão fluindo e as campanhas estão no ar. O próximo passo é continuar — e colher os frutos de tudo que construímos. Conte com a Reprotel para isso.
+
+---
+
+REGRAS IMPORTANTES:
+- Use SEMPRE o nome "${hotelName}" e a cidade "${hotelCity}" — NUNCA use nomes de outros hotéis como "Cafundó" ou qualquer outro
+- Adapte o conteúdo com base nos dados REAIS dos agentes e entregas fornecidos abaixo
+- O texto deve ser profissional, persuasivo e executivo
+- Use markdown com headers ##, listas com bullets e numeração
+- Cada seção deve ser rica em conteúdo — nunca vaga ou genérica
+- NÃO invente dados que não existam nos relatórios — adapte o modelo com as informações reais disponíveis
+
+RESUMO ESTRATÉGICO (FASE 2):
+${phase2Summary}
+
+RELATÓRIOS DOS AGENTES ESTRATÉGICOS:
+${agentSummaries}
+
+ENTREGAS REGISTRADAS NAS FASES 3 & 4:
+${deliverablesJson}
+
+Gere o relatório completo em português do Brasil, seguindo fielmente a estrutura acima.`;
+
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${gammaKey.api_key}`,
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            text: report.substring(0, 5000),
-            title: `Relatório Final - ${hotel?.name} - 60 Dias de Transformação Digital`,
-            format: gammaSettings?.format || "presentation",
-            theme_id: gammaSettings?.theme_id || "Oasis",
-            num_cards: gammaSettings?.num_cards || 12,
-            text_language: "pt-br",
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: "Você é um consultor estratégico da Reprotel, especializado em marketing digital hoteleiro. Gere relatórios de entregas profissionais e detalhados que serão transformados em apresentações executivas para clientes. O tom deve ser de profissionalismo, expertise e visão de futuro." },
+              { role: "user", content: prompt }
+            ],
           }),
         });
 
-        if (gammaResponse.ok) {
-          const gammaData = await gammaResponse.json();
-          presentationUrl = gammaData.url || gammaData.presentation_url || null;
+        if (!aiResponse.ok) {
+          console.error("AI error:", aiResponse.status, await aiResponse.text());
+          await supabase.from("hotel_project_data")
+            .update({ phase5_status: 'error', updated_at: new Date().toISOString() })
+            .eq("hotel_id", hotelId);
+          return;
         }
+
+        const aiData = await aiResponse.json();
+        const report = aiData.choices?.[0]?.message?.content || "";
+
+        // Try Gamma presentation
+        let presentationUrl = null;
+        try {
+          const { data: gammaKey } = await supabase
+            .from("api_keys")
+            .select("api_key")
+            .eq("key_type", "gamma")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (gammaKey?.api_key) {
+            const { data: gammaSettings } = await supabase.from("gamma_settings").select("*").limit(1).single();
+
+            const gammaResponse = await fetch("https://api.gamma.app/v1/generate", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${gammaKey.api_key}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                text: report.substring(0, 5000),
+                title: `Relatório Final - ${hotelName} - 60 Dias de Transformação Digital`,
+                format: gammaSettings?.format || "presentation",
+                theme_id: gammaSettings?.theme_id || "Oasis",
+                num_cards: gammaSettings?.num_cards || 12,
+                text_language: "pt-br",
+              }),
+            });
+
+            if (gammaResponse.ok) {
+              const gammaData = await gammaResponse.json();
+              presentationUrl = gammaData.url || gammaData.presentation_url || null;
+            }
+          }
+        } catch (gammaErr) {
+          console.error("Gamma error (non-fatal):", gammaErr);
+        }
+
+        await supabase.from("hotel_project_data")
+          .update({
+            phase5_report: report,
+            phase5_presentation_url: presentationUrl,
+            phase5_status: 'completed',
+            phase5_generated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("hotel_id", hotelId);
+
+        console.log("Final report generated successfully for hotel:", hotelId);
+      } catch (err) {
+        console.error("Background processing error:", err);
+        await supabase.from("hotel_project_data")
+          .update({ phase5_status: 'error', updated_at: new Date().toISOString() })
+          .eq("hotel_id", hotelId);
       }
-    } catch (gammaErr) {
-      console.error("Gamma error (non-fatal):", gammaErr);
+    })();
+
+    // @ts-ignore
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(backgroundTask);
+    } else {
+      await backgroundTask;
     }
 
-    return new Response(JSON.stringify({ report, presentationUrl }), {
+    return new Response(JSON.stringify({ async: true, status: "generating" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

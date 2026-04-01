@@ -62,6 +62,7 @@ O resumo deve consolidar todos os resultados dos agentes estratégicos da Fase 2
 4. **Perfil do Público-Alvo** - Personas e público ideal identificados
 5. **Estratégia de Comunicação** - Diretrizes de conteúdo e comunicação recomendadas
 6. **Plano de Ação** - Principais ações táticas recomendadas
+7. **Próximos Passos** - Encerre com uma seção explicando que nas próximas semanas o ${hotelName} receberá todas as entregas técnicas e vídeos explicativos das Fases 3 (Construção) e 4 (Ativação), incluindo artes, anúncios, landing page, CRM, SEO, analytics e tracking. Ao final, na Fase 5, será apresentado o Relatório Final consolidando todo o projeto de 60 dias de Transformação Digital.
 
 DADOS DOS AGENTES ESTRATÉGICOS:
 ${agentSummaries}

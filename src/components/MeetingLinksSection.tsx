@@ -55,8 +55,8 @@ export function MeetingLinksSection({ projectData, onSave, saving, readOnly }: M
             <p className="text-sm text-muted-foreground">Links de gravação das reuniões do projeto</p>
           </div>
         </div>
-        {!readOnly && dirty && (
-          <Button onClick={handleSave} disabled={saving} size="sm">
+        {!readOnly && (
+          <Button onClick={handleSave} disabled={saving || !dirty} size="sm">
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Salvar
           </Button>

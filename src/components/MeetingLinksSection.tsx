@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Video, Save, ExternalLink, Loader2 } from "lucide-react";
@@ -27,6 +27,16 @@ export function MeetingLinksSection({ projectData, onSave, saving, readOnly }: M
     meeting_final_url: projectData?.meeting_final_url || "",
   });
   const [dirty, setDirty] = useState(false);
+
+  // Sync state when projectData loads/changes
+  useEffect(() => {
+    setLinks({
+      meeting_kickoff_url: projectData?.meeting_kickoff_url || "",
+      meeting_phase1_url: projectData?.meeting_phase1_url || "",
+      meeting_phase2_url: projectData?.meeting_phase2_url || "",
+      meeting_final_url: projectData?.meeting_final_url || "",
+    });
+  }, [projectData]);
 
   const handleChange = (key: string, value: string) => {
     setLinks(prev => ({ ...prev, [key]: value }));

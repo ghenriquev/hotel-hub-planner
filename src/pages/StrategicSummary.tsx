@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useHotel } from "@/hooks/useHotels";
 import { useHotelProjectData } from "@/hooks/useHotelProjectData";
-import { ArrowLeft, Loader2, BarChart3, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, BarChart3, ExternalLink, RefreshCw, Presentation, Copy } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ export default function StrategicSummary() {
   const { hotel, loading: hotelLoading } = useHotel(id);
   const { projectData, loading, refetch } = useHotelProjectData(id);
   const [regenerating, setRegenerating] = useState(false);
+  const [creatingPresentation, setCreatingPresentation] = useState(false);
 
   // Poll for completion when status is 'generating'
   useEffect(() => {
@@ -47,6 +48,69 @@ export default function StrategicSummary() {
       console.error(err);
       setRegenerating(false);
       toast.error("Erro ao iniciar geração do resumo");
+    }
+  };
+
+  const handleCreatePresentation = async () => {
+    if (!projectData?.phase2_summary) {
+      toast.error("Gere o resumo primeiro.");
+      return;
+    }
+    setCreatingPresentation(true);
+    try {
+      // Ensure agent_results row exists for module 9999
+      await (supabase as any)
+        .from("agent_results")
+        .upsert({
+          hotel_id: id,
+          module_id: 9999,
+          result: projectData.phase2_summary,
+          status: 'completed',
+          presentation_status: 'generating',
+        }, { onConflict: 'hotel_id,module_id' });
+
+      const { data, error } = await supabase.functions.invoke('create-presentation', {
+        body: {
+          hotelId: id,
+          moduleId: 9999,
+          text: projectData.phase2_summary
+        }
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        setCreatingPresentation(false);
+        return;
+      }
+      toast.success("Apresentação sendo criada...");
+      // Poll for completion via project data
+      const pollInterval = setInterval(async () => {
+        const { data: res } = await (supabase as any)
+          .from("agent_results")
+          .select("presentation_url, presentation_status")
+          .eq("hotel_id", id)
+          .eq("module_id", 9999)
+          .maybeSingle();
+        if (res?.presentation_status === 'completed' && res?.presentation_url) {
+          clearInterval(pollInterval);
+          setCreatingPresentation(false);
+          // Save URL to project data
+          await (supabase as any)
+            .from("hotel_project_data")
+            .update({ phase2_presentation_url: res.presentation_url, updated_at: new Date().toISOString() })
+            .eq("hotel_id", id);
+          refetch();
+          toast.success("Apresentação criada com sucesso!");
+        } else if (res?.presentation_status === 'error') {
+          clearInterval(pollInterval);
+          setCreatingPresentation(false);
+          toast.error("Erro ao criar apresentação");
+        }
+      }, 3000);
+    } catch (err) {
+      console.error(err);
+      setCreatingPresentation(false);
+      toast.error("Erro ao criar apresentação");
     }
   };
 
@@ -90,6 +154,51 @@ export default function StrategicSummary() {
           </Button>
         </div>
       </div>
+
+      {/* Presentation section */}
+      {projectData?.phase2_summary && (
+        <div className="bg-card border border-border rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Presentation className="h-5 w-5 text-primary" />
+              <div>
+                <h2 className="font-semibold text-foreground">Apresentação Gamma</h2>
+                <p className="text-xs text-muted-foreground">Gere uma apresentação profissional a partir do resumo</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {projectData?.phase2_presentation_url && (
+                <a href={projectData.phase2_presentation_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="default" size="sm">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Abrir Apresentação
+                  </Button>
+                </a>
+              )}
+              <Button
+                variant={projectData?.phase2_presentation_url ? "outline" : "default"}
+                size="sm"
+                onClick={handleCreatePresentation}
+                disabled={creatingPresentation}
+              >
+                {creatingPresentation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Presentation className="h-4 w-4 mr-2" />}
+                {creatingPresentation ? "Criando..." : projectData?.phase2_presentation_url ? "Regenerar Apresentação" : "Gerar Apresentação"}
+              </Button>
+            </div>
+          </div>
+          {projectData?.phase2_presentation_url && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <span>URL:</span>
+              <a href={projectData.phase2_presentation_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-md">
+                {projectData.phase2_presentation_url}
+              </a>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(projectData.phase2_presentation_url!); toast.success("Link copiado!"); }}>
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-xl p-8">
         {regenerating ? (

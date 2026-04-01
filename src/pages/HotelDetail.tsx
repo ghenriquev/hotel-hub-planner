@@ -21,6 +21,9 @@ import { useHotelCompetitors } from "@/hooks/useHotelCompetitors";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
 import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
+import { useHotelProjectData } from "@/hooks/useHotelProjectData";
+import { MeetingLinksSection } from "@/components/MeetingLinksSection";
+import { ProjectPhasesSection } from "@/components/ProjectPhasesSection";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -83,6 +86,7 @@ export default function HotelDetail() {
   const { configs } = useAgentConfigs();
   const { getFormLink } = useManualFormLink(id);
   const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
+  const { projectData, updateProjectData } = useHotelProjectData(id);
   const { 
     competitors: editableCompetitors, 
     updateCompetitor, 
@@ -921,6 +925,12 @@ export default function HotelDetail() {
 
         {/* Website Content Modal */}
         <WebsiteContentModal open={isWebsiteContentOpen} onOpenChange={setIsWebsiteContentOpen} pages={Array.isArray(websiteData?.crawled_content) ? websiteData.crawled_content : []} crawledAt={websiteData?.crawled_at || null} />
+
+        {/* Meeting Links */}
+        <MeetingLinksSection projectData={projectData} onSave={updateProjectData} saving={false} />
+
+        {/* Project Phases */}
+        <ProjectPhasesSection hotelId={hotel.id} hotelName={hotel.name} projectData={projectData} onUpdate={updateProjectData} />
 
         {/* Agents grid */}
         <div className="mb-6 animate-slide-up" style={{

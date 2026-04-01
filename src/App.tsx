@@ -25,6 +25,9 @@ import ManualForm from "./pages/ManualForm";
 import ManualResponses from "./pages/ManualResponses";
 import SettingsManualTemplate from "./pages/SettingsManualTemplate";
 import PublicClientView from "./pages/PublicClientView";
+import Phase34Deliverables from "./pages/Phase34Deliverables";
+import StrategicSummary from "./pages/StrategicSummary";
+import FinalReport from "./pages/FinalReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -271,6 +274,16 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            {/* Phase pages */}
+            <Route path="/hotel/:id/deliverables" element={
+              <ProtectedRoute><AdminRoute><AppLayout><Phase34Deliverables /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
+            <Route path="/hotel/:id/strategic-summary" element={
+              <ProtectedRoute><AdminRoute><AppLayout><StrategicSummary /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
+            <Route path="/hotel/:id/final-report" element={
+              <ProtectedRoute><AdminRoute><AppLayout><FinalReport /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
             {/* Public Manual Form Route */}
             <Route path="/manual/:hotelId/:token" element={<ManualForm />} />
             {/* Public Client View Route */}

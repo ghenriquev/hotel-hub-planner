@@ -13,17 +13,15 @@ interface MeetingLinksSectionProps {
 }
 
 const MEETING_FIELDS = [
-  { key: "meeting_kickoff_url" as const, label: "Reunião de Kick-OFF" },
-  { key: "meeting_phase1_url" as const, label: "Reunião Entrega Fase 1" },
-  { key: "meeting_phase2_url" as const, label: "Reunião Entrega Fase 2" },
-  { key: "meeting_final_url" as const, label: "Reunião Entrega Final" },
+  { key: "meeting_kickoff_url" as const, label: "Kick Off" },
+  { key: "meeting_phase1_url" as const, label: "Call Etapa 2" },
+  { key: "meeting_final_url" as const, label: "Apresentação Final" },
 ];
 
 export function MeetingLinksSection({ projectData, onSave, saving, readOnly }: MeetingLinksSectionProps) {
   const [links, setLinks] = useState<Record<string, string>>({
     meeting_kickoff_url: projectData?.meeting_kickoff_url || "",
     meeting_phase1_url: projectData?.meeting_phase1_url || "",
-    meeting_phase2_url: projectData?.meeting_phase2_url || "",
     meeting_final_url: projectData?.meeting_final_url || "",
   });
   const [dirty, setDirty] = useState(false);
@@ -33,7 +31,6 @@ export function MeetingLinksSection({ projectData, onSave, saving, readOnly }: M
     setLinks({
       meeting_kickoff_url: projectData?.meeting_kickoff_url || "",
       meeting_phase1_url: projectData?.meeting_phase1_url || "",
-      meeting_phase2_url: projectData?.meeting_phase2_url || "",
       meeting_final_url: projectData?.meeting_final_url || "",
     });
   }, [projectData]);
@@ -73,7 +70,7 @@ export function MeetingLinksSection({ projectData, onSave, saving, readOnly }: M
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {MEETING_FIELDS.map(field => (
           <div key={field.key} className="space-y-1">
             <label className="text-sm font-medium text-foreground">{field.label}</label>

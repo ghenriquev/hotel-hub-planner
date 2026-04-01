@@ -58,6 +58,17 @@ export default function StrategicSummary() {
     }
     setCreatingPresentation(true);
     try {
+      // Ensure agent_results row exists for module 9999
+      await (supabase as any)
+        .from("agent_results")
+        .upsert({
+          hotel_id: id,
+          module_id: 9999,
+          result: projectData.phase2_summary,
+          status: 'completed',
+          presentation_status: 'generating',
+        }, { onConflict: 'hotel_id,module_id' });
+
       const { data, error } = await supabase.functions.invoke('create-presentation', {
         body: {
           hotelId: id,

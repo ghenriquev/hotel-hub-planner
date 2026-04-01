@@ -1,75 +1,61 @@
 
-## Plano: Corrigir Verificação do Manual de Funcionamento
 
-### Problema Identificado
-O sistema possui duas formas de receber o Manual de Funcionamento:
-1. Upload direto na seção "Materiais Primários" → salva em `hotel_materials`
-2. Upload/formulário na seção "Manual de Funcionamento" → salva em `hotel_manual_data`
+## Plano: Adicionar Sharing Options na API do Gamma
 
-Os hooks de verificação de prontidão (`useAgentReadiness` e `useAgentsReadiness`) verificam apenas `hotel_materials`, ignorando manuais enviados via `hotel_manual_data`.
+### Problema
+Ao criar apresentações via Gamma API, o documento não é compartilhado automaticamente com permissão de edição. É necessário compartilhar manualmente depois.
 
 ### Solução
-Modificar os hooks para verificar AMBAS as fontes de dados para o material "manual".
 
----
+**1. Edge Function `create-presentation/index.ts`**
+- Aceitar um novo parâmetro opcional `userEmail` no body da requisição
+- Se não vier no body, buscar o e-mail do usuário autenticado via token JWT (header Authorization)
+- Adicionar `sharingOptions` ao payload do Gamma:
+  - `workspaceAccess: "edit"` — sempre incluído
+  - `emailOptions` — incluído apenas se um e-mail for encontrado (nunca enviar array vazio)
 
-### Arquivos a Modificar
+**2. Chamadas no frontend (3 arquivos)**
+- `src/pages/StrategicSummary.tsx` — passar o e-mail do usuário logado no body
+- `src/pages/FinalReport.tsx` — idem
+- `src/pages/AgentModule.tsx` — idem
+- O e-mail pode ser obtido via `supabase.auth.getUser()` antes da chamada
 
-#### 1. `src/hooks/useAgentReadiness.ts`
-- Importar o hook `useHotelManualData`
-- Na verificação do caso `'manual'`, além de verificar `getMaterial('manual')`, também verificar se `manualData?.is_complete === true`
-- O manual estará "pronto" se existir em QUALQUER uma das duas fontes
+### Detalhes técnicos
 
-#### 2. `src/hooks/useAgentsReadiness.ts`
-- Aplicar a mesma lógica: importar `useHotelManualData`
-- Verificar ambas as fontes para o material "manual"
-
----
-
-### Detalhes Técnicos
-
-**Mudança no `useAgentReadiness.ts`:**
+Na Edge Function, após construir o `gammaPayload` (linha ~201), adicionar:
 
 ```typescript
-// Importar o hook
-import { useHotelManualData } from './useHotelManualData';
+// Sharing options
+const sharingOptions: Record<string, any> = {
+  workspaceAccess: "edit"
+};
 
-// Dentro do hook
-const { manualData, loading: manualDataLoading } = useHotelManualData(hotelId);
+if (userEmail) {
+  sharingOptions.emailOptions = {
+    recipients: [userEmail],
+    access: "edit"
+  };
+}
 
-// Na verificação do case 'manual':
-case 'manual':
-  // Manual pode estar em hotel_materials OU em hotel_manual_data
-  const hasManualInMaterials = !!getMaterial('manual');
-  const hasManualInFormData = manualData?.is_complete === true && 
-    (manualData?.input_method === 'upload' || manualData?.input_method === 'form');
-  ready = hasManualInMaterials || hasManualInFormData;
-  label = PRIMARY_MATERIALS_LABELS[materialId];
-  type = 'primary';
-  break;
+gammaPayload.sharingOptions = sharingOptions;
 ```
 
-**Mudança no `useAgentsReadiness.ts`:**
+O `userEmail` será extraído de:
+1. Body da requisição (`req.json()`) — se o frontend enviar
+2. Fallback: buscar o usuário via `supabase.auth.getUser()` usando o token do header Authorization
 
+No frontend, cada chamada passará o e-mail:
 ```typescript
-// Mesma lógica aplicada
-import { useHotelManualData } from './useHotelManualData';
-
-const { manualData, loading: manualDataLoading } = useHotelManualData(hotelId);
-
-// Na verificação:
-case 'manual':
-  ready = !!getMaterial('manual') || 
-          (manualData?.is_complete === true && 
-           (manualData?.input_method === 'upload' || manualData?.input_method === 'form'));
-  label = PRIMARY_MATERIALS_LABELS[materialId];
-  break;
+const { data: { user } } = await supabase.auth.getUser();
+// ...
+supabase.functions.invoke('create-presentation', {
+  body: { hotelId, moduleId, text, userEmail: user?.email }
+});
 ```
 
----
+### Arquivos alterados
+- `supabase/functions/create-presentation/index.ts` — adicionar sharingOptions ao payload
+- `src/pages/StrategicSummary.tsx` — enviar userEmail
+- `src/pages/FinalReport.tsx` — enviar userEmail  
+- `src/pages/AgentModule.tsx` — enviar userEmail
 
-### Resultado Esperado
-Após a implementação:
-- Manuais enviados via upload na seção "Manual de Funcionamento" serão reconhecidos pelos agentes
-- Manuais enviados diretamente em "Materiais Primários" continuarão funcionando normalmente
-- O indicador "Pronto para iniciar" aparecerá corretamente quando o manual estiver disponível em qualquer uma das fontes

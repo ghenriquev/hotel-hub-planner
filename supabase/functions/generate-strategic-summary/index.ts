@@ -17,16 +17,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Set status to generating
     await supabase
       .from("hotel_project_data")
       .update({ phase2_status: 'generating', updated_at: new Date().toISOString() })
       .eq("hotel_id", hotelId);
 
-    // Background processing - return immediately
     const backgroundTask = (async () => {
       try {
-        // Fetch hotel info and agent results in parallel
         const [hotelRes, resultsRes, configsRes] = await Promise.all([
           supabase.from("hotels").select("name, city").eq("id", hotelId).single(),
           supabase.from("agent_results").select("module_id, result, status").eq("hotel_id", hotelId).eq("status", "completed"),
@@ -44,14 +41,6 @@ serve(async (req) => {
           return;
         }
 
-        // Fetch phase34 deliverables
-        const { data: projectDataRow } = await supabase
-          .from("hotel_project_data")
-          .select("phase34_deliverables")
-          .eq("hotel_id", hotelId)
-          .maybeSingle();
-
-        // Build context from all agent results
         const agentSummaries = results.map(r => {
           const config = configs?.find(c => c.module_id === r.module_id);
           const title = config?.module_title || `Agente ${r.module_id}`;
@@ -59,142 +48,32 @@ serve(async (req) => {
           return `## ${title}\n${truncatedResult}`;
         }).join("\n\n---\n\n");
 
-        const deliverablesJson = projectDataRow?.phase34_deliverables ? JSON.stringify(projectDataRow.phase34_deliverables) : "Nenhuma entrega registrada ainda.";
-
         const hotelName = hotel?.name || "Hotel";
         const hotelCity = hotel?.city || "cidade";
 
         const prompt = `Você é um consultor estratégico de marketing digital especializado em hotelaria da Reprotel.
-Gere um RELATÓRIO DE ENTREGAS profissional e completo para o hotel "${hotelName}" localizado em ${hotelCity}.
+Gere um RESUMO ESTRATÉGICO consolidado para o hotel "${hotelName}" localizado em ${hotelCity}.
 
-Este relatório será enviado para o Gamma para gerar uma apresentação executiva de alta qualidade. O texto deve seguir EXATAMENTE a estrutura abaixo, com 8 seções (cards/slides). Cada seção deve ter conteúdo substancial, profissional e persuasivo.
+O resumo deve consolidar todos os resultados dos agentes estratégicos da Fase 2 (Estratégia) do projeto, apresentando:
 
-ESTRUTURA OBRIGATÓRIA (8 seções):
+1. **Visão Geral do Posicionamento** - Resumo do posicionamento competitivo do hotel
+2. **Principais Descobertas** - Os insights mais importantes identificados pelos agentes
+3. **Análise de Mercado** - Pontos-chave sobre o mercado e concorrência
+4. **Perfil do Público-Alvo** - Personas e público ideal identificados
+5. **Estratégia de Comunicação** - Diretrizes de conteúdo e comunicação recomendadas
+6. **Plano de Ação** - Principais ações táticas recomendadas
 
----
-
-# Plano Estratégico de Vendas Diretas
-## Relatório de Entregas – 60 Dias de Transformação Digital
-
-Tudo o que foi construído, entregue e ativado para o ${hotelName} durante o projeto intensivo. Uma base sólida para escalar as reservas diretas com inteligência, estratégia e resultado.
-
----
-
-## VISÃO GERAL — O Que Foi o Projeto de 60 Dias
-
-O Plano Estratégico de Vendas Diretas é um projeto intensivo que une cinco pilares fundamentais para transformar a presença digital do ${hotelName} e aumentar suas reservas diretas de forma sustentável.
-
-Apresente os 5 pilares em formato de grid visual:
-- **Estratégia:** Análise do mercado, do cliente oculto e do posicionamento competitivo.
-- **Tráfego:** Campanhas no Google Ads e Meta Ads para atrair visitantes qualificados.
-- **Conversão:** Landing page, site novo e criativos otimizados para gerar reservas.
-- **Relacionamento:** CRM, roteiros de WhatsApp e scripts de pós-venda para fidelizar clientes.
-- **Mensuração:** Tag Manager, Analytics, Pixel e rastreamento de conversões configurados.
-
----
-
-## ANÁLISE & ESTRATÉGIA — A Base Estratégica Construída
-
-### Entregas da Fase de Análise
-
-Com base nos resultados reais dos agentes, liste as entregas estratégicas realizadas. Inclua itens como:
-- Análise de mercado e posicionamento competitivo
-- Cliente oculto para avaliação da experiência de atendimento
-- Mapeamento da jornada de compra do hóspede
-- Definição de personas e público-alvo ideal
-- Estratégia de conteúdo e comunicação alinhada à marca
-- Plano de ação tático para os 60 dias
-
-Adapte e enriqueça com base nos dados reais dos agentes fornecidos abaixo.
-
----
-
-## TÁTICO — Artes, E-mail e Landing Page
-
-Desenvolvemos todos os materiais de comunicação com identidade visual consistente e mensagens estratégicas para cada canal e etapa da jornada do cliente.
-
-1. **Artes & Copys dos Anúncios:** Criativos personalizados para Meta Ads e Google Ads, com copies otimizados para cada nível do funil.
-2. **E-mail Marketing:** Sequências de e-mail desenhadas para nutrir leads, recuperar abandono de reserva e fidelizar hóspedes anteriores.
-3. **Landing Page Ativa:** Página de captura e conversão já no ar, focada em transformar visitantes em reservas diretas de forma rápida e clara.
-
-Adapte com base nas entregas reais registradas.
-
----
-
-## CRM & RELACIONAMENTO — Gestão de Relacionamento com o Hóspede
-
-Construímos toda a infraestrutura de CRM para que o ${hotelName} possa se comunicar de forma profissional, ágil e personalizada com seus clientes em cada etapa — antes, durante e após a reserva.
-
-- **Conta Reprotel CRM:** Plataforma centralizada para gestão de leads, histórico de contatos e acompanhamento.
-- **Cliente Oculto:** Avaliação detalhada da experiência de atendimento para identificar pontos de melhoria.
-- **Roteiro de WhatsApp:** Scripts estruturados para conduzir conversas no WhatsApp com naturalidade e eficiência.
-- **Script de Pós-Venda:** Protocolo de comunicação após a estadia para coletar avaliações e fidelizar o hóspede.
-
----
-
-## TRÁFEGO PAGO — Meta Ads e Google Ads
-
-### Estratégia de Funil no Meta Ads
-- **Topo de Funil:** Públicos frios — interesses em viagens, turismo, destinos. Objetivo: alcance e reconhecimento de marca.
-- **Meio de Funil:** Visitantes do site, engajamento no Instagram, visualizações de vídeo. Objetivo: consideração e interação.
-- **Fundo de Funil:** Visitantes da landing page, iniciaram reserva, lista de hóspedes anteriores. Objetivo: conversão direta.
-
-### Públicos de Remarketing do Meta Ads
-Detalhe os públicos configurados: visitantes do site, engajamento social, lookalike de hóspedes.
-
-### Estrutura Estratégica no Google Ads
-- **Prioridade 1 — Rede de Pesquisa:** Palavras-chave de alta intenção (ex: "pousada em ${hotelCity}", "hotel em ${hotelCity} com piscina").
-- **Prioridade 2 — Concorrentes + Hotel Ads:** Aparecer quando buscam concorrentes e no Google Hotel Ads.
-- **Prioridade 3 — PMAX:** Campanhas de Performance Max para maximizar cobertura e conversões.
-
-### Públicos de Remarketing no Google Ads
-Detalhe os públicos: visitantes do site, lista de clientes, abandono de reserva.
-
----
-
-## MENSURAÇÃO & RASTREAMENTO — Infraestrutura de Dados Configurada
-
-Para que toda a estratégia funcione com precisão e possamos medir resultados reais, implementamos quatro ferramentas essenciais de rastreamento e análise. Sem dados, não há otimização — com eles, cada decisão é baseada em evidências.
-
-- **Google Tag Manager:** Central de gerenciamento de tags e eventos do site. Permite instalar, editar e monitorar scripts sem depender de desenvolvedor.
-- **Google Analytics:** Monitora o comportamento dos visitantes no site: de onde vieram, o que acessaram, quanto tempo ficaram e se converteram em reserva.
-- **Conversão Google Ads:** Rastreia cada reserva gerada pelos anúncios do Google, mensura o valor gerado e calcula o retorno sobre o investimento (ROAS) das campanhas.
-- **Pixel do Facebook:** Registra ações vindas do Instagram e Facebook: conversas, compras e visitantes do site. Alimenta o remarketing e cria públicos semelhantes aos que já converteram.
-
----
-
-## PRÓXIMOS PASSOS — A Fundação Está Pronta. Agora é Hora de Escalar.
-
-Nos últimos 60 dias, construímos juntos toda a infraestrutura necessária para que o ${hotelName} cresça de forma sustentável e inteligente no digital.
-
-**O que acontece se continuarmos juntos?**
-Com o serviço mensal, damos continuidade a tudo que foi criado: otimizamos campanhas com base nos dados reais, escalamos o que funciona, corrigimos o que pode melhorar e avançamos para novas etapas da estratégia.
-
-**O potencial do ${hotelName} é real.**
-${hotelCity} é um dos destinos turísticos mais procurados. Com a estrutura que montamos, o ${hotelName} tem todas as condições de se tornar um caso de sucesso memorável em reservas diretas.
-
-**Vamos escalar juntos?**
-A base está sólida, os dados estão fluindo e as campanhas estão no ar. O próximo passo é continuar — e colher os frutos de tudo que construímos. Conte com a Reprotel para isso.
-
----
-
-REGRAS IMPORTANTES:
-- Use SEMPRE o nome "${hotelName}" e a cidade "${hotelCity}" — NUNCA use nomes de outros hotéis como "Cafundó" ou qualquer outro
-- Adapte o conteúdo com base nos dados REAIS dos agentes e entregas fornecidos abaixo
-- O texto deve ser profissional, persuasivo e executivo
-- Use markdown com headers ##, listas com bullets e numeração
-- Cada seção deve ser rica em conteúdo — nunca vaga ou genérica
-- NÃO invente dados que não existam nos relatórios — adapte o modelo com as informações reais disponíveis
-
-RELATÓRIOS DOS AGENTES ESTRATÉGICOS:
+DADOS DOS AGENTES ESTRATÉGICOS:
 ${agentSummaries}
 
-ENTREGAS REGISTRADAS NAS FASES 3 & 4:
-${deliverablesJson}
+REGRAS:
+- Use SEMPRE o nome "${hotelName}" e a cidade "${hotelCity}"
+- Consolide as informações de forma executiva e profissional
+- Use markdown com headers ##, listas com bullets
+- Seja objetivo e direto — este é um resumo executivo
+- NÃO invente dados — use apenas o que está nos relatórios dos agentes
+- Gere em português do Brasil`;
 
-Gere o relatório completo em português do Brasil, seguindo fielmente a estrutura acima.`;
-
-        // Call AI
         const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
         if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -207,15 +86,14 @@ Gere o relatório completo em português do Brasil, seguindo fielmente a estrutu
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "Você é um consultor estratégico da Reprotel, especializado em marketing digital hoteleiro. Gere relatórios de entregas profissionais e detalhados que serão transformados em apresentações executivas para clientes. O tom deve ser de profissionalismo, expertise e visão de futuro." },
+              { role: "system", content: "Você é um consultor estratégico da Reprotel, especializado em marketing digital hoteleiro. Gere resumos executivos consolidados e profissionais." },
               { role: "user", content: prompt }
             ],
           }),
         });
 
         if (!aiResponse.ok) {
-          const errText = await aiResponse.text();
-          console.error("AI error:", aiResponse.status, errText);
+          console.error("AI error:", aiResponse.status, await aiResponse.text());
           await supabase.from("hotel_project_data")
             .update({ phase2_status: 'error', updated_at: new Date().toISOString() })
             .eq("hotel_id", hotelId);
@@ -225,7 +103,6 @@ Gere o relatório completo em português do Brasil, seguindo fielmente a estrutu
         const aiData = await aiResponse.json();
         const summary = aiData.choices?.[0]?.message?.content || "";
 
-        // Save results (no automatic Gamma - user triggers presentation separately)
         await supabase.from("hotel_project_data")
           .update({
             phase2_summary: summary,
@@ -244,15 +121,13 @@ Gere o relatório completo em português do Brasil, seguindo fielmente a estrutu
       }
     })();
 
-    // Use waitUntil to keep the function alive for background processing
-    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    // @ts-ignore
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
       EdgeRuntime.waitUntil(backgroundTask);
     } else {
       await backgroundTask;
     }
 
-    // Return immediately
     return new Response(JSON.stringify({ async: true, status: "generating" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

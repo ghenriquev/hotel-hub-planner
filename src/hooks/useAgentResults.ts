@@ -90,5 +90,22 @@ export function useAgentResult(hotelId: string, moduleId: number) {
     fetchResult();
   }, [fetchResult]);
 
+  // Realtime subscription for live updates
+  useEffect(() => {
+    if (!hotelId || moduleId === undefined) return;
+    const channel = supabase
+      .channel(`agent-result-${hotelId}-${moduleId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'agent_results',
+        filter: `hotel_id=eq.${hotelId}`,
+      }, () => {
+        fetchResult();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [hotelId, moduleId, fetchResult]);
+
   return { result, loading, refetch: fetchResult };
 }

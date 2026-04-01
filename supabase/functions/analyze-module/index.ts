@@ -256,15 +256,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let requestBody: any = null;
-  let reqHotelId: string | null = null;
-  let reqModuleId: number | null = null;
-
   try {
-    requestBody = await req.json();
+    const requestBody = await req.json();
     const { hotelId, moduleId, materials } = requestBody ?? {};
-    reqHotelId = hotelId ?? null;
-    reqModuleId = (moduleId ?? null) as number | null;
     
     console.log(`[analyze-module] v${FUNCTION_VERSION} - Starting analysis for hotel: ${hotelId}, module: ${moduleId}`);
     
@@ -281,8 +275,8 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Update status to generating
-    const { error: updateError } = await supabase
+    // Update status to generating immediately
+    await supabase
       .from('agent_results')
       .upsert({
         hotel_id: hotelId,
@@ -293,11 +287,78 @@ serve(async (req) => {
         generated_at: null,
       }, { onConflict: 'hotel_id,module_id' });
 
-    if (updateError) {
-      console.error("[analyze-module] Error updating status:", updateError);
+    // Get agent configuration to check if it's Manus (needs special handling)
+    const { data: agentConfig, error: configError } = await supabase
+      .from('agent_configs')
+      .select('llm_model')
+      .eq('module_id', moduleId)
+      .maybeSingle();
+
+    if (configError || !agentConfig) {
+      await supabase.from('agent_results').upsert({
+        hotel_id: hotelId,
+        module_id: moduleId,
+        status: 'error',
+        result: `Configuração do agente não encontrada para módulo ${moduleId}`,
+      }, { onConflict: 'hotel_id,module_id' });
+      throw new Error(`No agent configuration found for module ${moduleId}`);
     }
 
-    // Get agent configuration for this module
+    const llmModel = agentConfig.llm_model || 'google/gemini-2.5-flash';
+
+    // For Manus models, handle synchronously (it already has its own async flow)
+    if (llmModel.startsWith('manus/')) {
+      const result = await processAnalysis(supabase, hotelId, moduleId, materials, req);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // For all other models: process in background and return immediately
+    const backgroundTask = processAnalysis(supabase, hotelId, moduleId, materials, req);
+    
+    // Use EdgeRuntime.waitUntil to keep the function alive for the background task
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(backgroundTask);
+    } else {
+      // Fallback: just fire and forget (the promise will keep executing)
+      backgroundTask.catch(err => console.error("[analyze-module] Background task error:", err));
+    }
+
+    // Return immediately - UI will update via Realtime
+    return new Response(JSON.stringify({ 
+      success: true,
+      async: true,
+      message: "Análise iniciada em background. O resultado será atualizado automaticamente.",
+      llmModelUsed: llmModel
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error) {
+    console.error("[analyze-module] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
+
+// Main processing logic extracted to a separate async function
+async function processAnalysis(
+  supabase: any,
+  hotelId: string,
+  moduleId: number,
+  materials: any,
+  req: Request
+): Promise<any> {
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+
+    // Get full agent configuration
     const { data: agentConfig, error: configError } = await supabase
       .from('agent_configs')
       .select('*')
@@ -309,10 +370,11 @@ serve(async (req) => {
 
     const configuredMaterials = agentConfig.materials_config || ['manual', 'dados', 'transcricao'];
     const secondaryMaterials = agentConfig.secondary_materials_config || [];
-    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'google/gemini-2.5-flash'}, output_type: ${agentConfig.output_type || 'text'}, primary materials: ${configuredMaterials.join(', ')}, secondary materials: ${secondaryMaterials.length > 0 ? secondaryMaterials.join(', ') : 'none'}`);
+    console.log(`[analyze-module] Using agent config: ${agentConfig.module_title}, model: ${agentConfig.llm_model || 'google/gemini-2.5-flash'}, primary materials: ${configuredMaterials.join(', ')}`);
 
-    // Build context from materials (only include configured ones)
+    // Build context from materials - fetch all in parallel for speed
     let materialsContext = "";
+    
     if (materials) {
       if (configuredMaterials.includes('manual') && materials.manualFuncionamentoUrl) {
         materialsContext += `\n\n## Manual de Funcionamento\nURL: ${materials.manualFuncionamentoUrl}\nNome: ${materials.manualFuncionamentoName || 'Não especificado'}`;
@@ -325,105 +387,98 @@ serve(async (req) => {
       }
     }
 
-    // Fetch website data if configured
+    // Fetch additional materials in parallel
+    const parallelFetches: Promise<void>[] = [];
+
     if (configuredMaterials.includes('website')) {
-      console.log("[analyze-module] Fetching website data for hotel:", hotelId);
-      const { data: websiteData } = await supabase
-        .from('hotel_website_data')
-        .select('crawled_content, website_url')
-        .eq('hotel_id', hotelId)
-        .eq('status', 'completed')
-        .maybeSingle();
-
-      if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
-        console.log(`[analyze-module] Found ${websiteData.crawled_content.length} crawled pages`);
-        materialsContext += `\n\n## Conteúdo do Site do Hotel (${websiteData.website_url})`;
-        for (const page of websiteData.crawled_content) {
-          materialsContext += `\n\n### ${page.title || 'Página'}\nURL: ${page.url}`;
-          if (page.description) materialsContext += `\nDescrição: ${page.description}`;
-          if (page.text) materialsContext += `\nConteúdo:\n${page.text.substring(0, 3000)}`;
+      parallelFetches.push((async () => {
+        const { data: websiteData } = await supabase
+          .from('hotel_website_data')
+          .select('crawled_content, website_url')
+          .eq('hotel_id', hotelId)
+          .eq('status', 'completed')
+          .maybeSingle();
+        if (websiteData?.crawled_content && Array.isArray(websiteData.crawled_content)) {
+          materialsContext += `\n\n## Conteúdo do Site do Hotel (${websiteData.website_url})`;
+          for (const page of websiteData.crawled_content) {
+            materialsContext += `\n\n### ${page.title || 'Página'}\nURL: ${page.url}`;
+            if (page.description) materialsContext += `\nDescrição: ${page.description}`;
+            if (page.text) materialsContext += `\nConteúdo:\n${page.text.substring(0, 3000)}`;
+          }
         }
-      }
+      })());
     }
 
-    // Fetch consolidated reviews if configured
     if (configuredMaterials.includes('reviews')) {
-      const { data: reviewsMaterial } = await supabase
-        .from('hotel_materials')
-        .select('text_content, file_name')
-        .eq('hotel_id', hotelId)
-        .eq('material_type', 'reviews')
-        .maybeSingle();
-
-      if (reviewsMaterial?.text_content) {
-        materialsContext += `\n\n## Avaliações Consolidadas (Últimos 24 Meses)\n${reviewsMaterial.text_content}`;
-      }
+      parallelFetches.push((async () => {
+        const { data: reviewsMaterial } = await supabase
+          .from('hotel_materials')
+          .select('text_content')
+          .eq('hotel_id', hotelId)
+          .eq('material_type', 'reviews')
+          .maybeSingle();
+        if (reviewsMaterial?.text_content) {
+          materialsContext += `\n\n## Avaliações Consolidadas (Últimos 24 Meses)\n${reviewsMaterial.text_content}`;
+        }
+      })());
     }
 
-    // Fetch competitor data if configured
     if (configuredMaterials.includes('competitors')) {
-      const { data: competitorData } = await supabase
-        .from('hotel_competitor_data')
-        .select('competitor_url, competitor_number, generated_analysis, analysis_status, llm_model_used')
-        .eq('hotel_id', hotelId)
-        .eq('status', 'completed')
-        .eq('analysis_status', 'completed')
-        .order('competitor_number', { ascending: true });
-
-      if (competitorData && competitorData.length > 0) {
-        materialsContext += `\n\n## Análise dos Sites Concorrentes`;
-        for (const competitor of competitorData) {
-          materialsContext += `\n\n### Análise Concorrente ${competitor.competitor_number}: ${competitor.competitor_url}`;
-          materialsContext += `\n(Gerado por: ${competitor.llm_model_used || 'LLM'})`;
-          materialsContext += competitor.generated_analysis ? `\n\n${competitor.generated_analysis}` : `\n\nAnálise não disponível.`;
+      parallelFetches.push((async () => {
+        const { data: competitorData } = await supabase
+          .from('hotel_competitor_data')
+          .select('competitor_url, competitor_number, generated_analysis, llm_model_used')
+          .eq('hotel_id', hotelId)
+          .eq('status', 'completed')
+          .eq('analysis_status', 'completed')
+          .order('competitor_number', { ascending: true });
+        if (competitorData && competitorData.length > 0) {
+          materialsContext += `\n\n## Análise dos Sites Concorrentes`;
+          for (const competitor of competitorData) {
+            materialsContext += `\n\n### Análise Concorrente ${competitor.competitor_number}: ${competitor.competitor_url}`;
+            materialsContext += competitor.generated_analysis ? `\n\n${competitor.generated_analysis}` : `\n\nAnálise não disponível.`;
+          }
         }
-      }
+      })());
     }
 
-    // Fetch secondary materials (results from other agents)
     if (secondaryMaterials.length > 0) {
-      const { data: agentResults, error: resultsError } = await supabase
-        .from('agent_results')
-        .select('module_id, result')
-        .eq('hotel_id', hotelId)
-        .eq('status', 'completed')
-        .in('module_id', secondaryMaterials);
-      
-      if (!resultsError && agentResults && agentResults.length > 0) {
-        const { data: agentTitles } = await supabase
-          .from('agent_configs')
-          .select('module_id, module_title')
-          .in('module_id', agentResults.map(r => r.module_id));
-        
-        const titleMap = new Map(agentTitles?.map(t => [t.module_id, t.module_title]) || []);
-        materialsContext += `\n\n---\n\n# MATERIAIS SECUNDÁRIOS (Resultados de Outros Agentes)\n`;
-        for (const agentResult of agentResults) {
-          const title = titleMap.get(agentResult.module_id) || `Agente ${agentResult.module_id}`;
-          materialsContext += `\n\n## ${title}\n${agentResult.result}`;
+      parallelFetches.push((async () => {
+        const { data: agentResults } = await supabase
+          .from('agent_results')
+          .select('module_id, result')
+          .eq('hotel_id', hotelId)
+          .eq('status', 'completed')
+          .in('module_id', secondaryMaterials);
+        if (agentResults && agentResults.length > 0) {
+          const { data: agentTitles } = await supabase
+            .from('agent_configs')
+            .select('module_id, module_title')
+            .in('module_id', agentResults.map((r: any) => r.module_id));
+          const titleMap = new Map(agentTitles?.map((t: any) => [t.module_id, t.module_title]) || []);
+          materialsContext += `\n\n---\n\n# MATERIAIS SECUNDÁRIOS (Resultados de Outros Agentes)\n`;
+          for (const agentResult of agentResults) {
+            const title = titleMap.get(agentResult.module_id) || `Agente ${agentResult.module_id}`;
+            materialsContext += `\n\n## ${title}\n${agentResult.result}`;
+          }
         }
-      }
+      })());
     }
+
+    // Wait for all parallel fetches
+    await Promise.all(parallelFetches);
 
     if (!materialsContext) {
       materialsContext = "Nenhum material foi anexado para análise. Por favor, forneça uma análise baseada em boas práticas do setor hoteleiro.";
     }
 
     const systemPrompt = agentConfig.prompt;
-    const userPrompt = `Analise os seguintes materiais do hotel e gere o resultado conforme as instruções:
-
-${materialsContext}
-
-Por favor, forneça uma análise detalhada e profissional em português do Brasil.`;
-
+    const userPrompt = `Analise os seguintes materiais do hotel e gere o resultado conforme as instruções:\n\n${materialsContext}\n\nPor favor, forneça uma análise detalhada e profissional em português do Brasil.`;
     const llmModel = agentConfig.llm_model || 'google/gemini-2.5-flash';
-    console.log(`[analyze-module] Using LLM model: ${llmModel}`);
 
-    let generatedResult: string;
-
-    // Check if it's a Manus model - route to manus-agent function
+    // Check if Manus model - route to manus-agent
     if (llmModel.startsWith('manus/')) {
       console.log("[analyze-module] Routing to Manus Agent...");
-      
       const forwardAuth = req.headers.get("authorization") || "";
       const forwardApikey = req.headers.get("apikey") || "";
 
@@ -434,77 +489,42 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
           ...(forwardApikey ? { apikey: forwardApikey } : {}),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          hotelId,
-          moduleId,
-          prompt: systemPrompt + "\n\n" + userPrompt,
-          materials: materialsContext
-        }),
+        body: JSON.stringify({ hotelId, moduleId, prompt: systemPrompt + "\n\n" + userPrompt, materials: materialsContext }),
       });
 
       if (!manusResponse.ok) {
         const errorText = await manusResponse.text();
-        console.error("[analyze-module] Manus agent error:", manusResponse.status, errorText);
-        
         await supabase.from('agent_results').upsert({
-          hotel_id: hotelId,
-          module_id: moduleId,
-          status: 'error',
+          hotel_id: hotelId, module_id: moduleId, status: 'error',
           result: `Erro ao chamar Manus Agent: ${errorText.substring(0, 500)}`,
           generated_at: new Date().toISOString(),
         }, { onConflict: 'hotel_id,module_id' });
-        
         throw new Error(`Manus agent error: ${errorText}`);
       }
 
       const manusData = await manusResponse.json();
-      console.log("[analyze-module] Manus task created:", manusData);
-
-      return new Response(JSON.stringify({ 
-        success: true,
-        async: true,
-        taskId: manusData.taskId,
-        message: "Análise sendo processada pelo Manus Agent. O resultado será atualizado automaticamente.",
-        llmModelUsed: llmModel
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return { success: true, async: true, taskId: manusData.taskId, llmModelUsed: llmModel };
     }
 
-    // Call LLM using direct API keys
+    // Call LLM
     console.log("[analyze-module] Calling LLM with model:", llmModel);
     const llmResult = await callLLM(supabase, llmModel, systemPrompt, userPrompt);
 
     if (!llmResult.success) {
       console.error("[analyze-module] LLM error:", llmResult.error);
-      
       await supabase.from('agent_results').upsert({
-        hotel_id: hotelId,
-        module_id: moduleId,
-        status: 'error',
+        hotel_id: hotelId, module_id: moduleId, status: 'error',
         result: llmResult.error || 'Erro ao chamar LLM',
       }, { onConflict: 'hotel_id,module_id' });
-      
-      return new Response(JSON.stringify({ error: llmResult.error }), {
-        status: llmResult.status || 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return { error: llmResult.error };
     }
 
-    generatedResult = llmResult.result;
-
-    console.log("[analyze-module] AI response received, processing output...");
-
-    const outputType = agentConfig.output_type || 'text';
-    console.log(`[analyze-module] Output type: ${outputType}. Presentation will be created separately if needed.`);
-
-    // Save result to database
+    // Save result
     const { error: saveError } = await supabase
       .from('agent_results')
       .upsert({
-        hotel_id: hotelId,
-        module_id: moduleId,
-        result: generatedResult,
+        hotel_id: hotelId, module_id: moduleId,
+        result: llmResult.result,
         presentation_url: null,
         llm_model_used: llmModel,
         status: 'completed',
@@ -514,41 +534,19 @@ Por favor, forneça uma análise detalhada e profissional em português do Brasi
     if (saveError) throw new Error(`Failed to save result: ${saveError.message}`);
 
     console.log("[analyze-module] Analysis complete! Model used:", llmModel);
-
-    return new Response(JSON.stringify({ 
-      success: true,
-      result: generatedResult,
-      llmModelUsed: llmModel,
-      outputType: outputType 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return { success: true, result: llmResult.result, llmModelUsed: llmModel };
 
   } catch (error) {
-    console.error("[analyze-module] Error:", error);
+    console.error("[analyze-module] Background processing error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
     try {
-      if (reqHotelId && reqModuleId !== null) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-        if (supabaseUrl && supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          await supabase.from('agent_results').upsert({
-            hotel_id: reqHotelId,
-            module_id: reqModuleId,
-            status: 'error',
-            result: `Erro: ${errorMessage}`,
-          }, { onConflict: 'hotel_id,module_id' });
-        }
-      }
+      await supabase.from('agent_results').upsert({
+        hotel_id: hotelId, module_id: moduleId,
+        status: 'error', result: `Erro: ${errorMessage}`,
+      }, { onConflict: 'hotel_id,module_id' });
     } catch (dbError) {
       console.error("[analyze-module] Failed to update error status:", dbError);
     }
-    
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return { error: errorMessage };
   }
-});
+}

@@ -358,24 +358,30 @@ export default function AgentModule() {
   const currentStatus = result?.status || 'pending';
   const isProcessing = currentStatus === 'generating' || isGenerating;
   const isProcessingManus = currentStatus === 'processing_manus';
-  
+
   // Detect if stuck (generating for more than 3 minutes from when we started)
-  const isStuck = isProcessing && generationStartTime !== null && 
+  const isStuck = isProcessing && generationStartTime !== null &&
     (Date.now() - generationStartTime > 3 * 60 * 1000);
+
+  const canCancelProcessing = isStuck || isProcessingManus;
 
   const handleCancelGeneration = async () => {
     try {
       const { error } = await supabase
         .from('agent_results')
-        .update({ status: 'pending' })
+        .update({
+          status: 'pending',
+          result: null,
+          generated_at: null,
+        })
         .eq('hotel_id', hotelId)
         .eq('module_id', moduleIdNum);
-      
+
       if (error) {
         toast.error('Erro ao cancelar. Tente novamente.');
         return;
       }
-      
+
       setIsGenerating(false);
       setGenerationStartTime(null);
       toast.info('Processamento cancelado. Você pode tentar novamente.');
@@ -685,14 +691,14 @@ export default function AgentModule() {
             </div>
 
             <div className="flex gap-2">
-              {isStuck && !isProcessingManus && (
+              {canCancelProcessing && (
                 <Button
                   onClick={handleCancelGeneration}
                   variant="outline"
                   className="gap-2 border-amber-500 text-amber-500 hover:bg-amber-500/10"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Cancelar e Reiniciar
+                  {isProcessingManus ? 'Cancelar processamento Manus' : 'Cancelar e Reiniciar'}
                 </Button>
               )}
               <TooltipProvider>

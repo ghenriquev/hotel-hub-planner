@@ -5,7 +5,7 @@ import { HotelProjectData } from "@/hooks/useHotelProjectData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface ProjectPhasesSectionProps {
   hotelId: string;
@@ -15,13 +15,30 @@ interface ProjectPhasesSectionProps {
   readOnly?: boolean;
 }
 
-export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate, readOnly }: ProjectPhasesSectionProps) {
+export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate, readOnly }: ProjectPhasesSectionProps & { refetchProjectData?: () => void }) {
   const navigate = useNavigate();
   const [generatingPhase2, setGeneratingPhase2] = useState(false);
   const [generatingPhase5, setGeneratingPhase5] = useState(false);
 
   const phase2Status = projectData?.phase2_status || 'pending';
   const phase5Status = projectData?.phase5_status || 'pending';
+
+  // Detect when status changes from generating to completed/error
+  useEffect(() => {
+    if (generatingPhase2 && projectData?.phase2_status === 'completed') {
+      setGeneratingPhase2(false);
+    } else if (generatingPhase2 && projectData?.phase2_status === 'error') {
+      setGeneratingPhase2(false);
+    }
+  }, [projectData?.phase2_status, generatingPhase2]);
+
+  useEffect(() => {
+    if (generatingPhase5 && projectData?.phase5_status === 'completed') {
+      setGeneratingPhase5(false);
+    } else if (generatingPhase5 && projectData?.phase5_status === 'error') {
+      setGeneratingPhase5(false);
+    }
+  }, [projectData?.phase5_status, generatingPhase5]);
 
   const handlePhase1Click = () => {
     const url = projectData?.phase1_presentation_url || 'https://gamma.app/docs/KICK-OFF-Plano-Estrategico-de-Vendas-Diretas-5ul4lfxo39kby07?mode=doc';
@@ -30,29 +47,17 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
 
   const handlePhase2Generate = async () => {
     setGeneratingPhase2(true);
-    await onUpdate({ phase2_status: 'generating' });
-    
     try {
-      const { data, error } = await supabase.functions.invoke('generate-strategic-summary', {
+      const { error } = await supabase.functions.invoke('generate-strategic-summary', {
         body: { hotelId }
       });
-
       if (error) throw error;
-
-      await onUpdate({
-        phase2_summary: data.summary,
-        phase2_presentation_url: data.presentationUrl || null,
-        phase2_status: 'completed',
-        phase2_generated_at: new Date().toISOString()
-      });
-
-      toast.success("Resumo estratégico gerado com sucesso!");
+      toast.success("Geração iniciada! Aguarde...");
+      // Polling/realtime will update projectData automatically
     } catch (err) {
       console.error("Error generating phase 2:", err);
-      await onUpdate({ phase2_status: 'error' });
-      toast.error("Erro ao gerar resumo estratégico");
-    } finally {
       setGeneratingPhase2(false);
+      toast.error("Erro ao gerar resumo estratégico");
     }
   };
 
@@ -62,29 +67,16 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
 
   const handlePhase5Generate = async () => {
     setGeneratingPhase5(true);
-    await onUpdate({ phase5_status: 'generating' });
-
     try {
-      const { data, error } = await supabase.functions.invoke('generate-final-report', {
+      const { error } = await supabase.functions.invoke('generate-final-report', {
         body: { hotelId }
       });
-
       if (error) throw error;
-
-      await onUpdate({
-        phase5_report: data.report,
-        phase5_presentation_url: data.presentationUrl || null,
-        phase5_status: 'completed',
-        phase5_generated_at: new Date().toISOString()
-      });
-
-      toast.success("Relatório final gerado com sucesso!");
+      toast.success("Geração iniciada! Aguarde...");
     } catch (err) {
       console.error("Error generating phase 5:", err);
-      await onUpdate({ phase5_status: 'error' });
-      toast.error("Erro ao gerar relatório final");
-    } finally {
       setGeneratingPhase5(false);
+      toast.error("Erro ao gerar relatório final");
     }
   };
 

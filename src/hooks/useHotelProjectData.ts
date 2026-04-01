@@ -51,6 +51,14 @@ export function useHotelProjectData(hotelId: string | undefined) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Poll when status is 'generating' for phase2 or phase5
+  useEffect(() => {
+    const isGenerating = projectData?.phase2_status === 'generating' || projectData?.phase5_status === 'generating';
+    if (!isGenerating) return;
+    const interval = setInterval(() => { fetchData(); }, 3000);
+    return () => clearInterval(interval);
+  }, [projectData?.phase2_status, projectData?.phase5_status, fetchData]);
+
   const updateProjectData = async (updates: Partial<HotelProjectData>) => {
     if (!hotelId) return false;
     setSaving(true);

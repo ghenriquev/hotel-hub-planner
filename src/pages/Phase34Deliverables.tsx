@@ -66,6 +66,7 @@ const DELIVERABLE_SECTIONS: DeliverableSection[] = [
     key: "crm",
     title: "CRM",
     fields: [
+      { key: "link", label: "Link do CRM", type: "url" },
       { key: "login", label: "Login Conta Reprotel CRM", type: "text" },
       { key: "senha", label: "Senha", type: "text" },
       { key: "video", label: "Vídeo explicativo sobre o CRM", type: "url" },

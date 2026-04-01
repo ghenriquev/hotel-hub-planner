@@ -103,7 +103,7 @@ serve(async (req) => {
   }
 
   try {
-    const { hotelId, moduleId, text } = await req.json();
+    const { hotelId, moduleId, text, userEmail } = await req.json();
     
     console.log(`[create-presentation] v${FUNCTION_VERSION} - Creating presentation for hotel: ${hotelId}, module: ${moduleId}`);
     
@@ -200,6 +200,37 @@ serve(async (req) => {
       };
     }
     
+    // Sharing options - auto-share with edit permissions
+    const sharingOptions: Record<string, any> = {
+      workspaceAccess: "edit"
+    };
+
+    // Resolve user email: from body or from JWT
+    let resolvedEmail = userEmail;
+    if (!resolvedEmail) {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        try {
+          const token = authHeader.replace('Bearer ', '');
+          const tempClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || SUPABASE_SERVICE_ROLE_KEY);
+          const { data: { user } } = await tempClient.auth.getUser(token);
+          resolvedEmail = user?.email;
+        } catch (e) {
+          console.log("[create-presentation] Could not resolve user email from JWT:", e);
+        }
+      }
+    }
+
+    if (resolvedEmail) {
+      sharingOptions.emailOptions = {
+        recipients: [resolvedEmail],
+        access: "edit"
+      };
+      console.log(`[create-presentation] Sharing with: ${resolvedEmail}`);
+    }
+
+    gammaPayload.sharingOptions = sharingOptions;
+
     console.log(`[create-presentation] Gamma payload:`, JSON.stringify(gammaPayload, null, 2));
     
     const gammaResponse = await fetch("https://public-api.gamma.app/v1.0/generations", {

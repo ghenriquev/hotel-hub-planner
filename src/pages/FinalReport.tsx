@@ -66,11 +66,13 @@ export default function FinalReport() {
           presentation_status: 'generating',
         }, { onConflict: 'hotel_id,module_id' });
 
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke('create-presentation', {
         body: {
           hotelId: id,
           moduleId: 9998,
-          text: projectData.phase5_report
+          text: projectData.phase5_report,
+          userEmail: user?.email
         }
       });
       if (error) throw error;

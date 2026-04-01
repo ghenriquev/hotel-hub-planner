@@ -69,11 +69,13 @@ export default function StrategicSummary() {
           presentation_status: 'generating',
         }, { onConflict: 'hotel_id,module_id' });
 
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke('create-presentation', {
         body: {
           hotelId: id,
           moduleId: 9999,
-          text: projectData.phase2_summary
+          text: projectData.phase2_summary,
+          userEmail: user?.email
         }
       });
       if (error) throw error;

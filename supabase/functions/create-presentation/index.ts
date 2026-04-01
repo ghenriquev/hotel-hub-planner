@@ -103,7 +103,7 @@ serve(async (req) => {
   }
 
   try {
-    const { hotelId, moduleId, text } = await req.json();
+    const { hotelId, moduleId, text, userEmail } = await req.json();
     
     console.log(`[create-presentation] v${FUNCTION_VERSION} - Creating presentation for hotel: ${hotelId}, module: ${moduleId}`);
     

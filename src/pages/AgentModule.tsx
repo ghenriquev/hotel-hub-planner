@@ -311,11 +311,13 @@ export default function AgentModule() {
     setIsCreatingPresentation(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.functions.invoke('create-presentation', {
         body: {
           hotelId: hotel.id,
           moduleId: moduleIdNum,
-          text: editedText
+          text: editedText,
+          userEmail: user?.email
         }
       });
 

@@ -44,28 +44,77 @@ serve(async (req) => {
           return;
         }
 
+        // Fetch phase34 deliverables
+        const { data: projectDataRow } = await supabase
+          .from("hotel_project_data")
+          .select("phase34_deliverables")
+          .eq("hotel_id", hotelId)
+          .maybeSingle();
+
         // Build context from all agent results
         const agentSummaries = results.map(r => {
           const config = configs?.find(c => c.module_id === r.module_id);
           const title = config?.module_title || `Agente ${r.module_id}`;
-          const truncatedResult = (r.result || '').substring(0, 3000);
+          const truncatedResult = (r.result || '').substring(0, 4000);
           return `## ${title}\n${truncatedResult}`;
         }).join("\n\n---\n\n");
 
-        const prompt = `Você é um consultor estratégico de marketing digital para hotéis. 
-Analise os seguintes relatórios dos agentes estratégicos do hotel "${hotel?.name}" (${hotel?.city}) e gere um RESUMO ESTRATÉGICO CONSOLIDADO.
+        const deliverablesJson = projectDataRow?.phase34_deliverables ? JSON.stringify(projectDataRow.phase34_deliverables) : "Nenhuma entrega registrada ainda.";
 
-O resumo deve:
-1. Ter uma visão geral executiva
-2. Destacar os pontos-chave de cada análise
-3. Identificar oportunidades e ameaças principais
-4. Listar recomendações prioritárias
-5. Ser bem estruturado com headers e bullet points em Markdown
+        const prompt = `Você é um consultor estratégico de marketing digital especializado em hotelaria.
+Gere um RELATÓRIO DE ENTREGAS completo para o hotel "${hotel?.name}" (${hotel?.city}).
+
+Este relatório será enviado para o Gamma para gerar uma apresentação profissional. O texto deve ser rico, bem estruturado e seguir EXATAMENTE esta estrutura de seções:
+
+---
+
+# Plano Estratégico de Vendas Diretas — Relatório de Entregas
+## ${hotel?.name} — 60 Dias de Transformação Digital
+
+Tudo o que foi construído, entregue e ativado para o ${hotel?.name} durante o projeto intensivo. Uma base sólida para escalar as reservas diretas com inteligência, estratégia e resultado.
+
+---
+
+## VISÃO GERAL — O Que Foi o Projeto de 60 Dias
+Descreva de forma executiva os cinco pilares do projeto: Estratégia, Tráfego, Conversão, Relacionamento e Mensuração. Explique brevemente cada pilar e o que foi entregue.
+
+## ANÁLISE & ESTRATÉGIA — A Base Estratégica Construída
+Liste todas as entregas da fase de análise (com base nos resultados dos agentes): análise de mercado, posicionamento competitivo, cliente oculto, personas, SWOT digital, etc.
+
+## TÁTICO — Criativos & Canais
+Descreva as entregas de comunicação: artes e copys dos anúncios, e-mail marketing, landing page. Explique o que foi criado e para que serve.
+
+## CRM & RELACIONAMENTO — Gestão de Relacionamento com o Hóspede
+Descreva a infraestrutura de CRM implementada, roteiros de WhatsApp, scripts de pós-venda, conta CRM.
+
+## TRÁFEGO PAGO — Meta Ads
+Explique a estratégia de funil no Meta Ads (Topo, Meio, Fundo) e os públicos de remarketing configurados. Detalhe cada nível.
+
+## TRÁFEGO PAGO — Google Ads
+Explique a estrutura em 3 níveis de prioridade (Rede de Pesquisa, Concorrentes + Hotel Ads, PMAX) e os públicos de remarketing no Google Ads.
+
+## MENSURAÇÃO & RASTREAMENTO — Infraestrutura de Dados Configurada
+Descreva as ferramentas implementadas: Google Tag Manager, Google Analytics, Conversão Google Ads, Pixel do Facebook. Explique a importância de cada uma.
+
+## PRÓXIMOS PASSOS — A Fundação Está Pronta. Agora é Hora de Escalar.
+Conclua com uma visão de continuidade: o que foi construído, o potencial de crescimento e os benefícios de continuar o serviço mensal.
+
+---
+
+IMPORTANTE:
+- Use o nome "${hotel?.name}" e a cidade "${hotel?.city}" — NUNCA use nomes de outros hotéis
+- Adapte o conteúdo com base nos dados reais dos agentes e entregas abaixo
+- O texto deve ser profissional, persuasivo e detalhado
+- Use markdown com headers ##, listas e tabelas quando apropriado
+- Cada seção deve ter conteúdo substancial (não apenas tópicos vagos)
 
 RELATÓRIOS DOS AGENTES:
 ${agentSummaries}
 
-Gere o resumo em português do Brasil, de forma profissional e concisa.`;
+ENTREGAS FASES 3 & 4:
+${deliverablesJson}
+
+Gere o relatório completo em português do Brasil.`;
 
         // Call AI
         const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -80,7 +129,7 @@ Gere o resumo em português do Brasil, de forma profissional e concisa.`;
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "Você é um consultor estratégico especializado em marketing digital hoteleiro." },
+              { role: "system", content: "Você é um consultor estratégico especializado em marketing digital hoteleiro. Gere relatórios de entregas profissionais e detalhados que serão transformados em apresentações executivas." },
               { role: "user", content: prompt }
             ],
           }),
@@ -119,7 +168,7 @@ Gere o resumo em português do Brasil, de forma profissional e concisa.`;
               },
               body: JSON.stringify({
                 text: summary.substring(0, 5000),
-                title: `Resumo Estratégico - ${hotel?.name}`,
+                title: `Plano Estratégico de Vendas Diretas - Relatório de Entregas - ${hotel?.name}`,
                 format: gammaSettings?.format || "presentation",
                 theme_id: gammaSettings?.theme_id || "Oasis",
                 num_cards: gammaSettings?.num_cards || 10,

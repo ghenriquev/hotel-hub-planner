@@ -25,6 +25,9 @@ import ManualForm from "./pages/ManualForm";
 import ManualResponses from "./pages/ManualResponses";
 import SettingsManualTemplate from "./pages/SettingsManualTemplate";
 import PublicClientView from "./pages/PublicClientView";
+import Phase34Deliverables from "./pages/Phase34Deliverables";
+import StrategicSummary from "./pages/StrategicSummary";
+import FinalReport from "./pages/FinalReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

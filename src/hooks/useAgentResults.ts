@@ -39,6 +39,23 @@ export function useAgentResults(hotelId: string) {
     fetchResults();
   }, [fetchResults]);
 
+  // Realtime subscription for live updates during batch generation
+  useEffect(() => {
+    if (!hotelId) return;
+    const channel = supabase
+      .channel(`agent-results-${hotelId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'agent_results',
+        filter: `hotel_id=eq.${hotelId}`,
+      }, () => {
+        fetchResults();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [hotelId, fetchResults]);
+
   const getResultForModule = useCallback((moduleId: number): AgentResult | undefined => {
     return results.find(r => r.module_id === moduleId);
   }, [results]);

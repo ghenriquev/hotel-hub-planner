@@ -274,6 +274,16 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            {/* Phase pages */}
+            <Route path="/hotel/:id/deliverables" element={
+              <ProtectedRoute><AdminRoute><AppLayout><Phase34Deliverables /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
+            <Route path="/hotel/:id/strategic-summary" element={
+              <ProtectedRoute><AdminRoute><AppLayout><StrategicSummary /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
+            <Route path="/hotel/:id/final-report" element={
+              <ProtectedRoute><AdminRoute><AppLayout><FinalReport /></AppLayout></AdminRoute></ProtectedRoute>
+            } />
             {/* Public Manual Form Route */}
             <Route path="/manual/:hotelId/:token" element={<ManualForm />} />
             {/* Public Client View Route */}

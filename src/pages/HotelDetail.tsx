@@ -926,6 +926,12 @@ export default function HotelDetail() {
         {/* Website Content Modal */}
         <WebsiteContentModal open={isWebsiteContentOpen} onOpenChange={setIsWebsiteContentOpen} pages={Array.isArray(websiteData?.crawled_content) ? websiteData.crawled_content : []} crawledAt={websiteData?.crawled_at || null} />
 
+        {/* Meeting Links */}
+        <MeetingLinksSection projectData={projectData} onSave={updateProjectData} saving={false} />
+
+        {/* Project Phases */}
+        <ProjectPhasesSection hotelId={hotel.id} hotelName={hotel.name} projectData={projectData} onUpdate={updateProjectData} />
+
         {/* Agents grid */}
         <div className="mb-6 animate-slide-up" style={{
         animationDelay: "0.15s"

@@ -936,48 +936,9 @@ export default function HotelDetail() {
         <div className="mb-6 animate-slide-up" style={{
         animationDelay: "0.15s"
       }}>
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-xl text-foreground">Agentes Estratégicos</h2>
-            </div>
-            <Button
-              size="sm"
-              disabled={isBatchGenerating}
-              onClick={async () => {
-                const pendingConfigs = configs.filter(c => {
-                  const r = getResultForModule(c.module_id);
-                  const s = r?.status || 'pending';
-                  return s === 'pending' || s === 'error';
-                });
-                if (pendingConfigs.length === 0) {
-                  toast.info('Todos os agentes já foram executados.');
-                  return;
-                }
-                setIsBatchGenerating(true);
-                toast.info(`Iniciando ${pendingConfigs.length} análises em paralelo...`);
-                const promises = pendingConfigs.map(c =>
-                  supabase.functions.invoke('analyze-module', {
-                    body: { hotelId: hotel.id, moduleId: c.module_id }
-                  })
-                );
-                const settled = await Promise.allSettled(promises);
-                const succeeded = settled.filter(r => r.status === 'fulfilled' && !(r.value as any).error).length;
-                const failed = settled.length - succeeded;
-                if (failed > 0) {
-                  toast.warning(`${succeeded} análises iniciadas, ${failed} com erro.`);
-                } else {
-                  toast.success(`${succeeded} análises iniciadas com sucesso!`);
-                }
-                setIsBatchGenerating(false);
-              }}
-            >
-              {isBatchGenerating ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" /> Gerar Todas as Análises</>
-              )}
-            </Button>
+          <div className="flex items-center gap-3 mb-1">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="font-display text-xl text-foreground">Agentes Estratégicos</h2>
           </div>
           <p className="text-muted-foreground text-sm">
             Cada agente analisa os materiais e gera insights específicos

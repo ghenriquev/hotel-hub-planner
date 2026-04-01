@@ -86,6 +86,7 @@ export default function HotelDetail() {
   const { configs } = useAgentConfigs();
   const { getFormLink } = useManualFormLink(id);
   const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
+  const { projectData, updateProjectData } = useHotelProjectData(id);
   const { 
     competitors: editableCompetitors, 
     updateCompetitor, 

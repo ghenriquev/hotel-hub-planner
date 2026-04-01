@@ -502,6 +502,77 @@ export type Database = {
           },
         ]
       }
+      hotel_project_data: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          meeting_final_url: string | null
+          meeting_kickoff_url: string | null
+          meeting_phase1_url: string | null
+          meeting_phase2_url: string | null
+          phase1_presentation_url: string | null
+          phase2_generated_at: string | null
+          phase2_presentation_url: string | null
+          phase2_status: string | null
+          phase2_summary: string | null
+          phase34_deliverables: Json | null
+          phase5_generated_at: string | null
+          phase5_presentation_url: string | null
+          phase5_report: string | null
+          phase5_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          meeting_final_url?: string | null
+          meeting_kickoff_url?: string | null
+          meeting_phase1_url?: string | null
+          meeting_phase2_url?: string | null
+          phase1_presentation_url?: string | null
+          phase2_generated_at?: string | null
+          phase2_presentation_url?: string | null
+          phase2_status?: string | null
+          phase2_summary?: string | null
+          phase34_deliverables?: Json | null
+          phase5_generated_at?: string | null
+          phase5_presentation_url?: string | null
+          phase5_report?: string | null
+          phase5_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          meeting_final_url?: string | null
+          meeting_kickoff_url?: string | null
+          meeting_phase1_url?: string | null
+          meeting_phase2_url?: string | null
+          phase1_presentation_url?: string | null
+          phase2_generated_at?: string | null
+          phase2_presentation_url?: string | null
+          phase2_status?: string | null
+          phase2_summary?: string | null
+          phase34_deliverables?: Json | null
+          phase5_generated_at?: string | null
+          phase5_presentation_url?: string | null
+          phase5_report?: string | null
+          phase5_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_project_data_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: true
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_reviews_data: {
         Row: {
           crawl_progress: number | null

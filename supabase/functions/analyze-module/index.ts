@@ -1,8 +1,8 @@
-// VERSION: 4.0.0 - Uses direct API keys instead of Lovable AI Gateway
+// VERSION: 5.0.0 - Background processing with EdgeRuntime.waitUntil for faster response
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const FUNCTION_VERSION = "4.0.0";
+const FUNCTION_VERSION = "5.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

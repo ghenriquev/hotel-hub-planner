@@ -281,6 +281,18 @@ export default function AgentModule() {
         return;
       }
 
+      // If async (background processing), keep generating state and poll
+      if (data?.async) {
+        toast.success('Análise iniciada! O resultado será atualizado automaticamente.');
+        // Start polling for result
+        const pollInterval = setInterval(async () => {
+          await refetch();
+        }, 3000);
+        // Clear polling after 5 minutes max
+        setTimeout(() => clearInterval(pollInterval), 300000);
+        return;
+      }
+
       toast.success('Análise gerada com sucesso!');
       refetch();
     } catch (err) {

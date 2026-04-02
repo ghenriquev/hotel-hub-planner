@@ -210,6 +210,32 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[manus-check-status] Manus API error:", response.status, errorText);
+      
+      // If task not found (404), mark as error instead of throwing
+      if (response.status === 404) {
+        console.log("[manus-check-status] Task not found - marking as error");
+        
+        if (taskType === 'competitor') {
+          await supabase
+            .from('hotel_competitor_data')
+            .update({ analysis_status: 'error', error_message: 'Tarefa do Manus não encontrada. Reprocesse a análise.' })
+            .eq('hotel_id', hotelId)
+            .eq('competitor_number', competitorNumber);
+        } else {
+          await supabase
+            .from('agent_results')
+            .update({ status: 'error', result: 'Tarefa do Manus não encontrada. Reprocesse a análise.' })
+            .eq('hotel_id', hotelId)
+            .eq('module_id', moduleId);
+        }
+        
+        return new Response(JSON.stringify({ 
+          success: true, status: 'error', taskStatus: 'not_found', type: taskType 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       throw new Error(`Manus API error: ${response.status}`);
     }
 

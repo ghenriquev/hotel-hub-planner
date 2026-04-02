@@ -1,0 +1,1 @@
+UPDATE public.hotel_competitor_data SET analysis_status = 'error', error_message = 'Tarefa do Manus não encontrada (404). Reprocesse a análise.' WHERE id = 'b9099675-3f43-48e3-befa-f9b68a03e975' AND analysis_status = 'processing_manus';

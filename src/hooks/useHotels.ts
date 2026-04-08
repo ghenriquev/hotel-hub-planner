@@ -15,6 +15,8 @@ export interface Hotel {
   tripadvisor_url: string | null;
   booking_url: string | null;
   google_business_url: string | null;
+  expedia_url: string | null;
+  decolar_url: string | null;
   slug: string | null;
   created_by: string | null;
   created_at: string;
@@ -43,6 +45,8 @@ export interface HotelUpdate {
   tripadvisor_url?: string | null;
   booking_url?: string | null;
   google_business_url?: string | null;
+  expedia_url?: string | null;
+  decolar_url?: string | null;
 }
 
 export function useHotels() {

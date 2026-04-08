@@ -387,6 +387,25 @@ async function processAnalysis(
       }
     }
 
+    // Fetch platform profile URLs if configured
+    if (configuredMaterials.includes('platform_profiles')) {
+      const { data: hotelData } = await supabase
+        .from('hotels')
+        .select('instagram_url, tripadvisor_url, booking_url, google_business_url, expedia_url, decolar_url, website')
+        .eq('id', hotelId)
+        .maybeSingle();
+      if (hotelData) {
+        materialsContext += `\n\n## Perfil de Plataforma do Hotel`;
+        if (hotelData.website) materialsContext += `\nSite oficial: ${hotelData.website}`;
+        if (hotelData.instagram_url) materialsContext += `\nInstagram: ${hotelData.instagram_url}`;
+        if (hotelData.tripadvisor_url) materialsContext += `\nTripAdvisor: ${hotelData.tripadvisor_url}`;
+        if (hotelData.booking_url) materialsContext += `\nBooking.com: ${hotelData.booking_url}`;
+        if (hotelData.google_business_url) materialsContext += `\nGoogle Meu Negócio: ${hotelData.google_business_url}`;
+        if (hotelData.expedia_url) materialsContext += `\nExpedia: ${hotelData.expedia_url}`;
+        if (hotelData.decolar_url) materialsContext += `\nDecolar: ${hotelData.decolar_url}`;
+      }
+    }
+
     // Fetch additional materials in parallel
     const parallelFetches: Promise<void>[] = [];
 

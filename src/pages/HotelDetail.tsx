@@ -116,6 +116,8 @@ export default function HotelDetail() {
     tripadvisorUrl: "",
     bookingUrl: "",
     googleBusinessUrl: "",
+    expediaUrl: "",
+    decolarUrl: "",
   });
   useEffect(() => {
     if (hotel) {
@@ -130,6 +132,8 @@ export default function HotelDetail() {
         tripadvisorUrl: hotel.tripadvisor_url || "",
         bookingUrl: hotel.booking_url || "",
         googleBusinessUrl: hotel.google_business_url || "",
+        expediaUrl: hotel.expedia_url || "",
+        decolarUrl: hotel.decolar_url || "",
       });
       if (hotel.project_start_date) {
         setProjectStartDate(parseISO(hotel.project_start_date));
@@ -160,6 +164,8 @@ export default function HotelDetail() {
       tripadvisor_url: editForm.tripadvisorUrl || null,
       booking_url: editForm.bookingUrl || null,
       google_business_url: editForm.googleBusinessUrl || null,
+      expedia_url: editForm.expediaUrl || null,
+      decolar_url: editForm.decolarUrl || null,
     });
     
     // Save competitors separately
@@ -497,6 +503,22 @@ export default function HotelDetail() {
                               ...editForm,
                               googleBusinessUrl: e.target.value
                             })} placeholder="https://g.page/seuhotel" />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-expedia">Expedia</Label>
+                            <Input id="edit-expedia" value={editForm.expediaUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              expediaUrl: e.target.value
+                            })} placeholder="https://www.expedia.com.br/Hotel-..." />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-decolar">Decolar</Label>
+                            <Input id="edit-decolar" value={editForm.decolarUrl} onChange={e => setEditForm({
+                              ...editForm,
+                              decolarUrl: e.target.value
+                            })} placeholder="https://www.decolar.com/hoteis/..." />
                           </div>
                         </div>
                       </AccordionContent>

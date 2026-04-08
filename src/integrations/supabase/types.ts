@@ -679,6 +679,8 @@ export type Database = {
           contact: string | null
           created_at: string | null
           created_by: string | null
+          decolar_url: string | null
+          expedia_url: string | null
           google_business_url: string | null
           has_no_website: boolean | null
           id: string
@@ -701,6 +703,8 @@ export type Database = {
           contact?: string | null
           created_at?: string | null
           created_by?: string | null
+          decolar_url?: string | null
+          expedia_url?: string | null
           google_business_url?: string | null
           has_no_website?: boolean | null
           id?: string
@@ -723,6 +727,8 @@ export type Database = {
           contact?: string | null
           created_at?: string | null
           created_by?: string | null
+          decolar_url?: string | null
+          expedia_url?: string | null
           google_business_url?: string | null
           has_no_website?: boolean | null
           id?: string

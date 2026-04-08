@@ -99,6 +99,11 @@ export function useAgentReadiness(hotelId: string, moduleId: number): AgentReadi
           label = RESEARCH_MATERIALS_LABELS[materialId];
           type = 'research';
           break;
+        case 'platform_profiles':
+          ready = true; // Always available from hotel data
+          label = 'Perfil de Plataforma (OTAs)';
+          type = 'research';
+          break;
         default:
           label = materialId;
       }

@@ -75,6 +75,10 @@ export function useAgentsReadiness(hotelId: string | undefined) {
             ready = hasReviewsCompleted();
             label = RESEARCH_MATERIALS_LABELS[materialId];
             break;
+          case 'platform_profiles':
+            ready = true;
+            label = 'Perfil de Plataforma (OTAs)';
+            break;
           default:
             label = materialId;
         }

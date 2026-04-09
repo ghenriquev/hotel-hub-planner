@@ -134,6 +134,9 @@ export default function AgentModule() {
   // Get the output type for this module
   const agentConfig = configs.find(c => c.module_id === moduleIdNum);
   const outputType = agentConfig?.output_type || 'text';
+  const staleMap = useStaleAgents(allResults, configs);
+  const isStaleResult = staleMap[moduleIdNum]?.stale || false;
+  const staleDeps = staleMap[moduleIdNum]?.updatedDeps || [];
 
   // Get active API key types
   const getActiveApiKeyTypes = (): string[] => {

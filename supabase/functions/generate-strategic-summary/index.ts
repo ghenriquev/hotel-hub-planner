@@ -24,15 +24,17 @@ serve(async (req) => {
 
     const backgroundTask = (async () => {
       try {
-        const [hotelRes, resultsRes, configsRes] = await Promise.all([
+        const [hotelRes, resultsRes, configsRes, competitorRes] = await Promise.all([
           supabase.from("hotels").select("name, city").eq("id", hotelId).single(),
           supabase.from("agent_results").select("module_id, result, status").eq("hotel_id", hotelId).eq("status", "completed"),
           supabase.from("agent_configs").select("module_id, module_title").order("display_order"),
+          supabase.from("hotel_competitor_data").select("competitor_number, generated_analysis, analysis_status").eq("hotel_id", hotelId).eq("analysis_status", "completed"),
         ]);
 
         const hotel = hotelRes.data;
         const results = resultsRes.data;
         const configs = configsRes.data;
+        const competitors = competitorRes.data;
 
         if (!results || results.length === 0) {
           await supabase.from("hotel_project_data")
@@ -47,6 +49,18 @@ serve(async (req) => {
           const truncatedResult = (r.result || '').substring(0, 4000);
           return `## ${title}\n${truncatedResult}`;
         }).join("\n\n---\n\n");
+
+        // Include competitor analysis data if available
+        let competitorSection = '';
+        if (competitors && competitors.length > 0) {
+          const competitorAnalyses = competitors
+            .filter(c => c.generated_analysis)
+            .map(c => `### Concorrente ${c.competitor_number}\n${(c.generated_analysis || '').substring(0, 3000)}`)
+            .join("\n\n");
+          if (competitorAnalyses) {
+            competitorSection = `\n\n---\n\n## Análises de Concorrentes (dados complementares)\n${competitorAnalyses}`;
+          }
+        }
 
         const hotelName = hotel?.name || "Hotel";
         const hotelCity = hotel?.city || "cidade";

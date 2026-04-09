@@ -18,10 +18,24 @@ export interface PublicAgentResult {
   display_order: number;
 }
 
+export interface PublicProjectData {
+  meeting_kickoff_url: string | null;
+  meeting_phase1_url: string | null;
+  meeting_phase2_url: string | null;
+  meeting_final_url: string | null;
+  phase1_presentation_url: string | null;
+  phase2_presentation_url: string | null;
+  phase2_status: string | null;
+  phase34_deliverables: any | null;
+  phase5_presentation_url: string | null;
+  phase5_status: string | null;
+}
+
 export function usePublicHotel(slug: string | undefined) {
   const [hotel, setHotel] = useState<PublicHotel | null>(null);
   const [results, setResults] = useState<PublicAgentResult[]>([]);
   const [clienteOcultoUrl, setClienteOcultoUrl] = useState<string | null>(null);
+  const [projectData, setProjectData] = useState<PublicProjectData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +46,6 @@ export function usePublicHotel(slug: string | undefined) {
     }
 
     try {
-      // Fetch hotel by slug
       const { data: hotelData, error: hotelError } = await supabase
         .from("hotels")
         .select("id, name, city, slug, category")
@@ -44,22 +57,17 @@ export function usePublicHotel(slug: string | undefined) {
 
       setHotel(hotelData);
 
-      // Fetch agent configs
-      const { data: configs } = await supabase
-        .from("agent_configs")
-        .select("module_id, module_title, output_type, display_order");
+      // Fetch configs, results, materials, and project data in parallel
+      const [configsRes, agentResultsRes, materialsRes, projectRes] = await Promise.all([
+        supabase.from("agent_configs").select("module_id, module_title, output_type, display_order"),
+        supabase.from("agent_results").select("module_id, result, presentation_url, status").eq("hotel_id", hotelData.id).eq("status", "completed"),
+        supabase.from("hotel_materials").select("file_url").eq("hotel_id", hotelData.id).eq("material_type", "cliente_oculto").maybeSingle(),
+        supabase.from("hotel_project_data").select("meeting_kickoff_url, meeting_phase1_url, meeting_phase2_url, meeting_final_url, phase1_presentation_url, phase2_presentation_url, phase2_status, phase34_deliverables, phase5_presentation_url, phase5_status").eq("hotel_id", hotelData.id).maybeSingle(),
+      ]);
 
-      // Fetch completed agent results
-      const { data: agentResults } = await supabase
-        .from("agent_results")
-        .select("module_id, result, presentation_url, status")
-        .eq("hotel_id", hotelData.id)
-        .eq("status", "completed");
-
-      // Map results with config info
-      const mappedResults: PublicAgentResult[] = (agentResults || []).map((r) => {
-        const config = configs?.find((c) => c.module_id === r.module_id);
-        // Special label for module 9999 (Phase 2 Strategic Summary)
+      // Map results
+      const mappedResults: PublicAgentResult[] = (agentResultsRes.data || []).map((r) => {
+        const config = configsRes.data?.find((c) => c.module_id === r.module_id);
         const fallbackTitle = r.module_id === 9999 ? "Resumo Estratégico" : `Agente ${r.module_id}`;
         return {
           module_id: r.module_id,
@@ -73,16 +81,12 @@ export function usePublicHotel(slug: string | undefined) {
 
       setResults(mappedResults);
 
-      // Fetch cliente oculto material
-      const { data: materials } = await supabase
-        .from("hotel_materials")
-        .select("file_url")
-        .eq("hotel_id", hotelData.id)
-        .eq("material_type", "cliente_oculto")
-        .single();
+      if (materialsRes.data?.file_url) {
+        setClienteOcultoUrl(materialsRes.data.file_url);
+      }
 
-      if (materials?.file_url) {
-        setClienteOcultoUrl(materials.file_url);
+      if (projectRes.data) {
+        setProjectData(projectRes.data);
       }
 
       setError(null);
@@ -98,5 +102,5 @@ export function usePublicHotel(slug: string | undefined) {
     fetchData();
   }, [fetchData]);
 
-  return { hotel, results, clienteOcultoUrl, loading, error };
+  return { hotel, results, clienteOcultoUrl, projectData, loading, error };
 }

@@ -24,9 +24,10 @@ export default function ClientView() {
     .filter(r => r.status === 'completed')
     .map(r => {
       const config = configs.find(c => c.module_id === r.module_id);
+      const fallbackTitle = r.module_id === 9999 ? "Resumo Estratégico" : `Agente ${r.module_id}`;
       return {
         moduleId: r.module_id,
-        moduleTitle: config?.module_title || `Agente ${r.module_id}`,
+        moduleTitle: config?.module_title || fallbackTitle,
         outputType: config?.output_type || 'text',
         presentationUrl: r.presentation_url,
         hasTextResult: !!r.result,

@@ -685,8 +685,22 @@ export default function AgentModule() {
               )}
               {currentStatus === 'completed' && !isProcessing && !isProcessingManus && (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-gold" />
-                  <span className="text-foreground">Análise concluída</span>
+                  {isStaleResult ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                      <div>
+                        <span className="text-amber-600">Análise desatualizada</span>
+                        <p className="text-xs text-muted-foreground">
+                          Materiais atualizados: {staleDeps.join(', ')}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-gold" />
+                      <span className="text-foreground">Análise concluída</span>
+                    </>
+                  )}
                 </>
               )}
               {currentStatus === 'error' && !isProcessing && !isProcessingManus && (

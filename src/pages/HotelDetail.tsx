@@ -85,6 +85,7 @@ export default function HotelDetail() {
     getReadiness
   } = useAgentsReadiness(id || "");
   const { configs } = useAgentConfigs();
+  const staleMap = useStaleAgents(results, configs);
   const { getFormLink } = useManualFormLink(id);
   const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
   const { projectData, updateProjectData, saving: projectSaving } = useHotelProjectData(id);

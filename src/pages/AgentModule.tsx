@@ -124,6 +124,7 @@ export default function AgentModule() {
   
   const { result, loading, refetch } = useAgentResult(hotelId || "", moduleIdNum);
   const { configs, updateConfig } = useAgentConfigs();
+  const { results: allResults } = useAgentResults(hotelId || "");
   const { isReady, isLoading: readinessLoading, materials, missingMaterials } = useAgentReadiness(hotelId || "", moduleIdNum);
   const { apiKeys } = useApiKeys();
   const [materialsExpanded, setMaterialsExpanded] = useState(false);

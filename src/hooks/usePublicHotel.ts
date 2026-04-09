@@ -59,9 +59,11 @@ export function usePublicHotel(slug: string | undefined) {
       // Map results with config info
       const mappedResults: PublicAgentResult[] = (agentResults || []).map((r) => {
         const config = configs?.find((c) => c.module_id === r.module_id);
+        // Special label for module 9999 (Phase 2 Strategic Summary)
+        const fallbackTitle = r.module_id === 9999 ? "Resumo Estratégico" : `Agente ${r.module_id}`;
         return {
           module_id: r.module_id,
-          module_title: config?.module_title || `Agente ${r.module_id}`,
+          module_title: config?.module_title || fallbackTitle,
           output_type: config?.output_type || "text",
           presentation_url: r.presentation_url,
           has_text_result: !!r.result,

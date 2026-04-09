@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/Logo";
 import { useHotel } from "@/hooks/useHotels";
-import { useAgentResult } from "@/hooks/useAgentResults";
+import { useAgentResult, useAgentResults } from "@/hooks/useAgentResults";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useStaleAgents } from "@/hooks/useStaleAgents";
 import { useAgentReadiness } from "@/hooks/useAgentReadiness";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { getAgentById } from "@/lib/agents-data";
@@ -124,6 +125,7 @@ export default function AgentModule() {
   
   const { result, loading, refetch } = useAgentResult(hotelId || "", moduleIdNum);
   const { configs, updateConfig } = useAgentConfigs();
+  const { results: allResults } = useAgentResults(hotelId || "");
   const { isReady, isLoading: readinessLoading, materials, missingMaterials } = useAgentReadiness(hotelId || "", moduleIdNum);
   const { apiKeys } = useApiKeys();
   const [materialsExpanded, setMaterialsExpanded] = useState(false);
@@ -132,6 +134,9 @@ export default function AgentModule() {
   // Get the output type for this module
   const agentConfig = configs.find(c => c.module_id === moduleIdNum);
   const outputType = agentConfig?.output_type || 'text';
+  const staleMap = useStaleAgents(allResults, configs);
+  const isStaleResult = staleMap[moduleIdNum]?.stale || false;
+  const staleDeps = staleMap[moduleIdNum]?.updatedDeps || [];
 
   // Get active API key types
   const getActiveApiKeyTypes = (): string[] => {
@@ -680,8 +685,22 @@ export default function AgentModule() {
               )}
               {currentStatus === 'completed' && !isProcessing && !isProcessingManus && (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-gold" />
-                  <span className="text-foreground">Análise concluída</span>
+                  {isStaleResult ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                      <div>
+                        <span className="text-amber-600">Análise desatualizada</span>
+                        <p className="text-xs text-muted-foreground">
+                          Materiais atualizados: {staleDeps.join(', ')}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-gold" />
+                      <span className="text-foreground">Análise concluída</span>
+                    </>
+                  )}
                 </>
               )}
               {currentStatus === 'error' && !isProcessing && !isProcessingManus && (

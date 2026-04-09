@@ -20,6 +20,7 @@ import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useHotelCompetitors } from "@/hooks/useHotelCompetitors";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useStaleAgents } from "@/hooks/useStaleAgents";
 import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
 import { useHotelProjectData } from "@/hooks/useHotelProjectData";
 import { MeetingLinksSection } from "@/components/MeetingLinksSection";
@@ -84,6 +85,7 @@ export default function HotelDetail() {
     getReadiness
   } = useAgentsReadiness(id || "");
   const { configs } = useAgentConfigs();
+  const staleMap = useStaleAgents(results, configs);
   const { getFormLink } = useManualFormLink(id);
   const { manualData: manualFormData, loading: manualLoading, uploadManualFile, removeManualFile } = useHotelManualData(id);
   const { projectData, updateProjectData, saving: projectSaving } = useHotelProjectData(id);
@@ -991,10 +993,34 @@ export default function HotelDetail() {
                   </div>
                   
                   <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {/* Stale indicator */}
+                    {isCompleted && staleMap[agent.module_id]?.stale && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button onClick={e => e.stopPropagation()} className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-amber-500/20 transition-colors">
+                            <AlertCircle className="h-3 w-3" />
+                            Desatualizado
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3" onClick={e => e.stopPropagation()}>
+                          <p className="font-medium text-sm mb-2">Materiais atualizados desde a última geração:</p>
+                          <ul className="text-sm space-y-1">
+                            {staleMap[agent.module_id].updatedDeps.map((label, idx) => <li key={idx} className="flex items-center gap-2 text-muted-foreground">
+                                <RefreshCw className="h-3 w-3 text-amber-500 shrink-0" />
+                                {label}
+                              </li>)}
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2">Regenere esta análise para usar os dados mais recentes.</p>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                     {isGenerating && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                         Gerando...
                       </span>}
-                    {isCompleted && <span className="text-xs bg-gold/20 text-foreground px-2 py-1 rounded-full">
+                    {isCompleted && !staleMap[agent.module_id]?.stale && <span className="text-xs bg-gold/20 text-foreground px-2 py-1 rounded-full">
+                        Concluído
+                      </span>}
+                    {isCompleted && staleMap[agent.module_id]?.stale && <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full">
                         Concluído
                       </span>}
                     {hasError && <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">

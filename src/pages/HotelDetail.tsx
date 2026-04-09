@@ -20,6 +20,7 @@ import { useHotelCompetitorData } from "@/hooks/useHotelCompetitorData";
 import { useHotelCompetitors } from "@/hooks/useHotelCompetitors";
 import { useAgentsReadiness } from "@/hooks/useAgentsReadiness";
 import { useAgentConfigs } from "@/hooks/useAgentConfigs";
+import { useStaleAgents } from "@/hooks/useStaleAgents";
 import { useManualFormLink, useHotelManualData } from "@/hooks/useHotelManualData";
 import { useHotelProjectData } from "@/hooks/useHotelProjectData";
 import { MeetingLinksSection } from "@/components/MeetingLinksSection";

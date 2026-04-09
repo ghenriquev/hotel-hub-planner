@@ -79,7 +79,7 @@ O resumo deve consolidar todos os resultados dos agentes estratégicos da Fase 2
 7. **Próximos Passos** - Encerre com uma seção explicando que nas próximas semanas o ${hotelName} receberá todas as entregas técnicas e vídeos explicativos das Fases 3 (Construção) e 4 (Ativação), incluindo artes, anúncios, landing page, CRM, SEO, analytics e tracking. Ao final, na Fase 5, será apresentado o Relatório Final consolidando todo o projeto de 60 dias de Transformação Digital.
 
 DADOS DOS AGENTES ESTRATÉGICOS:
-${agentSummaries}
+${agentSummaries}${competitorSection}
 
 REGRAS:
 - Use SEMPRE o nome "${hotelName}" e a cidade "${hotelCity}"

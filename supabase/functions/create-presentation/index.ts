@@ -45,7 +45,7 @@ async function pollGammaGeneration(
       console.log(`[create-presentation] Gamma status: ${data.status}, attempt ${attempt + 1}/${maxAttempts}`);
       
       if (data.status === "completed" && data.gammaUrl) {
-        console.log(`[create-presentation] Success! URL: ${data.gammaUrl}`);
+        console.log(`[create-presentation] Success! Full response:`, JSON.stringify(data));
 
         // Try to download and store the PDF
         let pdfUrl: string | null = null;

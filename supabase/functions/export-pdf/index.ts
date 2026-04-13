@@ -30,34 +30,52 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Look up the agent_result that has this presentation_url
-    const { data: result, error: queryError } = await supabase
+    // First check if we have a stored pdf_url
+    const { data: result } = await supabase
       .from('agent_results')
       .select('pdf_url')
       .eq('presentation_url', presentationUrl)
       .maybeSingle();
 
-    if (queryError) {
-      console.error("[export-pdf] Query error:", queryError);
-      return new Response(JSON.stringify({ error: 'Failed to look up presentation' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let pdfSourceUrl: string;
+
+    if (result?.pdf_url) {
+      // Use stored PDF URL
+      pdfSourceUrl = result.pdf_url;
+    } else {
+      // Generate PDF URL from Gamma presentation URL by appending /pdf
+      // Gamma URLs look like: https://gamma.app/docs/TITLE-ID?mode=doc
+      // PDF export: https://gamma.app/docs/TITLE-ID/pdf
+      let gammaUrl = presentationUrl.trim();
+      
+      // Remove query parameters
+      const qIndex = gammaUrl.indexOf('?');
+      if (qIndex !== -1) {
+        gammaUrl = gammaUrl.substring(0, qIndex);
+      }
+      
+      // Remove trailing slash
+      if (gammaUrl.endsWith('/')) {
+        gammaUrl = gammaUrl.slice(0, -1);
+      }
+      
+      pdfSourceUrl = `${gammaUrl}/pdf`;
+      console.log(`[export-pdf] No stored PDF, using Gamma export: ${pdfSourceUrl}`);
     }
 
-    if (!result?.pdf_url) {
-      return new Response(JSON.stringify({ error: 'PDF não disponível para esta apresentação. Recrie a apresentação para gerar o PDF.' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Fetch the PDF from storage and return it
-    const pdfResponse = await fetch(result.pdf_url);
+    // Fetch the PDF
+    const pdfResponse = await fetch(pdfSourceUrl, {
+      redirect: 'follow',
+      headers: {
+        'Accept': 'application/pdf,*/*',
+      },
+    });
 
     if (!pdfResponse.ok) {
-      console.error(`[export-pdf] Storage fetch failed: ${pdfResponse.status}`);
-      return new Response(JSON.stringify({ error: 'Failed to fetch PDF from storage' }), {
+      console.error(`[export-pdf] PDF fetch failed: ${pdfResponse.status} from ${pdfSourceUrl}`);
+      return new Response(JSON.stringify({ 
+        error: 'Não foi possível gerar o PDF. Verifique se a apresentação está acessível.' 
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

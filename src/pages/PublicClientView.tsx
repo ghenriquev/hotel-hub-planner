@@ -61,7 +61,7 @@ export default function PublicClientView() {
     {
       label: "Fases 3 & 4 – Construção & Ativação",
       url: null,
-      available: !!hasDeliverables,
+      available: true,
       isDeliverables: true,
     },
     {

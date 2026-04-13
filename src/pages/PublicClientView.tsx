@@ -61,7 +61,7 @@ export default function PublicClientView() {
     {
       label: "Fases 3 & 4 – Construção & Ativação",
       url: null,
-      available: !!hasDeliverables,
+      available: true,
       isDeliverables: true,
     },
     {
@@ -220,49 +220,55 @@ export default function PublicClientView() {
         )}
 
         {/* Phase 3&4 Deliverables Accordion */}
-        {phase34Open && deliverables && (
+        {phase34Open && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <FileText className="h-5 w-5 text-primary" />
               <h2 className="font-display text-lg text-foreground">Entregas - Fases 3 & 4</h2>
             </div>
-            <Accordion type="multiple" className="space-y-2">
-              {DELIVERABLE_SECTIONS.filter(s => hasAnyValue(deliverables[s.key])).map(section => (
-                <AccordionItem key={section.key} value={section.key} className="border border-border rounded-lg overflow-hidden">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline text-sm">
-                    <span className="font-medium text-foreground">{section.title}</span>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-3">
-                    <div className="space-y-2">
-                      {section.fields.map(field => {
-                        const value = deliverables[section.key]?.[field.key];
-                        if (!value || value.trim() === '') return null;
+            {hasDeliverables ? (
+              <Accordion type="multiple" className="space-y-2">
+                {DELIVERABLE_SECTIONS.filter(s => hasAnyValue(deliverables![s.key])).map(section => (
+                  <AccordionItem key={section.key} value={section.key} className="border border-border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline text-sm">
+                      <span className="font-medium text-foreground">{section.title}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-3">
+                      <div className="space-y-2">
+                        {section.fields.map(field => {
+                          const value = deliverables![section.key]?.[field.key];
+                          if (!value || value.trim() === '') return null;
 
-                        if (field.type === 'url') {
+                          if (field.type === 'url') {
+                            return (
+                              <a key={field.key} href={value} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center justify-between p-2 border border-border rounded-lg hover:border-primary/30 transition-colors">
+                                <span className="text-sm text-muted-foreground">{field.label}</span>
+                                <div className="flex items-center gap-1 text-primary text-sm">
+                                  <ExternalLink className="h-3 w-3" />
+                                  Abrir
+                                </div>
+                              </a>
+                            );
+                          }
+
                           return (
-                            <a key={field.key} href={value} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center justify-between p-2 border border-border rounded-lg hover:border-primary/30 transition-colors">
+                            <div key={field.key} className="flex items-center justify-between p-2 border border-border rounded-lg">
                               <span className="text-sm text-muted-foreground">{field.label}</span>
-                              <div className="flex items-center gap-1 text-primary text-sm">
-                                <ExternalLink className="h-3 w-3" />
-                                Abrir
-                              </div>
-                            </a>
+                              <span className="text-sm text-foreground font-mono">{value}</span>
+                            </div>
                           );
-                        }
-
-                        return (
-                          <div key={field.key} className="flex items-center justify-between p-2 border border-border rounded-lg">
-                            <span className="text-sm text-muted-foreground">{field.label}</span>
-                            <span className="text-sm text-foreground font-mono">{value}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma entrega disponível ainda. Os materiais serão adicionados em breve.
+              </p>
+            )}
           </div>
         )}
 

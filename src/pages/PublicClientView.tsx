@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download } from "lucide-react";
 import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
@@ -6,8 +7,10 @@ import { Logo } from "@/components/Logo";
 export default function PublicClientView() {
   const { slug } = useParams<{ slug: string }>();
   const { hotel, results, clienteOcultoUrl, projectData, loading, error } = usePublicHotel(slug);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
 
-  const totalResults = results.length + (clienteOcultoUrl ? 1 : 0);
+  const completedCount = results.filter(r => r.presentation_url || r.has_text_result).length;
+  const totalResults = completedCount + (clienteOcultoUrl ? 1 : 0);
 
   const meetingLinks = projectData ? [
     { label: "Reunião de Kick-OFF", url: projectData.meeting_kickoff_url },
@@ -40,6 +43,42 @@ export default function PublicClientView() {
     },
   ] : [];
 
+  const handleExportPdf = async (url: string, key: string) => {
+    setDownloadingKey(key);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/export-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ presentationUrl: url }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'apresentacao.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[export-pdf] Error:', err);
+    } finally {
+      setDownloadingKey(null);
+    }
+  };
+
   // Extract deliverables from phase34 data
   const deliverables = projectData?.phase34_deliverables as Record<string, any> | null;
   const deliverableItems = deliverables ? Object.entries(deliverables)
@@ -59,11 +98,6 @@ export default function PublicClientView() {
       return items;
     }) : [];
 
-  const handleExportPdf = (url: string, title: string) => {
-    // Gamma presentations can be exported as PDF by appending /pdf to the URL
-    const pdfUrl = url.endsWith('/') ? `${url}pdf` : `${url}/pdf`;
-    window.open(pdfUrl, '_blank');
-  };
 
   if (loading) {
     return (
@@ -148,11 +182,12 @@ export default function PublicClientView() {
                         Abrir
                       </a>
                       <button
-                        onClick={() => handleExportPdf(phase.url!, phase.label)}
-                        className="flex items-center gap-1 border border-border text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm"
+                        onClick={() => handleExportPdf(phase.url!, `phase-${i}`)}
+                        disabled={downloadingKey === `phase-${i}`}
+                        className="flex items-center gap-1 border border-border text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm disabled:opacity-50"
                         title="Baixar PDF"
                       >
-                        <Download className="h-3 w-3" />
+                        {downloadingKey === `phase-${i}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                         PDF
                       </button>
                     </div>
@@ -186,25 +221,18 @@ export default function PublicClientView() {
 
         {/* Results List */}
         <div className="space-y-3">
-          {results.length === 0 && !clienteOcultoUrl ? (
-            <div className="text-center py-12 bg-muted/30 rounded-xl">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground">
-                Nenhum resultado disponível ainda
-              </p>
-            </div>
-          ) : (
+          {results.length > 0 || clienteOcultoUrl ? (
             <>
               {results.map((item) => (
-                <div 
-                  key={item.module_id} 
+                <div
+                  key={item.module_id}
                   className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
                 >
-                  <span className="font-medium text-foreground text-lg">{item.module_title}</span>
-                  
+                  <span className="font-medium text-foreground">{item.module_title}</span>
+
                   {item.presentation_url ? (
                     <div className="flex items-center gap-2">
-                      <a 
+                      <a
                         href={item.presentation_url}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -213,21 +241,36 @@ export default function PublicClientView() {
                         <ExternalLink className="h-4 w-4" />
                         Abrir Apresentação
                       </a>
-                      <button
-                        onClick={() => handleExportPdf(item.presentation_url!, item.module_title)}
-                        className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
-                        title="Baixar PDF"
-                      >
-                        <Download className="h-4 w-4" />
-                        PDF
-                      </button>
+                      {item.pdf_url ? (
+                        <a
+                          href={item.pdf_url}
+                          download="apresentacao.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
+                          title="Baixar PDF"
+                        >
+                          <Download className="h-4 w-4" />
+                          PDF
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
+                          disabled={downloadingKey === `agent-${item.module_id}`}
+                          className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm disabled:opacity-50"
+                          title="Baixar PDF"
+                        >
+                          {downloadingKey === `agent-${item.module_id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          PDF
+                        </button>
+                      )}
                     </div>
                   ) : item.has_text_result ? (
                     <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded">
                       Relatório disponível
                     </span>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Sem resultado</span>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Em breve</span>
                   )}
                 </div>
               ))}
@@ -248,7 +291,7 @@ export default function PublicClientView() {
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </div>
 
         {/* Footer */}

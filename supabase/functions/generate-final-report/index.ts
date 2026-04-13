@@ -270,9 +270,10 @@ Gere o relatório completo em português do Brasil, seguindo fielmente a estrutu
       }
     })();
 
-    // @ts-ignore
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-      EdgeRuntime.waitUntil(backgroundTask);
+    // deno-lint-ignore no-explicit-any
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime?.waitUntil) {
+      runtime.waitUntil(backgroundTask);
     } else {
       await backgroundTask;
     }

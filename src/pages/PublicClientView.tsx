@@ -1,13 +1,38 @@
 import { useParams } from "react-router-dom";
 import { useState } from "react";
-import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download } from "lucide-react";
+import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown } from "lucide-react";
 import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+const DELIVERABLE_SECTIONS = [
+  { key: "briefing_estrategico", title: "Briefing Estratégico", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "artes_textos", title: "Artes e Textos", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "anuncios", title: "Anúncios", fields: [{ key: "link_google", label: "Link Google", type: "url" }, { key: "link_meta", label: "Link Meta", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "email_marketing", title: "Email Marketing", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "landing_page", title: "Landing Page", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "crm", title: "CRM", fields: [{ key: "link", label: "Link do CRM", type: "url" }, { key: "login", label: "Login", type: "text" }, { key: "senha", label: "Senha", type: "text" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "cliente_oculto_scripts", title: "Cliente Oculto / Roteiro de WhatsApp / Script de Pós Venda", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "seo_1", title: "SEO & GEO - Avaliação Técnica", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "seo_2", title: "SEO & GEO - Otimização de Páginas", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "seo_3", title: "SEO & GEO - Pauta de Conteúdos", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "seo_4", title: "SEO & GEO - Correção Prioritária", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "analytics_1", title: "Analytics - Tag Manager", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "analytics_2", title: "Analytics - Google Analytics", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "analytics_3", title: "Analytics - Conversão Google ADS", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+  { key: "analytics_4", title: "Analytics - Pixel do Facebook", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
+];
+
+function hasAnyValue(obj: Record<string, string> | undefined): boolean {
+  if (!obj) return false;
+  return Object.values(obj).some(v => v && v.trim() !== '');
+}
 
 export default function PublicClientView() {
   const { slug } = useParams<{ slug: string }>();
   const { hotel, results, clienteOcultoUrl, projectData, loading, error } = usePublicHotel(slug);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+  const [phase34Open, setPhase34Open] = useState(false);
 
   const completedCount = results.filter(r => r.presentation_url || r.has_text_result).length;
   const totalResults = completedCount + (clienteOcultoUrl ? 1 : 0);
@@ -18,6 +43,9 @@ export default function PublicClientView() {
     { label: "Reunião Entrega Fase 2", url: projectData.meeting_phase2_url },
     { label: "Reunião Entrega Final", url: projectData.meeting_final_url },
   ].filter(m => m.url) : [];
+
+  const deliverables = projectData?.phase34_deliverables as Record<string, Record<string, string>> | null;
+  const hasDeliverables = deliverables && DELIVERABLE_SECTIONS.some(s => hasAnyValue(deliverables[s.key]));
 
   const phases = projectData ? [
     {
@@ -33,7 +61,7 @@ export default function PublicClientView() {
     {
       label: "Fases 3 & 4 – Construção & Ativação",
       url: null,
-      available: false,
+      available: !!hasDeliverables,
       isDeliverables: true,
     },
     {
@@ -83,26 +111,6 @@ export default function PublicClientView() {
     }
   };
 
-  // Extract deliverables from phase34 data
-  const deliverables = projectData?.phase34_deliverables as Record<string, any> | null;
-  const deliverableItems = deliverables ? Object.entries(deliverables)
-    .filter(([_, val]) => val && typeof val === 'object')
-    .flatMap(([category, val]: [string, any]) => {
-      const items: { label: string; url: string; type: string }[] = [];
-      if (val.link) items.push({ label: category, url: val.link, type: 'link' });
-      if (val.video) items.push({ label: `${category} (Vídeo)`, url: val.video, type: 'video' });
-      // Handle nested items (like CRM with login, password, link, video)
-      if (val.items && typeof val.items === 'object') {
-        Object.entries(val.items).forEach(([subKey, subVal]: [string, any]) => {
-          if (subVal && typeof subVal === 'string' && subVal.startsWith('http')) {
-            items.push({ label: `${category} - ${subKey}`, url: subVal, type: 'link' });
-          }
-        });
-      }
-      return items;
-    }) : [];
-
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -127,7 +135,6 @@ export default function PublicClientView() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with Logo */}
       <header className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo size="md" />
@@ -178,7 +185,15 @@ export default function PublicClientView() {
               {phases.map((phase, i) => (
                 <div key={i} className="flex items-center justify-between p-4 border border-border rounded-lg">
                   <span className="text-sm font-medium text-foreground">{phase.label}</span>
-                  {phase.available && phase.url ? (
+                  {phase.isDeliverables && phase.available ? (
+                    <button
+                      onClick={() => setPhase34Open(!phase34Open)}
+                      className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors text-sm"
+                    >
+                      <ChevronDown className={`h-3 w-3 transition-transform ${phase34Open ? 'rotate-180' : ''}`} />
+                      {phase34Open ? 'Fechar' : 'Ver Entregas'}
+                    </button>
+                  ) : phase.available && phase.url ? (
                     <div className="flex items-center gap-2">
                       <a href={phase.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors text-sm">
@@ -204,22 +219,50 @@ export default function PublicClientView() {
           </div>
         )}
 
-        {/* Deliverables from Phase 3 & 4 */}
-        {deliverableItems.length > 0 && (
+        {/* Phase 3&4 Deliverables Accordion */}
+        {phase34Open && deliverables && (
           <div className="bg-card border border-border rounded-xl p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <FileText className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-lg text-foreground">Materiais das Fases 3 & 4</h2>
+              <h2 className="font-display text-lg text-foreground">Entregas - Fases 3 & 4</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {deliverableItems.map((item, i) => (
-                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-primary/30 transition-colors">
-                  <span className="text-sm text-foreground">{item.label}</span>
-                  <ExternalLink className="h-4 w-4 text-primary" />
-                </a>
+            <Accordion type="multiple" className="space-y-2">
+              {DELIVERABLE_SECTIONS.filter(s => hasAnyValue(deliverables[s.key])).map(section => (
+                <AccordionItem key={section.key} value={section.key} className="border border-border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline text-sm">
+                    <span className="font-medium text-foreground">{section.title}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-3">
+                    <div className="space-y-2">
+                      {section.fields.map(field => {
+                        const value = deliverables[section.key]?.[field.key];
+                        if (!value || value.trim() === '') return null;
+
+                        if (field.type === 'url') {
+                          return (
+                            <a key={field.key} href={value} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center justify-between p-2 border border-border rounded-lg hover:border-primary/30 transition-colors">
+                              <span className="text-sm text-muted-foreground">{field.label}</span>
+                              <div className="flex items-center gap-1 text-primary text-sm">
+                                <ExternalLink className="h-3 w-3" />
+                                Abrir
+                              </div>
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <div key={field.key} className="flex items-center justify-between p-2 border border-border rounded-lg">
+                            <span className="text-sm text-muted-foreground">{field.label}</span>
+                            <span className="text-sm text-foreground font-mono">{value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </div>
         )}
 
@@ -279,11 +322,10 @@ export default function PublicClientView() {
                 </div>
               ))}
 
-              {/* Cliente Oculto */}
               {clienteOcultoUrl && (
                 <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors">
                   <span className="font-medium text-foreground text-lg">Cliente Oculto</span>
-                  <a 
+                  <a
                     href={clienteOcultoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -298,7 +340,6 @@ export default function PublicClientView() {
           ) : null}
         </div>
 
-        {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Reprotel. Todos os direitos reservados.

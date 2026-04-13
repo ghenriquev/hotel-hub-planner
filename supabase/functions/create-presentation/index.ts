@@ -46,15 +46,56 @@ async function pollGammaGeneration(
       
       if (data.status === "completed" && data.gammaUrl) {
         console.log(`[create-presentation] Success! URL: ${data.gammaUrl}`);
-        
+
+        // Try to download and store the PDF
+        let pdfUrl: string | null = null;
+        if (data.exportUrl) {
+          try {
+            console.log(`[create-presentation] Downloading PDF from exportUrl...`);
+            const pdfResponse = await fetch(data.exportUrl);
+            if (pdfResponse.ok) {
+              const pdfBuffer = await pdfResponse.arrayBuffer();
+              const storagePath = `${hotelId}/${moduleId}.pdf`;
+
+              const { error: uploadError } = await supabase.storage
+                .from('presentations-pdf')
+                .upload(storagePath, pdfBuffer, {
+                  contentType: 'application/pdf',
+                  upsert: true,
+                });
+
+              if (uploadError) {
+                console.error("[create-presentation] PDF upload error:", uploadError);
+              } else {
+                const { data: urlData } = supabase.storage
+                  .from('presentations-pdf')
+                  .getPublicUrl(storagePath);
+                pdfUrl = urlData.publicUrl;
+                console.log(`[create-presentation] PDF stored at: ${pdfUrl}`);
+              }
+            } else {
+              console.error(`[create-presentation] PDF download failed: ${pdfResponse.status}`);
+            }
+          } catch (pdfError) {
+            console.error("[create-presentation] PDF processing error:", pdfError);
+          }
+        } else {
+          console.log("[create-presentation] No exportUrl in response, skipping PDF storage");
+        }
+
         // Update with completed status
+        const updateData: Record<string, any> = {
+          presentation_url: data.gammaUrl,
+          presentation_status: 'completed',
+          result: text,
+        };
+        if (pdfUrl) {
+          updateData.pdf_url = pdfUrl;
+        }
+
         const { error: updateError } = await supabase
           .from('agent_results')
-          .update({ 
-            presentation_url: data.gammaUrl,
-            presentation_status: 'completed',
-            result: text
-          })
+          .update(updateData)
           .eq('hotel_id', hotelId)
           .eq('module_id', moduleId);
 
@@ -169,6 +210,7 @@ serve(async (req) => {
       textMode: gammaSettings?.text_mode || "generate",
       numCards: gammaSettings?.num_cards || 10,
       cardSplit: gammaSettings?.card_split || "auto",
+      exportAs: "pdf",
     };
     
     if (gammaSettings?.theme_id && gammaSettings.theme_id.trim() !== '') {

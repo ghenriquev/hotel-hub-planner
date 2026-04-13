@@ -30,54 +30,46 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch Gamma API key
-    const { data: gammaKeyData, error: gammaKeyError } = await supabase
-      .from('api_keys')
-      .select('api_key')
-      .or('name.ilike.%gamma%,key_type.ilike.%gamma%')
-      .eq('is_active', true)
+    // Look up the agent_result that has this presentation_url
+    const { data: result, error: queryError } = await supabase
+      .from('agent_results')
+      .select('pdf_url')
+      .eq('presentation_url', presentationUrl)
       .maybeSingle();
 
-    if (gammaKeyError || !gammaKeyData?.api_key) {
-      console.error("[export-pdf] No active Gamma API key found:", gammaKeyError);
-      return new Response(JSON.stringify({ error: 'Gamma API key not configured' }), {
-        status: 400,
+    if (queryError) {
+      console.error("[export-pdf] Query error:", queryError);
+      return new Response(JSON.stringify({ error: 'Failed to look up presentation' }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Strip query params and hash, then append /pdf
-    const baseUrl = presentationUrl.split('?')[0].split('#')[0];
-    const pdfUrl = baseUrl.endsWith('/') ? `${baseUrl}pdf` : `${baseUrl}/pdf`;
-
-    console.log(`[export-pdf] Fetching: ${pdfUrl}`);
-
-    const response = await fetch(pdfUrl, {
-      headers: {
-        'X-API-KEY': gammaKeyData.api_key,
-        'Accept': 'application/pdf',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[export-pdf] Gamma error ${response.status}:`, errorText);
-      return new Response(JSON.stringify({ error: `Gamma returned ${response.status}` }), {
-        status: response.status,
+    if (!result?.pdf_url) {
+      return new Response(JSON.stringify({ error: 'PDF não disponível para esta apresentação. Recrie a apresentação para gerar o PDF.' }), {
+        status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const contentType = response.headers.get('Content-Type') || 'application/pdf';
-    const body = await response.arrayBuffer();
+    // Fetch the PDF from storage and return it
+    const pdfResponse = await fetch(result.pdf_url);
 
-    console.log(`[export-pdf] Success, content-type: ${contentType}, size: ${body.byteLength}`);
+    if (!pdfResponse.ok) {
+      console.error(`[export-pdf] Storage fetch failed: ${pdfResponse.status}`);
+      return new Response(JSON.stringify({ error: 'Failed to fetch PDF from storage' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = await pdfResponse.arrayBuffer();
 
     return new Response(body, {
       headers: {
         ...corsHeaders,
-        'Content-Type': contentType,
-        'Content-Disposition': 'attachment; filename="presentation.pdf"',
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="apresentacao.pdf"',
       },
     });
 

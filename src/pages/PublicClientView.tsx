@@ -60,7 +60,10 @@ export default function PublicClientView() {
       });
 
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        const message = errorData?.error || `Export failed: ${response.status}`;
+        alert(message);
+        return;
       }
 
       const blob = await response.blob();
@@ -74,6 +77,7 @@ export default function PublicClientView() {
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('[export-pdf] Error:', err);
+      alert('Erro ao exportar PDF. Tente novamente mais tarde.');
     } finally {
       setDownloadingKey(null);
     }

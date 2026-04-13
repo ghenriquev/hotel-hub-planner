@@ -138,7 +138,15 @@ export default function ClientView() {
           {phases.map((phase, i) => (
             <div key={i} className="flex items-center justify-between p-4 border border-border rounded-lg">
               <span className="text-sm font-medium text-foreground">{phase.label}</span>
-              {phase.available && phase.url ? (
+              {phase.isDeliverables && phase.available ? (
+                <button
+                  onClick={() => navigate(phase.url!)}
+                  className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors text-sm"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Ver Entregas
+                </button>
+              ) : phase.available && phase.url ? (
                 <a href={phase.url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors text-sm">
                   <ExternalLink className="h-3 w-3" />

@@ -77,8 +77,8 @@ export default function ClientView() {
     },
     { 
       label: "Fases 3 & 4 – Construção & Ativação", 
-      url: null,
-      available: false,
+      url: `/hotel/${id}/deliverables`,
+      available: true,
       isDeliverables: true
     },
     { 

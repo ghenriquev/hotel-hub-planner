@@ -333,7 +333,7 @@ export default function PublicClientView() {
                     </div>
                   )}
                 </div>
-              ))
+              ))}
 
               {clienteOcultoUrl && (
                 <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors">
@@ -361,7 +361,7 @@ export default function PublicClientView() {
                 </div>
               )}
             </>
-          ) : null}
+          )}
         </div>
 
         <footer className="mt-12 pt-6 border-t border-border text-center">

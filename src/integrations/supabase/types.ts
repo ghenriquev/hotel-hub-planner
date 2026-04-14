@@ -60,7 +60,6 @@ export type Database = {
         Row: {
           created_at: string | null
           generated_at: string | null
-          generation_id: string | null
           hotel_id: string
           id: string
           llm_model_used: string | null
@@ -74,7 +73,6 @@ export type Database = {
         Insert: {
           created_at?: string | null
           generated_at?: string | null
-          generation_id?: string | null
           hotel_id: string
           id?: string
           llm_model_used?: string | null
@@ -88,7 +86,6 @@ export type Database = {
         Update: {
           created_at?: string | null
           generated_at?: string | null
-          generation_id?: string | null
           hotel_id?: string
           id?: string
           llm_model_used?: string | null

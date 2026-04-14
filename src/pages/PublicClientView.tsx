@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown } from "lucide-react";
+import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown, Eye, X } from "lucide-react";
 import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import ReactMarkdown from "react-markdown";
 
 const DELIVERABLE_SECTIONS = [
   { key: "briefing_estrategico", title: "Briefing Estratégico", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },
@@ -33,6 +34,7 @@ export default function PublicClientView() {
   const { hotel, results, clienteOcultoUrl, projectData, loading, error } = usePublicHotel(slug);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [phase34Open, setPhase34Open] = useState(false);
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
 
   const completedCount = results.filter(r => r.presentation_url || r.has_text_result).length;
   const totalResults = completedCount + (clienteOcultoUrl ? 1 : 0);
@@ -274,27 +276,26 @@ export default function PublicClientView() {
 
         {/* Results List */}
         <div className="space-y-3">
-          {results.length > 0 || clienteOcultoUrl ? (
+          {(results.length > 0 || clienteOcultoUrl) && (
             <>
               {results.map((item) => (
-                <div
-                  key={item.module_id}
-                  className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
-                >
-                  <span className="font-medium text-foreground">{item.module_title}</span>
+                <div key={item.module_id}>
+                  <div
+                    className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
+                  >
+                    <span className="font-medium text-foreground">{item.module_title}</span>
 
-                  {item.presentation_url ? (
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={item.presentation_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir Apresentação
-                      </a>
-                      {item.presentation_url && (
+                    {item.presentation_url ? (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={item.presentation_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Abrir Apresentação
+                        </a>
                         <button
                           onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}
@@ -304,14 +305,32 @@ export default function PublicClientView() {
                           {downloadingKey === `agent-${item.module_id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                           PDF
                         </button>
-                      )}
+                      </div>
+                    ) : item.has_text_result ? (
+                      <button
+                        onClick={() => setExpandedResult(expandedResult === item.module_id ? null : item.module_id)}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {expandedResult === item.module_id ? 'Fechar' : 'Ver Relatório'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Em breve</span>
+                    )}
+                  </div>
+
+                  {expandedResult === item.module_id && item.result_text && (
+                    <div className="mt-2 p-6 bg-card border border-border rounded-xl">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-display text-lg text-foreground">{item.module_title}</h3>
+                        <button onClick={() => setExpandedResult(null)} className="text-muted-foreground hover:text-foreground">
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="prose prose-sm max-w-none text-foreground">
+                        <ReactMarkdown>{item.result_text}</ReactMarkdown>
+                      </div>
                     </div>
-                  ) : item.has_text_result ? (
-                    <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded">
-                      Relatório disponível
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Em breve</span>
                   )}
                 </div>
               ))}
@@ -342,7 +361,7 @@ export default function PublicClientView() {
                 </div>
               )}
             </>
-          ) : null}
+          )}
         </div>
 
         <footer className="mt-12 pt-6 border-t border-border text-center">

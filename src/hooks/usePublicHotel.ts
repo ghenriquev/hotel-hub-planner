@@ -15,6 +15,7 @@ export interface PublicAgentResult {
   output_type: string;
   presentation_url: string | null;
   pdf_url: string | null;
+  result_text: string | null;
   has_text_result: boolean;
   display_order: number;
 }
@@ -79,6 +80,7 @@ export function usePublicHotel(slug: string | undefined) {
           output_type: config?.output_type || "text",
           presentation_url: r.presentation_url,
           pdf_url: r.pdf_url ?? null,
+          result_text: r.result ?? null,
           has_text_result: !!r.result,
           display_order: config?.display_order ?? 999,
         };
@@ -93,6 +95,7 @@ export function usePublicHotel(slug: string | undefined) {
           output_type: config.output_type || "text",
           presentation_url: null,
           pdf_url: null,
+          result_text: null,
           has_text_result: false,
           display_order: config.display_order ?? 999,
         }));

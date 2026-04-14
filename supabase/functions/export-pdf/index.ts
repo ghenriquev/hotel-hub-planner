@@ -6,6 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extract Gamma generation ID from a gamma.app URL
+// e.g. https://gamma.app/docs/KICK-OFF-abc123?mode=doc → "KICK-OFF-abc123"
+function extractGammaId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    // pathname: /docs/{id}
+    const docsIndex = parts.indexOf('docs');
+    if (docsIndex !== -1 && parts[docsIndex + 1]) {
+      return parts[docsIndex + 1];
+    }
+  } catch (_) {}
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -30,38 +45,65 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Look up stored pdf_url (Gamma's exportUrl) by matching presentation_url
-    const { data: result } = await supabase
-      .from('agent_results')
-      .select('pdf_url')
-      .eq('presentation_url', presentationUrl)
+    // Fetch Gamma API key
+    const { data: gammaKeyData } = await supabase
+      .from('api_keys')
+      .select('api_key')
+      .or('name.ilike.%gamma%,key_type.ilike.%gamma%')
+      .eq('is_active', true)
       .maybeSingle();
 
-    let pdfSourceUrl: string;
-
-    if (result?.pdf_url) {
-      pdfSourceUrl = result.pdf_url;
-      console.log(`[export-pdf] Using stored pdf_url: ${pdfSourceUrl}`);
-    } else {
-      // Fallback: append /pdf to the Gamma URL
-      let gammaUrl = presentationUrl.trim();
-      const qIndex = gammaUrl.indexOf('?');
-      if (qIndex !== -1) gammaUrl = gammaUrl.substring(0, qIndex);
-      if (gammaUrl.endsWith('/')) gammaUrl = gammaUrl.slice(0, -1);
-      pdfSourceUrl = `${gammaUrl}/pdf`;
-      console.log(`[export-pdf] No stored PDF, using Gamma fallback: ${pdfSourceUrl}`);
+    if (!gammaKeyData?.api_key) {
+      return new Response(JSON.stringify({ error: 'Gamma API key not configured' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const pdfResponse = await fetch(pdfSourceUrl, {
-      redirect: 'follow',
-      headers: { 'Accept': 'application/pdf,*/*' },
+    // Extract generation ID from the Gamma URL and call GET /v1.0/generations/{id}
+    const gammaId = extractGammaId(presentationUrl);
+
+    if (!gammaId) {
+      return new Response(JSON.stringify({ error: 'Could not extract Gamma ID from URL' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`[export-pdf] Fetching generation status for id: ${gammaId}`);
+
+    const generationRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${gammaId}`, {
+      headers: { 'X-API-KEY': gammaKeyData.api_key },
     });
 
+    if (!generationRes.ok) {
+      const errText = await generationRes.text();
+      console.error(`[export-pdf] Gamma API error ${generationRes.status}:`, errText);
+      return new Response(JSON.stringify({ error: 'Erro ao buscar exportUrl do Gamma.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const generation = await generationRes.json();
+    console.log(`[export-pdf] Generation response:`, JSON.stringify(generation));
+
+    const exportUrl: string | undefined = generation.exportUrl;
+
+    if (!exportUrl) {
+      return new Response(JSON.stringify({ error: 'exportUrl não disponível para esta apresentação.' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`[export-pdf] Downloading from exportUrl: ${exportUrl}`);
+
+    const pdfResponse = await fetch(exportUrl, { redirect: 'follow' });
+
     if (!pdfResponse.ok) {
-      console.error(`[export-pdf] PDF fetch failed: ${pdfResponse.status} from ${pdfSourceUrl}`);
-      return new Response(JSON.stringify({
-        error: 'Não foi possível gerar o PDF. Verifique se a apresentação está acessível.',
-      }), {
+      console.error(`[export-pdf] PDF fetch failed: ${pdfResponse.status}`);
+      return new Response(JSON.stringify({ error: 'Não foi possível baixar o PDF.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

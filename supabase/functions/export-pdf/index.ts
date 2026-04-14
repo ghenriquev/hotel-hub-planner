@@ -6,21 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Extract Gamma generation ID from a gamma.app URL
-// e.g. https://gamma.app/docs/KICK-OFF-abc123?mode=doc → "KICK-OFF-abc123"
-function extractGammaId(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    // pathname: /docs/{id}
-    const docsIndex = parts.indexOf('docs');
-    if (docsIndex !== -1 && parts[docsIndex + 1]) {
-      return parts[docsIndex + 1];
-    }
-  } catch (_) {}
-  return null;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,6 +30,23 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Look up generation_id stored when the presentation was created
+    const { data: result } = await supabase
+      .from('agent_results')
+      .select('generation_id')
+      .eq('presentation_url', presentationUrl)
+      .maybeSingle();
+
+    const generationId = result?.generation_id;
+
+    if (!generationId) {
+      console.error(`[export-pdf] No generation_id found for: ${presentationUrl}`);
+      return new Response(JSON.stringify({ error: 'ID de geração não encontrado. Regere a apresentação para habilitar o download.' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch Gamma API key
     const { data: gammaKeyData } = await supabase
       .from('api_keys')
@@ -60,19 +62,9 @@ serve(async (req) => {
       });
     }
 
-    // Extract generation ID from the Gamma URL and call GET /v1.0/generations/{id}
-    const gammaId = extractGammaId(presentationUrl);
+    console.log(`[export-pdf] Fetching generation status for id: ${generationId}`);
 
-    if (!gammaId) {
-      return new Response(JSON.stringify({ error: 'Could not extract Gamma ID from URL' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log(`[export-pdf] Fetching generation status for id: ${gammaId}`);
-
-    const generationRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${gammaId}`, {
+    const generationRes = await fetch(`https://public-api.gamma.app/v1.0/generations/${generationId}`, {
       headers: { 'X-API-KEY': gammaKeyData.api_key },
     });
 
@@ -86,23 +78,21 @@ serve(async (req) => {
     }
 
     const generation = await generationRes.json();
-    console.log(`[export-pdf] Generation response:`, JSON.stringify(generation));
+    console.log(`[export-pdf] Generation status: ${generation.status}, exportUrl: ${generation.exportUrl}`);
 
     const exportUrl: string | undefined = generation.exportUrl;
 
     if (!exportUrl) {
-      return new Response(JSON.stringify({ error: 'exportUrl não disponível para esta apresentação.' }), {
+      return new Response(JSON.stringify({ error: 'exportUrl não disponível. A apresentação pode ainda estar sendo gerada.' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[export-pdf] Downloading from exportUrl: ${exportUrl}`);
-
     const pdfResponse = await fetch(exportUrl, { redirect: 'follow' });
 
     if (!pdfResponse.ok) {
-      console.error(`[export-pdf] PDF fetch failed: ${pdfResponse.status}`);
+      console.error(`[export-pdf] PDF fetch failed: ${pdfResponse.status} from ${exportUrl}`);
       return new Response(JSON.stringify({ error: 'Não foi possível baixar o PDF.' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

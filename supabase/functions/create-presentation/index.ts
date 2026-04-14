@@ -278,6 +278,13 @@ serve(async (req) => {
       });
     }
 
+    // Store generationId immediately so export-pdf can use it later
+    await supabase
+      .from('agent_results')
+      .update({ generation_id: gammaData.generationId })
+      .eq('hotel_id', hotelId)
+      .eq('module_id', moduleId);
+
     // Start background polling
     const pollingPromise = pollGammaGeneration(
       gammaData.generationId, 

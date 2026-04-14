@@ -279,24 +279,23 @@ export default function PublicClientView() {
           {results.length > 0 || clienteOcultoUrl ? (
             <>
               {results.map((item) => (
-                <div
-                  key={item.module_id}
-                  className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
-                >
-                  <span className="font-medium text-foreground">{item.module_title}</span>
+                <div key={item.module_id}>
+                  <div
+                    className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors"
+                  >
+                    <span className="font-medium text-foreground">{item.module_title}</span>
 
-                  {item.presentation_url ? (
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={item.presentation_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir Apresentação
-                      </a>
-                      {item.presentation_url && (
+                    {item.presentation_url ? (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={item.presentation_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Abrir Apresentação
+                        </a>
                         <button
                           onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}
@@ -306,17 +305,35 @@ export default function PublicClientView() {
                           {downloadingKey === `agent-${item.module_id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                           PDF
                         </button>
-                      )}
+                      </div>
+                    ) : item.has_text_result ? (
+                      <button
+                        onClick={() => setExpandedResult(expandedResult === item.module_id ? null : item.module_id)}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                        {expandedResult === item.module_id ? 'Fechar' : 'Ver Relatório'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Em breve</span>
+                    )}
+                  </div>
+
+                  {expandedResult === item.module_id && item.result_text && (
+                    <div className="mt-2 p-6 bg-card border border-border rounded-xl">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-display text-lg text-foreground">{item.module_title}</h3>
+                        <button onClick={() => setExpandedResult(null)} className="text-muted-foreground hover:text-foreground">
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="prose prose-sm max-w-none text-foreground">
+                        <ReactMarkdown>{item.result_text}</ReactMarkdown>
+                      </div>
                     </div>
-                  ) : item.has_text_result ? (
-                    <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded">
-                      Relatório disponível
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">Em breve</span>
                   )}
                 </div>
-              ))}
+              ))
 
               {clienteOcultoUrl && (
                 <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors">

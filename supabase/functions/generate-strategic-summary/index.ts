@@ -17,10 +17,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Upsert to ensure record exists
     await supabase
       .from("hotel_project_data")
-      .update({ phase2_status: 'generating', updated_at: new Date().toISOString() })
-      .eq("hotel_id", hotelId);
+      .upsert({ hotel_id: hotelId, phase2_status: 'generating', updated_at: new Date().toISOString() }, { onConflict: 'hotel_id' });
 
     const backgroundTask = (async () => {
       try {

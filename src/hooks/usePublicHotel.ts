@@ -15,6 +15,7 @@ export interface PublicAgentResult {
   output_type: string;
   presentation_url: string | null;
   pdf_url: string | null;
+  generation_id: string | null;
   has_text_result: boolean;
   display_order: number;
 }
@@ -61,7 +62,7 @@ export function usePublicHotel(slug: string | undefined) {
       // Fetch configs, results, materials, and project data in parallel
       const [configsRes, agentResultsRes, materialsRes, projectRes] = await Promise.all([
         supabase.from("agent_configs").select("module_id, module_title, output_type, display_order"),
-        supabase.from("agent_results").select("module_id, result, presentation_url, pdf_url, status").eq("hotel_id", hotelData.id).eq("status", "completed"),
+        supabase.from("agent_results").select("module_id, result, presentation_url, pdf_url, generation_id, status").eq("hotel_id", hotelData.id).eq("status", "completed"),
         supabase.from("hotel_materials").select("file_url").eq("hotel_id", hotelData.id).eq("material_type", "cliente_oculto").maybeSingle(),
         supabase.from("hotel_project_data").select("meeting_kickoff_url, meeting_phase1_url, meeting_phase2_url, meeting_final_url, phase1_presentation_url, phase2_presentation_url, phase2_status, phase34_deliverables, phase5_presentation_url, phase5_status").eq("hotel_id", hotelData.id).maybeSingle(),
       ]);
@@ -79,6 +80,7 @@ export function usePublicHotel(slug: string | undefined) {
           output_type: config?.output_type || "text",
           presentation_url: r.presentation_url,
           pdf_url: r.pdf_url ?? null,
+          generation_id: r.generation_id ?? null,
           has_text_result: !!r.result,
           display_order: config?.display_order ?? 999,
         };
@@ -93,6 +95,7 @@ export function usePublicHotel(slug: string | undefined) {
           output_type: config.output_type || "text",
           presentation_url: null,
           pdf_url: null,
+          generation_id: null,
           has_text_result: false,
           display_order: config.display_order ?? 999,
         }));

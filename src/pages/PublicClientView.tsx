@@ -294,7 +294,7 @@ export default function PublicClientView() {
                         <ExternalLink className="h-4 w-4" />
                         Abrir Apresentação
                       </a>
-                      {item.presentation_url && item.generation_id && (
+                      {item.presentation_url && (
                         <button
                           onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}

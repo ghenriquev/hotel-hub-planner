@@ -204,8 +204,7 @@ serve(async (req) => {
     
     // Sharing options - auto-share with edit permissions
     const sharingOptions: Record<string, any> = {
-      workspaceAccess: "edit",
-      linkAccess: "view"
+      workspaceAccess: "edit"
     };
 
     // Resolve user email: from body or from JWT

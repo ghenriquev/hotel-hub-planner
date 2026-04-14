@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown } from "lucide-react";
+import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown, Eye, X } from "lucide-react";
 import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import ReactMarkdown from "react-markdown";
 
 const DELIVERABLE_SECTIONS = [
   { key: "briefing_estrategico", title: "Briefing Estratégico", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },

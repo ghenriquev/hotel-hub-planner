@@ -294,7 +294,7 @@ export default function PublicClientView() {
                         <ExternalLink className="h-4 w-4" />
                         Abrir Apresentação
                       </a>
-                      {item.pdf_url && (
+                      {item.presentation_url && (
                         <button
                           onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}
@@ -319,15 +319,26 @@ export default function PublicClientView() {
               {clienteOcultoUrl && (
                 <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors">
                   <span className="font-medium text-foreground text-lg">Cliente Oculto</span>
-                  <a
-                    href={clienteOcultoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Abrir Documento
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={clienteOcultoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Abrir Documento
+                    </a>
+                    <button
+                      onClick={() => handleExportPdf(clienteOcultoUrl, 'cliente-oculto')}
+                      disabled={downloadingKey === 'cliente-oculto'}
+                      className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm disabled:opacity-50"
+                      title="Baixar PDF"
+                    >
+                      {downloadingKey === 'cliente-oculto' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      PDF
+                    </button>
+                  </div>
                 </div>
               )}
             </>

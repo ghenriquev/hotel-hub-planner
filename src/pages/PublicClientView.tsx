@@ -84,7 +84,7 @@ export default function PublicClientView() {
           'Authorization': `Bearer ${supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({ pdfUrl }),
+        body: JSON.stringify({ presentationUrl: pdfUrl }),
       });
 
       if (!response.ok) {
@@ -296,7 +296,7 @@ export default function PublicClientView() {
                       </a>
                       {item.pdf_url && (
                         <button
-                          onClick={() => handleExportPdf(item.pdf_url!, `agent-${item.module_id}`)}
+                          onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}
                           className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm disabled:opacity-50"
                           title="Baixar PDF"

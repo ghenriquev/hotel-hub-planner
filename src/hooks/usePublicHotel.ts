@@ -15,6 +15,7 @@ export interface PublicAgentResult {
   output_type: string;
   presentation_url: string | null;
   pdf_url: string | null;
+  result_text: string | null;
   has_text_result: boolean;
   display_order: number;
 }

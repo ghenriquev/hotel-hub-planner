@@ -34,6 +34,7 @@ export default function PublicClientView() {
   const { hotel, results, clienteOcultoUrl, projectData, loading, error } = usePublicHotel(slug);
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [phase34Open, setPhase34Open] = useState(false);
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
 
   const completedCount = results.filter(r => r.presentation_url || r.has_text_result).length;
   const totalResults = completedCount + (clienteOcultoUrl ? 1 : 0);

@@ -276,7 +276,7 @@ export default function PublicClientView() {
 
         {/* Results List */}
         <div className="space-y-3">
-          {results.length > 0 || clienteOcultoUrl ? (
+          {(results.length > 0 || clienteOcultoUrl) && (
             <>
               {results.map((item) => (
                 <div key={item.module_id}>

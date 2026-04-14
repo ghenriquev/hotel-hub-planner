@@ -45,57 +45,17 @@ async function pollGammaGeneration(
       console.log(`[create-presentation] Gamma status: ${data.status}, attempt ${attempt + 1}/${maxAttempts}`);
       
       if (data.status === "completed" && data.gammaUrl) {
-        console.log(`[create-presentation] Success! Full response:`, JSON.stringify(data));
+        console.log(`[create-presentation] Success! URL: ${data.gammaUrl}, exportUrl: ${data.exportUrl}`);
 
-        // Try to download and store the PDF
-        let pdfUrl: string | null = null;
-        if (data.exportUrl) {
-          try {
-            console.log(`[create-presentation] Downloading PDF from exportUrl...`);
-            const pdfResponse = await fetch(data.exportUrl);
-            if (pdfResponse.ok) {
-              const pdfBuffer = await pdfResponse.arrayBuffer();
-              const storagePath = `${hotelId}/${moduleId}.pdf`;
-
-              const { error: uploadError } = await supabase.storage
-                .from('presentations-pdf')
-                .upload(storagePath, pdfBuffer, {
-                  contentType: 'application/pdf',
-                  upsert: true,
-                });
-
-              if (uploadError) {
-                console.error("[create-presentation] PDF upload error:", uploadError);
-              } else {
-                const { data: urlData } = supabase.storage
-                  .from('presentations-pdf')
-                  .getPublicUrl(storagePath);
-                pdfUrl = urlData.publicUrl;
-                console.log(`[create-presentation] PDF stored at: ${pdfUrl}`);
-              }
-            } else {
-              console.error(`[create-presentation] PDF download failed: ${pdfResponse.status}`);
-            }
-          } catch (pdfError) {
-            console.error("[create-presentation] PDF processing error:", pdfError);
-          }
-        } else {
-          console.log("[create-presentation] No exportUrl in response, skipping PDF storage");
-        }
-
-        // Update with completed status
-        const updateData: Record<string, any> = {
-          presentation_url: data.gammaUrl,
-          presentation_status: 'completed',
-          result: text,
-        };
-        if (pdfUrl) {
-          updateData.pdf_url = pdfUrl;
-        }
-
+        // Update with completed status, storing Gamma's exportUrl directly in pdf_url
         const { error: updateError } = await supabase
           .from('agent_results')
-          .update(updateData)
+          .update({
+            presentation_url: data.gammaUrl,
+            presentation_status: 'completed',
+            result: text,
+            ...(data.exportUrl ? { pdf_url: data.exportUrl } : {}),
+          })
           .eq('hotel_id', hotelId)
           .eq('module_id', moduleId);
 
@@ -244,7 +204,8 @@ serve(async (req) => {
     
     // Sharing options - auto-share with edit permissions
     const sharingOptions: Record<string, any> = {
-      workspaceAccess: "edit"
+      workspaceAccess: "edit",
+      linkAccess: "view"
     };
 
     // Resolve user email: from body or from JWT
@@ -272,6 +233,7 @@ serve(async (req) => {
     }
 
     gammaPayload.sharingOptions = sharingOptions;
+    gammaPayload.exportAs = "pdf";
 
     console.log(`[create-presentation] Gamma payload:`, JSON.stringify(gammaPayload, null, 2));
     

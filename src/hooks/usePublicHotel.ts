@@ -75,7 +75,7 @@ export function usePublicHotel(slug: string | undefined) {
         const config = agentConfigs.find((c) => c.module_id === r.module_id);
         return {
           module_id: r.module_id,
-          module_title: config?.module_title || `Agente ${r.module_id}`,
+          module_title: config?.module_title || (r.module_id === 9999 ? "Visão Geral do Posicionamento" : `Agente ${r.module_id}`),
           output_type: config?.output_type || "text",
           presentation_url: r.presentation_url,
           pdf_url: r.pdf_url ?? null,

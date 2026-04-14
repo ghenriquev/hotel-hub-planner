@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { ExternalLink, FileText, Building2, Loader2, Video, Package, Download, ChevronDown } from "lucide-react";
 import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
@@ -71,7 +71,7 @@ export default function PublicClientView() {
     },
   ] : [];
 
-  const handleExportPdf = async (url: string, key: string) => {
+  const handleExportPdf = async (pdfUrl: string, key: string) => {
     setDownloadingKey(key);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -84,7 +84,7 @@ export default function PublicClientView() {
           'Authorization': `Bearer ${supabaseKey}`,
           'apikey': supabaseKey,
         },
-        body: JSON.stringify({ presentationUrl: url }),
+        body: JSON.stringify({ pdfUrl }),
       });
 
       if (!response.ok) {
@@ -294,21 +294,9 @@ export default function PublicClientView() {
                         <ExternalLink className="h-4 w-4" />
                         Abrir Apresentação
                       </a>
-                      {item.pdf_url ? (
-                        <a
-                          href={item.pdf_url}
-                          download="apresentacao.pdf"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
-                          title="Baixar PDF"
-                        >
-                          <Download className="h-4 w-4" />
-                          PDF
-                        </a>
-                      ) : (
+                      {item.pdf_url && (
                         <button
-                          onClick={() => handleExportPdf(item.presentation_url!, `agent-${item.module_id}`)}
+                          onClick={() => handleExportPdf(item.pdf_url!, `agent-${item.module_id}`)}
                           disabled={downloadingKey === `agent-${item.module_id}`}
                           className="flex items-center gap-1 border border-border text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm disabled:opacity-50"
                           title="Baixar PDF"

@@ -30,9 +30,15 @@ export default function StrategicSummary() {
     if (projectData?.phase2_status === 'completed') {
       setRegenerating(false);
       toast.success("Resumo gerado com sucesso!");
-    } else if (projectData?.phase2_status === 'error') {
+    } else if (projectData?.phase2_status?.startsWith('error')) {
       setRegenerating(false);
-      toast.error("Erro ao gerar resumo");
+      if (projectData.phase2_status === 'error_credits') {
+        toast.error("Créditos da IA esgotados. Adicione créditos em Settings → Workspace → Usage.");
+      } else if (projectData.phase2_status === 'error_rate_limit') {
+        toast.error("Limite de requisições atingido. Tente novamente em alguns minutos.");
+      } else {
+        toast.error("Erro ao gerar resumo");
+      }
     }
   }, [projectData?.phase2_status, regenerating]);
 

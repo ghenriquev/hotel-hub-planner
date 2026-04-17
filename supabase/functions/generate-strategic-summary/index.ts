@@ -108,9 +108,13 @@ REGRAS:
         });
 
         if (!aiResponse.ok) {
-          console.error("AI error:", aiResponse.status, await aiResponse.text());
+          const errText = await aiResponse.text();
+          console.error("AI error:", aiResponse.status, errText);
+          let errorMsg = 'error';
+          if (aiResponse.status === 402) errorMsg = 'error_credits';
+          else if (aiResponse.status === 429) errorMsg = 'error_rate_limit';
           await supabase.from("hotel_project_data")
-            .update({ phase2_status: 'error', updated_at: new Date().toISOString() })
+            .update({ phase2_status: errorMsg, updated_at: new Date().toISOString() })
             .eq("hotel_id", hotelId);
           return;
         }

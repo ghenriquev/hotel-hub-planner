@@ -1,33 +1,35 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { Eye, EyeOff, Lock, Mail, ExternalLink } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { MigrationNotice } from "@/components/MigrationNotice";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-const RAI_URL = "https://rai.reprotel.com.br/hotel-hub";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showMigrationDialog, setShowMigrationDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowMigrationDialog(true);
-    toast.error("Projeto migrado para a RAI. Login indisponível.");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message || "Falha ao entrar.");
+        return;
+      }
+      toast.success("Login realizado. Modo somente leitura ativo.");
+      navigate("/dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +79,7 @@ export default function Login() {
                 Acesso ao HUB
               </h2>
               <p className="text-muted-foreground">
-                Este projeto foi migrado para a RAI
+                Modo somente leitura — projeto migrado para a RAI
               </p>
             </div>
 
@@ -127,8 +129,9 @@ export default function Login() {
                 variant="premium"
                 size="xl"
                 className="w-full"
+                disabled={loading}
               >
-                Entrar
+                {loading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
 
@@ -138,41 +141,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-
-      <AlertDialog open={showMigrationDialog} onOpenChange={setShowMigrationDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary" />
-              Projeto migrado para a RAI
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>
-                  Este projeto foi migrado para a plataforma <strong>RAI</strong> e está disponível apenas para visualização.
-                </p>
-                <p>Para acessar e continuar trabalhando, utilize o novo endereço:</p>
-                <a
-                  href={RAI_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 p-3 border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors break-all"
-                >
-                  <span className="font-medium text-primary">{RAI_URL}</span>
-                  <ExternalLink className="h-4 w-4 text-primary shrink-0" />
-                </a>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction asChild>
-              <a href={RAI_URL} target="_blank" rel="noopener noreferrer">
-                Acessar a RAI
-              </a>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

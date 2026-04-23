@@ -5,6 +5,7 @@ import { usePublicHotel } from "@/hooks/usePublicHotel";
 import { Logo } from "@/components/Logo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ReactMarkdown from "react-markdown";
+import { MigrationNotice } from "@/components/MigrationNotice";
 
 const DELIVERABLE_SECTIONS = [
   { key: "briefing_estrategico", title: "Briefing Estratégico", fields: [{ key: "link", label: "Link", type: "url" }, { key: "video", label: "Vídeo explicativo", type: "url" }] },

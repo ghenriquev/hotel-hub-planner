@@ -137,6 +137,7 @@ export default function PublicClientView() {
 
   return (
     <div className="min-h-screen bg-background">
+      <MigrationNotice />
       <header className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo size="md" />

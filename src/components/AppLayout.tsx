@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { MigrationNotice } from "@/components/MigrationNotice";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -71,6 +72,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
+          <MigrationNotice />
           {/* View Mode Banner */}
           {isRealAdmin && isViewingAsUser && (
             <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 text-center text-sm text-yellow-600">

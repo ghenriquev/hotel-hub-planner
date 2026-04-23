@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { MigrationNotice } from "@/components/MigrationNotice";
 
 interface AppLayoutProps {
   children: ReactNode;

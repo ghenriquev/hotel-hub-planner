@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { MigrationNotice } from "@/components/MigrationNotice";
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ export default function Login() {
         toast.error(error.message || "Falha ao entrar.");
         return;
       }
-      toast.success("Login realizado. Modo somente leitura ativo.");
+      toast.success("Login realizado com sucesso.");
       navigate("/dashboard");
     } finally {
       setLoading(false);
@@ -34,7 +34,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <MigrationNotice />
       <div className="flex flex-1">
         {/* Left panel - Branding */}
         <div className="hidden lg:flex lg:w-1/2 gradient-dark relative overflow-hidden">
@@ -79,7 +78,7 @@ export default function Login() {
                 Acesso ao HUB
               </h2>
               <p className="text-muted-foreground">
-                Modo somente leitura — projeto migrado para a RAI
+                Entre com suas credenciais
               </p>
             </div>
 

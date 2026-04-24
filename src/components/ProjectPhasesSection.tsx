@@ -22,6 +22,8 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
 
   const phase2Status = projectData?.phase2_status || 'pending';
   const phase5Status = projectData?.phase5_status || 'pending';
+  const phase2VisualStatus = phase2Status.startsWith('error') ? 'error' : phase2Status;
+  const phase5VisualStatus = phase5Status.startsWith('error') ? 'error' : phase5Status;
 
   const phase34Complete = hasDeliverables(projectData?.phase34_deliverables);
 
@@ -129,7 +131,7 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
       title: "Estratégia",
       subtitle: "Resumo consolidado dos agentes estratégicos",
       icon: BarChart3,
-      status: phase2Status,
+      status: phase2VisualStatus,
       onClick: phase2Status === 'completed'
         ? () => navigate(`/hotel/${hotelId}/strategic-summary`)
         : handlePhase2Generate,
@@ -157,7 +159,7 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
       title: "Relatório Final",
       subtitle: "Relatório consolidado e proposta de continuidade",
       icon: FileText,
-      status: phase5Status,
+      status: phase5VisualStatus,
       onClick: phase5Status === 'completed'
         ? () => navigate(`/hotel/${hotelId}/final-report`)
         : handlePhase5Generate,

@@ -26,8 +26,24 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
   const phase34Complete = hasDeliverables(projectData?.phase34_deliverables);
 
   useEffect(() => {
-    if (generatingPhase2 && (projectData?.phase2_status === 'completed' || projectData?.phase2_status === 'error')) {
+    if (!generatingPhase2) return;
+
+    if (projectData?.phase2_status === 'completed') {
       setGeneratingPhase2(false);
+      toast.success("Resumo estratégico gerado com sucesso!");
+      return;
+    }
+
+    if (projectData?.phase2_status?.startsWith('error')) {
+      setGeneratingPhase2(false);
+
+      if (projectData.phase2_status === 'error_credits') {
+        toast.error("Créditos da IA esgotados. Adicione créditos em Settings → Workspace → Usage.");
+      } else if (projectData.phase2_status === 'error_rate_limit') {
+        toast.error("Limite de requisições atingido. Tente novamente em alguns minutos.");
+      } else {
+        toast.error("Erro ao gerar resumo estratégico.");
+      }
     }
   }, [projectData?.phase2_status, generatingPhase2]);
 

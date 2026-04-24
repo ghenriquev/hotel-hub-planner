@@ -22,12 +22,30 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
 
   const phase2Status = projectData?.phase2_status || 'pending';
   const phase5Status = projectData?.phase5_status || 'pending';
+  const phase2VisualStatus = phase2Status.startsWith('error') ? 'error' : phase2Status;
+  const phase5VisualStatus = phase5Status.startsWith('error') ? 'error' : phase5Status;
 
   const phase34Complete = hasDeliverables(projectData?.phase34_deliverables);
 
   useEffect(() => {
-    if (generatingPhase2 && (projectData?.phase2_status === 'completed' || projectData?.phase2_status === 'error')) {
+    if (!generatingPhase2) return;
+
+    if (projectData?.phase2_status === 'completed') {
       setGeneratingPhase2(false);
+      toast.success("Resumo estratégico gerado com sucesso!");
+      return;
+    }
+
+    if (projectData?.phase2_status?.startsWith('error')) {
+      setGeneratingPhase2(false);
+
+      if (projectData.phase2_status === 'error_credits') {
+        toast.error("Créditos da IA esgotados. Adicione créditos em Settings → Workspace → Usage.");
+      } else if (projectData.phase2_status === 'error_rate_limit') {
+        toast.error("Limite de requisições atingido. Tente novamente em alguns minutos.");
+      } else {
+        toast.error("Erro ao gerar resumo estratégico.");
+      }
     }
   }, [projectData?.phase2_status, generatingPhase2]);
 
@@ -113,7 +131,7 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
       title: "Estratégia",
       subtitle: "Resumo consolidado dos agentes estratégicos",
       icon: BarChart3,
-      status: phase2Status,
+      status: phase2VisualStatus,
       onClick: phase2Status === 'completed'
         ? () => navigate(`/hotel/${hotelId}/strategic-summary`)
         : handlePhase2Generate,
@@ -141,7 +159,7 @@ export function ProjectPhasesSection({ hotelId, hotelName, projectData, onUpdate
       title: "Relatório Final",
       subtitle: "Relatório consolidado e proposta de continuidade",
       icon: FileText,
-      status: phase5Status,
+      status: phase5VisualStatus,
       onClick: phase5Status === 'completed'
         ? () => navigate(`/hotel/${hotelId}/final-report`)
         : handlePhase5Generate,

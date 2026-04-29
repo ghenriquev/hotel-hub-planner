@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { RaiMigrationNotice } from "@/components/RaiMigrationNotice";
 
 
 export default function Login() {
@@ -34,6 +35,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <RaiMigrationNotice />
       <div className="flex flex-1">
         {/* Left panel - Branding */}
         <div className="hidden lg:flex lg:w-1/2 gradient-dark relative overflow-hidden">

@@ -80,13 +80,6 @@ export default function Dashboard() {
         <p className="text-muted-foreground">
           Gerencie o plano estratégico de vendas diretas
         </p>
-        
-        {isAdmin && (
-          <Button onClick={() => navigate("/hotel/new")} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Hotel
-          </Button>
-        )}
       </div>
 
       {/* Migration Banner */}
@@ -141,15 +134,9 @@ export default function Dashboard() {
           </h3>
           <p className="text-muted-foreground mb-6">
             {hotels.length === 0 
-              ? "Comece adicionando seu primeiro hotel" 
+              ? "A criação de novos hotéis foi desativada — o projeto foi migrado para a RAI." 
               : "Tente uma busca diferente"}
           </p>
-          {hotels.length === 0 && (
-            <Button onClick={() => navigate("/hotel/new")} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Hotel
-            </Button>
-          )}
         </div>
       ) : (
         <div

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useHotels } from "@/hooks/useHotels";
 import { toast } from "sonner";
-import { Building2, MapPin, Phone, Tag, Globe } from "lucide-react";
+import { Building2, MapPin, Phone, Tag, Globe, AlertTriangle, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const RAI_URL = "https://rai.reprotel.com.br/hotel-hub";
 
 const CATEGORIES = [
   "Hotel Urbano",
